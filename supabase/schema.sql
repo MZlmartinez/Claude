@@ -57,6 +57,44 @@ create policy "Users can view their own documents"
   on public.documents for select
   using (auth.uid() = profile_id);
 
+-- Métricas del "Perfomance snapshot" del home, una fila por indicador y
+-- período (mes). El admin las carga a mano por cliente; no hay integración
+-- automática con ninguna fuente de datos.
+create table public.metrics (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references public.profiles (id) on delete cascade,
+  period date not null, -- primer día del mes, ej. 2026-08-01
+  label text not null,
+  value_pct numeric not null,
+  sentiment text not null default 'neutral' check (sentiment in ('positive', 'negative', 'neutral')),
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table public.metrics enable row level security;
+
+create policy "Users can view their own metrics"
+  on public.metrics for select
+  using (auth.uid() = profile_id);
+
+-- Insight del mes que acompaña al snapshot, uno por período.
+create table public.insights_of_month (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references public.profiles (id) on delete cascade,
+  period date not null,
+  title text not null,
+  body text not null,
+  highlight text,
+  created_at timestamptz not null default now(),
+  unique (profile_id, period)
+);
+
+alter table public.insights_of_month enable row level security;
+
+create policy "Users can view their own insights"
+  on public.insights_of_month for select
+  using (auth.uid() = profile_id);
+
 -- Crea automáticamente una fila vacía en profiles cuando el admin invita
 -- a un usuario nuevo desde Supabase Auth. El admin completa el resto de
 -- los campos (portada, links) desde el Table Editor.

@@ -49,7 +49,17 @@ No hay auto-registro: los clientes son invitados por el equipo de Moscu.
    el home muestre el preview de "Próximas reuniones" y "Últimos documentos" — son solo
    un resumen visual, la fuente completa sigue siendo `agenda_embed_url` y
    `drive_folder_url`.
-4. El cliente entra a `/login` con su email/contraseña y ve su home personalizado.
+4. (Opcional) En **Table Editor → metrics / insights_of_month**, cargá el "Perfomance
+   snapshot" del mes:
+   - `metrics`: una fila por indicador y período (`period` = primer día del mes, ej.
+     `2026-08-01`), con `label`, `value_pct` (puede ser negativo) y `sentiment`
+     (`positive` / `negative` / `neutral`, define el color del cuadradito).
+   - `insights_of_month`: un texto de análisis por período (`title`, `body`, `highlight`
+     opcional). Es un campo de texto libre — Moscu escribe la conclusión del mes, no se
+     calcula solo.
+   - Esta sección solo aparece si hay al menos un período con métricas cargadas; si no
+     hay ninguna, no se muestra nada (no se inventan números).
+5. El cliente entra a `/login` con su email/contraseña y ve su home personalizado.
 
 Cualquier campo vacío muestra un estado "todavía no configurado" en vez de un iframe roto,
 y las listas de reuniones/documentos muestran "no hay nada todavía" si están vacías.

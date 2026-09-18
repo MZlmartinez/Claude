@@ -23,3 +23,20 @@ export type DocumentItem = {
   kind: string | null;
   url: string;
 };
+
+export type Metric = {
+  id: string;
+  period: string; // date ISO, primer día del mes
+  label: string;
+  value_pct: number;
+  sentiment: "positive" | "negative" | "neutral";
+  sort_order: number;
+};
+
+export type InsightOfMonth = {
+  id: string;
+  period: string;
+  title: string;
+  body: string;
+  highlight: string | null;
+};

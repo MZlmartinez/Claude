@@ -1,16 +1,22 @@
 import { getProfile } from "@/lib/getProfile";
-import { getRecentDocuments, getUpcomingMeetings } from "@/lib/getHomeData";
+import {
+  getPerformanceSnapshot,
+  getRecentDocuments,
+  getUpcomingMeetings,
+} from "@/lib/getHomeData";
 import { Navbar } from "@/components/Navbar";
 import { HomeCard } from "@/components/HomeCard";
 import { SidePanel } from "@/components/SidePanel";
 import { MeetingRow } from "@/components/MeetingRow";
 import { DocumentRow } from "@/components/DocumentRow";
+import { PerformanceSnapshot } from "@/components/PerformanceSnapshot";
 
 export default async function Home() {
   const { profile } = await getProfile();
-  const [meetings, documents] = await Promise.all([
+  const [meetings, documents, snapshot] = await Promise.all([
     getUpcomingMeetings(profile.id),
     getRecentDocuments(profile.id),
+    getPerformanceSnapshot(profile.id),
   ]);
 
   return (
@@ -65,6 +71,12 @@ export default async function Home() {
             </SidePanel>
           </div>
         </div>
+
+        <PerformanceSnapshot
+          periods={snapshot.periods}
+          metricsByPeriod={snapshot.metricsByPeriod}
+          insightByPeriod={snapshot.insightByPeriod}
+        />
 
         <h2 className="font-heading mt-10 mb-4 text-sm text-[var(--accent)]">Acceso rápido</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
