@@ -51,9 +51,18 @@ Cualquier campo vacío muestra un estado "todavía no configurado" en vez de un 
 
 ## 5. Marca
 
-Los colores están centralizados como variables CSS en `app/globals.css`
-(`--background`, `--foreground`, `--accent`). Hoy son un placeholder — se actualizan ahí
-en cuanto tengamos el logo/paleta real de Moscu (falta compartir esos assets).
+Identidad real de Moscu ya aplicada, tomada del brandbook compartido:
+
+- Logo: `public/moscu-logo.png` (wordmark blanco, extraído del brandbook para fondo oscuro).
+- Colores en `app/globals.css`: fondo `#181818`, texto `#f2f2f2`, acento naranja
+  `#ff502e`, y dos acentos secundarios disponibles (`--accent-lime` `#d7fa50`,
+  `--accent-blue` `#0d5bf7`) para usar en highlights puntuales si hace falta.
+- Tipografía: el brandbook usa **Avenir Heavy Condensed** (títulos) y **Barlow**
+  (subtítulos/texto). Avenir es una fuente de pago (Monotype) sin versión webfont
+  gratuita, así que los títulos usan **Barlow Condensed** como sustituto libre —
+  mismo espíritu grotesca condensada. Si Moscu tiene una licencia de Avenir para web,
+  se puede reemplazar en `app/layout.tsx` (import de `next/font/google` por
+  `next/font/local` con los archivos de la fuente).
 
 ## Deploy
 

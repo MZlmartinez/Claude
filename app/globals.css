@@ -1,25 +1,45 @@
 @import "tailwindcss";
 
 /*
- * Paleta placeholder — reemplazar por la identidad real de Moscu
- * (logo, colores, tipografía) en cuanto se compartan los assets.
+ * Identidad de marca Moscu (brandbook compartido por el cliente).
+ * Tipografía: Avenir Heavy Condensed (títulos) es de pago y no existe como
+ * webfont — se sustituye por Barlow Condensed, que tiene el mismo espíritu
+ * (grotesca condensada). Barlow (subtítulos/texto) es el original.
  */
 :root {
-  --background: #0a0a0c;
-  --foreground: #f5f5f5;
-  --accent: #7c5cff;
+  --background: #181818;
+  --foreground: #f2f2f2;
+  --accent: #ff502e; /* naranja Moscu */
+  --accent-lime: #d7fa50;
+  --accent-blue: #0d5bf7;
+  --muted: #606060;
+  --muted-light: #c3c3c3;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-accent: var(--accent);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-accent-lime: var(--accent-lime);
+  --color-accent-blue: var(--accent-blue);
+  --color-muted: var(--muted);
+  --color-muted-light: var(--muted-light);
+  --font-sans: var(--font-sans);
+  --font-heading: var(--font-heading);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+h1,
+h2,
+h3,
+.font-heading {
+  font-family: var(--font-heading), var(--font-sans), sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
 }

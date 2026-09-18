@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { signOut } from "@/app/actions";
 
@@ -13,8 +14,9 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-10 border-b border-white/10 bg-[var(--background)]/90 backdrop-blur">
       <nav className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
-          Moscu <span className="text-[var(--accent)]">Portal</span>
+        <Link href="/" className="flex items-center gap-2">
+          <Image src="/moscu-logo.png" alt="Moscu" width={307} height={77} className="h-6 w-auto" />
+          <span className="font-heading text-sm text-[var(--accent)]">Portal</span>
         </Link>
         <div className="hidden items-center gap-6 text-sm text-white/70 sm:flex">
           {LINKS.map((link) => (

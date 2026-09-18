@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useActionState } from "react";
 import { login } from "./actions";
 
@@ -9,10 +10,11 @@ export default function LoginPage() {
   return (
     <main className="flex flex-1 items-center justify-center px-6">
       <div className="w-full max-w-sm">
-        <h1 className="text-center text-2xl font-semibold tracking-tight">
-          Moscu <span className="text-[var(--accent)]">Portal</span>
-        </h1>
-        <p className="mt-2 text-center text-sm text-white/50">
+        <div className="flex flex-col items-center gap-2">
+          <Image src="/moscu-logo.png" alt="Moscu" width={307} height={77} className="h-10 w-auto" />
+          <span className="font-heading text-sm text-[var(--accent)]">Portal</span>
+        </div>
+        <p className="mt-4 text-center text-sm text-white/50">
           Ingresá con las credenciales que te dio Moscu.
         </p>
 
