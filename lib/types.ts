@@ -7,6 +7,8 @@ export type Profile = {
   drive_folder_url: string | null;
   agenda_embed_url: string | null;
   insights_embed_url: string | null;
+  fabric_sql_endpoint: string | null;
+  fabric_database: string | null;
   role: "client" | "admin";
 };
 

@@ -16,7 +16,7 @@ export default async function Home() {
   const [meetings, documents, snapshot] = await Promise.all([
     getUpcomingMeetings(profile.id),
     getRecentDocuments(profile.id),
-    getPerformanceSnapshot(profile.id),
+    getPerformanceSnapshot(profile),
   ]);
 
   return (

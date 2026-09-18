@@ -9,6 +9,11 @@ create table public.profiles (
   drive_folder_url text,
   agenda_embed_url text,
   insights_embed_url text,
+  -- Identifican el workspace de Fabric de este cliente (no son secretos: el
+  -- acceso lo da un único service principal compartido, ver README). Si
+  -- están vacíos, el "Perfomance snapshot" del home simplemente no se muestra.
+  fabric_sql_endpoint text,
+  fabric_database text,
   role text not null default 'client' check (role in ('client', 'admin')),
   created_at timestamptz not null default now()
 );
@@ -57,27 +62,14 @@ create policy "Users can view their own documents"
   on public.documents for select
   using (auth.uid() = profile_id);
 
--- Métricas del "Perfomance snapshot" del home, una fila por indicador y
--- período (mes). El admin las carga a mano por cliente; no hay integración
--- automática con ninguna fuente de datos.
-create table public.metrics (
-  id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references public.profiles (id) on delete cascade,
-  period date not null, -- primer día del mes, ej. 2026-08-01
-  label text not null,
-  value_pct numeric not null,
-  sentiment text not null default 'neutral' check (sentiment in ('positive', 'negative', 'neutral')),
-  sort_order int not null default 0,
-  created_at timestamptz not null default now()
-);
+-- Las métricas del "Perfomance snapshot" NO viven en Supabase — se leen en
+-- vivo (con caché de 15 min) desde la vista `dbo.portal_metrics` del
+-- workspace de Fabric de cada cliente, vía lib/fabric.ts. Así el número
+-- vive en un solo lugar (el datalake) y no hay que mantenerlo sincronizado
+-- a mano en dos sistemas.
 
-alter table public.metrics enable row level security;
-
-create policy "Users can view their own metrics"
-  on public.metrics for select
-  using (auth.uid() = profile_id);
-
--- Insight del mes que acompaña al snapshot, uno por período.
+-- Insight del mes que acompaña al snapshot, uno por período. Esto sí es
+-- contenido propio de Moscu (el análisis escrito), no un dato del datalake.
 create table public.insights_of_month (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid not null references public.profiles (id) on delete cascade,

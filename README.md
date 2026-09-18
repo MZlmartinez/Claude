@@ -49,22 +49,58 @@ No hay auto-registro: los clientes son invitados por el equipo de Moscu.
    el home muestre el preview de "Próximas reuniones" y "Últimos documentos" — son solo
    un resumen visual, la fuente completa sigue siendo `agenda_embed_url` y
    `drive_folder_url`.
-4. (Opcional) En **Table Editor → metrics / insights_of_month**, cargá el "Perfomance
-   snapshot" del mes:
-   - `metrics`: una fila por indicador y período (`period` = primer día del mes, ej.
-     `2026-08-01`), con `label`, `value_pct` (puede ser negativo) y `sentiment`
-     (`positive` / `negative` / `neutral`, define el color del cuadradito).
-   - `insights_of_month`: un texto de análisis por período (`title`, `body`, `highlight`
-     opcional). Es un campo de texto libre — Moscu escribe la conclusión del mes, no se
-     calcula solo.
-   - Esta sección solo aparece si hay al menos un período con métricas cargadas; si no
-     hay ninguna, no se muestra nada (no se inventan números).
-5. El cliente entra a `/login` con su email/contraseña y ve su home personalizado.
+4. (Opcional) Para que el cliente vea su "Perfomance snapshot" (las métricas reales del
+   datalake), completá en su fila de `profiles`:
+   - `fabric_sql_endpoint` y `fabric_database`: identifican su workspace de Fabric.
+   Ver la sección **Fabric (datalake de MZ Solutions)** más abajo para el resto del setup.
+5. (Opcional) En **Table Editor → insights_of_month**, cargá el análisis escrito del mes
+   (`period`, `title`, `body`, `highlight` opcional) — es contenido propio de Moscu, no
+   un dato del datalake, por eso vive en Supabase y no en Fabric.
+6. El cliente entra a `/login` con su email/contraseña y ve su home personalizado.
 
 Cualquier campo vacío muestra un estado "todavía no configurado" en vez de un iframe roto,
 y las listas de reuniones/documentos muestran "no hay nada todavía" si están vacías.
 
-## 5. Marca
+## 5. Fabric (datalake de MZ Solutions)
+
+Las métricas del "Perfomance snapshot" se leen en vivo desde el datalake, **no** se
+duplican en Supabase — así el número vive en un solo lugar y nunca puede desincronizarse
+entre dos sistemas. Cada cliente tiene su propio workspace en Microsoft Fabric; el portal
+se conecta a través de un único service principal de Azure AD con permiso de lectura en
+cada uno de esos workspaces.
+
+### Setup (una vez, del lado de MZ Solutions / Azure)
+
+1. Crear un **App Registration** en Azure AD (un service principal). Guardar su
+   `Tenant ID`, `Client ID` y generar un `Client Secret`.
+2. En Fabric, para cada workspace de cliente: **Manage access → agregar el service
+   principal como Viewer** (o el rol mínimo que permita `SELECT` sobre el SQL analytics
+   endpoint del Lakehouse/Warehouse).
+3. En cada workspace, crear una vista `dbo.portal_metrics` con esta forma exacta —es el
+   único contrato que el portal conoce, no le importa el modelado interno del datalake—:
+
+   ```sql
+   -- period: primer día del mes (ej. 2026-08-01)
+   -- sentiment: 'positive' | 'negative' | 'neutral' (define el color en el portal)
+   CREATE VIEW dbo.portal_metrics AS
+   SELECT period, label, value_pct, sentiment, sort_order FROM ...
+   ```
+
+### Setup (en este proyecto)
+
+1. Completá en `.env.local` (y en Vercel) las variables `AZURE_TENANT_ID`,
+   `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` del service principal creado arriba.
+2. En Supabase, en la fila del cliente en `profiles`, completá `fabric_sql_endpoint`
+   (el SQL analytics endpoint de su workspace, algo como
+   `xxxxxxxx.datawarehouse.fabric.microsoft.com`) y `fabric_database` (el nombre del
+   Lakehouse/Warehouse).
+
+Si esos dos campos están vacíos, o si Fabric no responde, la sección de "Perfomance
+snapshot" simplemente no se muestra — nunca rompe el resto del home. Las consultas se
+cachean 15 minutos por cliente (`lib/getHomeData.ts`) para no golpear Fabric en cada
+carga de página.
+
+## 6. Marca
 
 Identidad real de Moscu ya aplicada, tomada del brandbook compartido:
 
