@@ -8,20 +8,26 @@
  */
 :root {
   --background: #181818;
+  --surface: #1e1e1e;
   --foreground: #f2f2f2;
-  --accent: #ff502e; /* naranja Moscu */
-  --accent-lime: #d7fa50;
+  --accent: #d7fa50; /* lima Moscu — acento primario en el producto (ref. COOLmetrics) */
+  --accent-foreground: #181818; /* texto sobre fondos de acento (lima es claro) */
+  --accent-orange: #ff502e; /* naranja Moscu — marca/institucional */
   --accent-blue: #0d5bf7;
+  --danger: #ef4444;
   --muted: #606060;
   --muted-light: #c3c3c3;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
   --color-foreground: var(--foreground);
   --color-accent: var(--accent);
-  --color-accent-lime: var(--accent-lime);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-orange: var(--accent-orange);
   --color-accent-blue: var(--accent-blue);
+  --color-danger: var(--danger);
   --color-muted: var(--muted);
   --color-muted-light: var(--muted-light);
   --font-sans: var(--font-sans);

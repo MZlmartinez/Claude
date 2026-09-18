@@ -7,9 +7,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <Navbar />
+      <Navbar profile={profile} />
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
-        <h1 className="mb-6 text-2xl font-semibold">Dashboard</h1>
+        <h1 className="mb-6 text-2xl">Dashboard</h1>
         <EmbedFrame
           url={profile.dashboard_embed_url}
           title="Dashboard"

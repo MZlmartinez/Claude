@@ -45,18 +45,24 @@ No hay auto-registro: los clientes son invitados por el equipo de Moscu.
    - `agenda_embed_url`: link embebible de Calendly, o un Google Calendar público.
    - `dashboard_embed_url` / `insights_embed_url`: link embebible del reporte
      correspondiente (Looker Studio, Metabase, etc.).
-3. El cliente entra a `/login` con su email/contraseña y ve su home con las 4 secciones.
+3. (Opcional) En **Table Editor → meetings / documents**, agregá algunas filas para que
+   el home muestre el preview de "Próximas reuniones" y "Últimos documentos" — son solo
+   un resumen visual, la fuente completa sigue siendo `agenda_embed_url` y
+   `drive_folder_url`.
+4. El cliente entra a `/login` con su email/contraseña y ve su home personalizado.
 
-Cualquier campo vacío muestra un estado "todavía no configurado" en vez de un iframe roto.
+Cualquier campo vacío muestra un estado "todavía no configurado" en vez de un iframe roto,
+y las listas de reuniones/documentos muestran "no hay nada todavía" si están vacías.
 
 ## 5. Marca
 
 Identidad real de Moscu ya aplicada, tomada del brandbook compartido:
 
 - Logo: `public/moscu-logo.png` (wordmark blanco, extraído del brandbook para fondo oscuro).
-- Colores en `app/globals.css`: fondo `#181818`, texto `#f2f2f2`, acento naranja
-  `#ff502e`, y dos acentos secundarios disponibles (`--accent-lime` `#d7fa50`,
-  `--accent-blue` `#0d5bf7`) para usar en highlights puntuales si hace falta.
+- Colores en `app/globals.css`: fondo `#181818`, texto `#f2f2f2`, acento primario lima
+  `#d7fa50` (el que usa el producto "COOLmetrics" de Moscu, tomado de referencia), y dos
+  acentos secundarios disponibles (`--accent-orange` `#ff502e` institucional,
+  `--accent-blue` `#0d5bf7`) para highlights puntuales si hace falta.
 - Tipografía: el brandbook usa **Avenir Heavy Condensed** (títulos) y **Barlow**
   (subtítulos/texto). Avenir es una fuente de pago (Monotype) sin versión webfont
   gratuita, así que los títulos usan **Barlow Condensed** como sustituto libre —

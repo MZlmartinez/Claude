@@ -52,7 +52,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isPending}
-            className="w-full rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white transition disabled:opacity-60"
+            className="w-full rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-[var(--accent-foreground)] transition disabled:opacity-60"
           >
             {isPending ? "Ingresando..." : "Ingresar"}
           </button>

@@ -9,3 +9,17 @@ export type Profile = {
   insights_embed_url: string | null;
   role: "client" | "admin";
 };
+
+export type Meeting = {
+  id: string;
+  title: string;
+  meeting_at: string; // timestamptz ISO
+  link: string | null;
+};
+
+export type DocumentItem = {
+  id: string;
+  name: string;
+  kind: string | null;
+  url: string;
+};
