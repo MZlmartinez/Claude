@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { queryFabricRaw } from "@/lib/fabric";
+import { connectFabric } from "@/lib/fabric";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+export const maxDuration = 60;
 
 // Lista de tablas gold a sincronizar completas (nombre igual en Fabric y en
 // Supabase). Estrategia: borrar y recargar por profile_id en cada corrida,
@@ -63,30 +65,33 @@ export async function GET(request: Request) {
   const supabase = createAdminClient();
   const results: Record<string, { rows: number; error?: string }> = {};
 
-  for (const table of GOLD_TABLES) {
-    try {
-      const fabricRows = await queryFabricRaw(
-        sqlEndpoint,
-        database,
-        `SELECT * FROM dbo.${table}`,
-      );
+  const pool = await connectFabric(sqlEndpoint, database);
 
-      await supabase.from(table).delete().eq("profile_id", profileId);
+  try {
+    for (const table of GOLD_TABLES) {
+      try {
+        const fabricResult = await pool.request().query(`SELECT * FROM dbo.${table}`);
+        const fabricRows = fabricResult.recordset as Record<string, unknown>[];
 
-      if (fabricRows.length > 0) {
-        const rowsToInsert = fabricRows.map((row) => ({
-          ...renameColumns(table, row),
-          profile_id: profileId,
-        }));
+        await supabase.from(table).delete().eq("profile_id", profileId);
 
-        const { error } = await supabase.from(table).insert(rowsToInsert);
-        if (error) throw new Error(error.message);
+        if (fabricRows.length > 0) {
+          const rowsToInsert = fabricRows.map((row) => ({
+            ...renameColumns(table, row),
+            profile_id: profileId,
+          }));
+
+          const { error } = await supabase.from(table).insert(rowsToInsert);
+          if (error) throw new Error(error.message);
+        }
+
+        results[table] = { rows: fabricRows.length };
+      } catch (error) {
+        results[table] = { rows: 0, error: String(error) };
       }
-
-      results[table] = { rows: fabricRows.length };
-    } catch (error) {
-      results[table] = { rows: 0, error: String(error) };
     }
+  } finally {
+    await pool.close();
   }
 
   return NextResponse.json({ ok: true, results });

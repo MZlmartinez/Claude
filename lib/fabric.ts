@@ -60,3 +60,10 @@ export async function queryFabricRaw(
     await pool.close();
   }
 }
+
+// Para jobs que corren muchas consultas seguidas (ej. el sync de las 15
+// tablas gold): abrir una sola conexión y reusarla, en vez de reconectar
+// (con el handshake de Azure AD incluido) una vez por tabla.
+export async function connectFabric(sqlEndpoint: string, database: string) {
+  return sql.connect(fabricConfig(sqlEndpoint, database));
+}
