@@ -43,3 +43,20 @@ export async function queryFabricMetrics(
     await pool.close();
   }
 }
+
+// Consulta genérica, para probar conexión contra cualquier tabla/vista de
+// Fabric (ej. las tablas gold) antes de definir un contrato fijo como el
+// de queryFabricMetrics.
+export async function queryFabricRaw(
+  sqlEndpoint: string,
+  database: string,
+  query: string,
+): Promise<Record<string, unknown>[]> {
+  const pool = await sql.connect(fabricConfig(sqlEndpoint, database));
+  try {
+    const result = await pool.request().query(query);
+    return result.recordset;
+  } finally {
+    await pool.close();
+  }
+}

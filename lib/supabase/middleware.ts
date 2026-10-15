@@ -1,7 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/auth"];
+// /api queda afuera del chequeo de sesión: cada ruta de API maneja su
+// propia autorización (ver app/api/test-fabric, app/api/test-supabase).
+const PUBLIC_PATHS = ["/login", "/auth", "/api"];
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
