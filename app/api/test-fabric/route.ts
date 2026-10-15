@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { queryFabricRaw } from "@/lib/fabric";
+import { GOLD_TABLES } from "@/lib/goldTables";
+
+export const maxDuration = 60;
 
 // Ruta temporal para probar la conexión real a Fabric desde Vercel (este
 // entorno de desarrollo no tiene salida de red a Fabric/Supabase). Protegida
@@ -13,7 +16,6 @@ export async function GET(request: Request) {
 
   const sqlEndpoint = searchParams.get("endpoint");
   const database = searchParams.get("database");
-  const table = searchParams.get("table") ?? "gold_shopify_channel";
 
   if (!sqlEndpoint || !database) {
     return NextResponse.json(
@@ -21,6 +23,21 @@ export async function GET(request: Request) {
       { status: 400 },
     );
   }
+
+  // ?counts=1 → cuántas filas tiene cada tabla gold, sin traer los datos.
+  if (searchParams.get("counts")) {
+    try {
+      const unionQuery = GOLD_TABLES.map(
+        (t) => `SELECT '${t}' AS tbl, COUNT(*) AS total FROM dbo.${t}`,
+      ).join(" UNION ALL ");
+      const counts = await queryFabricRaw(sqlEndpoint, database, unionQuery);
+      return NextResponse.json({ ok: true, counts });
+    } catch (error) {
+      return NextResponse.json({ ok: false, error: String(error) }, { status: 500 });
+    }
+  }
+
+  const table = searchParams.get("table") ?? "gold_shopify_channel";
 
   if (!/^[a-zA-Z0-9_]+$/.test(table)) {
     return NextResponse.json({ error: "nombre de tabla inválido" }, { status: 400 });
