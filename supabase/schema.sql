@@ -62,11 +62,25 @@ create policy "Users can view their own documents"
   on public.documents for select
   using (auth.uid() = profile_id);
 
--- Las métricas del "Perfomance snapshot" NO viven en Supabase — se leen en
--- vivo (con caché de 15 min) desde la vista `dbo.portal_metrics` del
--- workspace de Fabric de cada cliente, vía lib/fabric.ts. Así el número
--- vive en un solo lugar (el datalake) y no hay que mantenerlo sincronizado
--- a mano en dos sistemas.
+-- Snapshot diario de cada dashboard (ej. "metrics", "prensa"), sincronizado
+-- desde Fabric una vez al día por un job programado (no a mano, y no en
+-- cada visita del cliente). `data` guarda lo que ese dashboard necesita para
+-- renderizarse, ya procesado — así un dashboard nuevo no pide una tabla
+-- nueva, solo una `dashboard_key` nueva.
+create table public.dashboard_snapshots (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references public.profiles (id) on delete cascade,
+  dashboard_key text not null,
+  data jsonb not null,
+  synced_at timestamptz not null default now(),
+  unique (profile_id, dashboard_key)
+);
+
+alter table public.dashboard_snapshots enable row level security;
+
+create policy "Users can view their own dashboard snapshots"
+  on public.dashboard_snapshots for select
+  using (auth.uid() = profile_id);
 
 -- Insight del mes que acompaña al snapshot, uno por período. Esto sí es
 -- contenido propio de Moscu (el análisis escrito), no un dato del datalake.
