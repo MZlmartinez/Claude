@@ -63,33 +63,37 @@ export async function GET(request: Request) {
   }
 
   const supabase = createAdminClient();
-  const results: Record<string, { rows: number; error?: string }> = {};
-
   const pool = await connectFabric(sqlEndpoint, database);
 
-  try {
-    for (const table of GOLD_TABLES) {
-      try {
-        const fabricResult = await pool.request().query(`SELECT * FROM dbo.${table}`);
-        const fabricRows = fabricResult.recordset as Record<string, unknown>[];
+  async function syncTable(table: string) {
+    try {
+      // Una request por tabla, pero todas corren en paralelo sobre el
+      // mismo pool (mssql maneja varias conexiones internamente).
+      const fabricResult = await pool.request().query(`SELECT * FROM dbo.${table}`);
+      const fabricRows = fabricResult.recordset as Record<string, unknown>[];
 
-        await supabase.from(table).delete().eq("profile_id", profileId);
+      await supabase.from(table).delete().eq("profile_id", profileId);
 
-        if (fabricRows.length > 0) {
-          const rowsToInsert = fabricRows.map((row) => ({
-            ...renameColumns(table, row),
-            profile_id: profileId,
-          }));
+      if (fabricRows.length > 0) {
+        const rowsToInsert = fabricRows.map((row) => ({
+          ...renameColumns(table, row),
+          profile_id: profileId,
+        }));
 
-          const { error } = await supabase.from(table).insert(rowsToInsert);
-          if (error) throw new Error(error.message);
-        }
-
-        results[table] = { rows: fabricRows.length };
-      } catch (error) {
-        results[table] = { rows: 0, error: String(error) };
+        const { error } = await supabase.from(table).insert(rowsToInsert);
+        if (error) throw new Error(error.message);
       }
+
+      return [table, { rows: fabricRows.length }] as const;
+    } catch (error) {
+      return [table, { rows: 0, error: String(error) }] as const;
     }
+  }
+
+  let results: Record<string, { rows: number; error?: string }>;
+  try {
+    const entries = await Promise.all(GOLD_TABLES.map(syncTable));
+    results = Object.fromEntries(entries);
   } finally {
     await pool.close();
   }
