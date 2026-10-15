@@ -54,6 +54,7 @@ export async function GET(request: Request) {
   const sqlEndpoint = searchParams.get("endpoint");
   const database = searchParams.get("database");
   const profileId = searchParams.get("profileId");
+  const onlyTable = searchParams.get("table");
 
   if (!sqlEndpoint || !database || !profileId) {
     return NextResponse.json(
@@ -61,6 +62,12 @@ export async function GET(request: Request) {
       { status: 400 },
     );
   }
+
+  if (onlyTable && !GOLD_TABLES.includes(onlyTable as (typeof GOLD_TABLES)[number])) {
+    return NextResponse.json({ error: "tabla desconocida" }, { status: 400 });
+  }
+
+  const tablesToSync = onlyTable ? [onlyTable] : GOLD_TABLES;
 
   const supabase = createAdminClient();
   const pool = await connectFabric(sqlEndpoint, database);
@@ -92,7 +99,7 @@ export async function GET(request: Request) {
 
   let results: Record<string, { rows: number; error?: string }>;
   try {
-    const entries = await Promise.all(GOLD_TABLES.map(syncTable));
+    const entries = await Promise.all(tablesToSync.map(syncTable));
     results = Object.fromEntries(entries);
   } finally {
     await pool.close();
