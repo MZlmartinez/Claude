@@ -1,15 +1,20 @@
 -- Espejo de las tablas "gold_*" del Lakehouse de Fabric de Decathlon
--- (LH_Deca_Negocio). Se sincronizan completas (no un resumen) una vez al
--- día por el job de sync — ver README. Cada tabla lleva su `profile_id`
--- para cuando haya más de un cliente con estas mismas tablas.
+-- (LH_Deca_Negocio). Se sincronizan completas (no un resumen), vía un
+-- Copy Job de Fabric que escribe directo acá (conexión Postgres por
+-- pooler de Supabase) — ver conversación/README del proyecto.
 --
--- El sync hace "borrar y recargar" por profile_id en cada corrida (no hay
--- una clave natural de fila única en varias de estas tablas), por eso no
--- se define una primary key propia más allá del id interno.
+-- Estas 15 tablas son exclusivas de Decathlon: cada cliente nuevo tiene su
+-- propio set de tablas gold, con nombres propios (no comparten tabla ni
+-- necesitan una columna de tenant como profile_id). Esto es más seguro que
+-- un esquema multi-tenant compartido: un error de RLS en la tabla de un
+-- cliente no puede filtrar datos de otro, porque ni están en la misma tabla.
+--
+-- El sync hace "copia completa" en cada corrida (no hay una clave natural
+-- de fila única en varias de estas tablas), por eso no se define una
+-- primary key propia más allá del id interno.
 
 create table public.gold_meta_campanas (
   id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references public.profiles (id) on delete cascade,
   inicio_del_informe date,
   fin_del_informe date,
   nombre_de_la_campana text,
@@ -37,7 +42,6 @@ create table public.gold_meta_campanas (
 
 create table public.gold_shopify_average_order_value_over_time (
   id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references public.profiles (id) on delete cascade,
   day date,
   gross_sales double precision,
   discounts integer,
@@ -48,14 +52,12 @@ create table public.gold_shopify_average_order_value_over_time (
 
 create table public.gold_shopify_channel (
   id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references public.profiles (id) on delete cascade,
   referring_channel text,
   synced_at timestamptz not null default now()
 );
 
 create table public.gold_shopify_checkout_conversion_rate_over_time (
   id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references public.profiles (id) on delete cascade,
   day date,
   sessions_that_reached_checkout integer,
   sessions_that_completed_checkout integer,
@@ -69,7 +71,6 @@ create table public.gold_shopify_checkout_conversion_rate_over_time (
 
 create table public.gold_shopify_conversion_rate_over_time (
   id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references public.profiles (id) on delete cascade,
   day date,
   referring_channel text,
   sessions integer,
@@ -82,7 +83,6 @@ create table public.gold_shopify_conversion_rate_over_time (
 
 create table public.gold_shopify_customer_behavior (
   id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references public.profiles (id) on delete cascade,
   customer_id bigint,
   customer_name text,
   customer_number_of_orders integer,
@@ -95,7 +95,6 @@ create table public.gold_shopify_customer_behavior (
 
 create table public.gold_shopify_facturacion_inversion (
   id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references public.profiles (id) on delete cascade,
   tipo text,
   periodo bigint,
   plataforma double precision,
@@ -106,7 +105,6 @@ create table public.gold_shopify_facturacion_inversion (
 
 create table public.gold_shopify_new_vs_returning_customers (
   id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references public.profiles (id) on delete cascade,
   new_or_returning_customer text,
   day date,
   customers integer,
@@ -115,7 +113,6 @@ create table public.gold_shopify_new_vs_returning_customers (
 
 create table public.gold_shopify_objetivos (
   id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references public.profiles (id) on delete cascade,
   nombre_objetivo text,
   periodo bigint,
   plataforma text,
@@ -125,7 +122,6 @@ create table public.gold_shopify_objetivos (
 
 create table public.gold_shopify_orders_over_time (
   id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references public.profiles (id) on delete cascade,
   day date,
   order_referrer_name text,
   order_referrer_source text,
@@ -139,7 +135,6 @@ create table public.gold_shopify_orders_over_time (
 
 create table public.gold_shopify_sessions_by_referrer (
   id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references public.profiles (id) on delete cascade,
   referrer_source text,
   referrer_name text,
   session_city text,
@@ -154,7 +149,6 @@ create table public.gold_shopify_sessions_by_referrer (
 
 create table public.gold_shopify_sessions_by_referrer_master (
   id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references public.profiles (id) on delete cascade,
   referrer_source text,
   referrer_name text,
   session_city text,
@@ -173,7 +167,6 @@ create table public.gold_shopify_sessions_by_referrer_master (
 
 create table public.gold_shopify_sessions_by_session_device_type (
   id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references public.profiles (id) on delete cascade,
   session_device_type text,
   year date,
   month date,
@@ -189,7 +182,6 @@ create table public.gold_shopify_sessions_by_session_device_type (
 
 create table public.gold_shopify_time (
   id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references public.profiles (id) on delete cascade,
   fecha date,
   periodo integer,
   periodo_mes text,
@@ -211,7 +203,6 @@ create table public.gold_shopify_time (
 
 create table public.gold_shopify_total_sales_by_product (
   id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references public.profiles (id) on delete cascade,
   product_title text,
   product_vendor text,
   product_type text,
@@ -229,7 +220,8 @@ create table public.gold_shopify_total_sales_by_product (
   synced_at timestamptz not null default now()
 );
 
--- RLS: cada cliente ve solo sus propias filas, en las 15 tablas.
+-- RLS: solo el usuario de Decathlon puede leer estas 15 tablas (son suyas
+-- en exclusiva). El UUID es el de su fila en auth.users/profiles.
 do $$
 declare
   t text;
@@ -255,9 +247,8 @@ begin
   loop
     execute format('alter table public.%I enable row level security', t);
     execute format(
-      'create policy "Users can view their own rows" on public.%I for select using (auth.uid() = profile_id)',
+      'create policy "Decathlon users can view" on public.%I for select using (auth.uid() = ''0d505e1a-267c-47d1-8c21-c81acef6d6db''::uuid)',
       t
     );
-    execute format('create index on public.%I (profile_id)', t);
   end loop;
 end $$;

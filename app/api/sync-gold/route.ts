@@ -36,14 +36,13 @@ export async function GET(request: Request) {
 
   const sqlEndpoint = searchParams.get("endpoint");
   const database = searchParams.get("database");
-  const profileId = searchParams.get("profileId");
   const onlyTable = searchParams.get("table");
   const from = searchParams.get("from");
   const to = searchParams.get("to");
 
-  if (!sqlEndpoint || !database || !profileId) {
+  if (!sqlEndpoint || !database) {
     return NextResponse.json(
-      { error: "faltan los parámetros endpoint, database y profileId" },
+      { error: "faltan los parámetros endpoint y database" },
       { status: 400 },
     );
   }
@@ -83,7 +82,10 @@ export async function GET(request: Request) {
       const fabricResult = await fabricRequest.query(query);
       const fabricRows = fabricResult.recordset as Record<string, unknown>[];
 
-      const deleteBuilder = supabase.from(table).delete().eq("profile_id", profileId);
+      // Estas tablas son exclusivas de Decathlon (una tabla por cliente, sin
+      // columna de tenant), así que el borrado es de la tabla entera o del
+      // rango de fechas pedido, no de un profile_id puntual.
+      const deleteBuilder = supabase.from(table).delete().not("id", "is", null);
       if (from && to) {
         await deleteBuilder.gte("day", from).lt("day", to);
       } else {
@@ -91,10 +93,7 @@ export async function GET(request: Request) {
       }
 
       if (fabricRows.length > 0) {
-        const rowsToInsert = fabricRows.map((row) => ({
-          ...renameColumns(table, row),
-          profile_id: profileId,
-        }));
+        const rowsToInsert = fabricRows.map((row) => renameColumns(table, row));
 
         const { error } = await supabase.from(table).insert(rowsToInsert);
         if (error) throw new Error(error.message);
