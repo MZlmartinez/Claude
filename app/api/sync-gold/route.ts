@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
+import sql from "mssql";
 import { connectFabric } from "@/lib/fabric";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { GOLD_TABLES } from "@/lib/goldTables";
 
 export const maxDuration = 60;
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 // Única diferencia de nombres entre Fabric y Supabase (Postgres no puede
 // tener una columna sin comillas en mayúsculas/minúsculas mixtas cómodamente).
@@ -35,6 +38,8 @@ export async function GET(request: Request) {
   const database = searchParams.get("database");
   const profileId = searchParams.get("profileId");
   const onlyTable = searchParams.get("table");
+  const from = searchParams.get("from");
+  const to = searchParams.get("to");
 
   if (!sqlEndpoint || !database || !profileId) {
     return NextResponse.json(
@@ -47,6 +52,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "tabla desconocida" }, { status: 400 });
   }
 
+  if ((from && !DATE_RE.test(from)) || (to && !DATE_RE.test(to)) || Boolean(from) !== Boolean(to)) {
+    return NextResponse.json(
+      { error: "from y to van juntos, en formato YYYY-MM-DD" },
+      { status: 400 },
+    );
+  }
+
   const tablesToSync = onlyTable ? [onlyTable] : GOLD_TABLES;
 
   const supabase = createAdminClient();
@@ -56,10 +68,27 @@ export async function GET(request: Request) {
     try {
       // Una request por tabla, pero todas corren en paralelo sobre el
       // mismo pool (mssql maneja varias conexiones internamente).
-      const fabricResult = await pool.request().query(`SELECT * FROM dbo.${table}`);
+      const fabricRequest = pool.request();
+      let query = `SELECT * FROM dbo.${table}`;
+
+      // Con from/to filtramos por fecha, para traer el historial de las
+      // tablas grandes en pedazos (una corrida por rango) sin pisar lo que
+      // ya se cargó de otros rangos.
+      if (from && to) {
+        fabricRequest.input("fromDate", sql.Date, from);
+        fabricRequest.input("toDate", sql.Date, to);
+        query += ` WHERE day >= @fromDate AND day < @toDate`;
+      }
+
+      const fabricResult = await fabricRequest.query(query);
       const fabricRows = fabricResult.recordset as Record<string, unknown>[];
 
-      await supabase.from(table).delete().eq("profile_id", profileId);
+      const deleteBuilder = supabase.from(table).delete().eq("profile_id", profileId);
+      if (from && to) {
+        await deleteBuilder.gte("day", from).lt("day", to);
+      } else {
+        await deleteBuilder;
+      }
 
       if (fabricRows.length > 0) {
         const rowsToInsert = fabricRows.map((row) => ({

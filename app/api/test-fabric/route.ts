@@ -37,6 +37,25 @@ export async function GET(request: Request) {
     }
   }
 
+  // ?daterange=1 → rango de fechas (MIN/MAX day) de las tablas grandes,
+  // para planificar en cuántos pedazos conviene backfillear el historial.
+  if (searchParams.get("daterange")) {
+    try {
+      const bigTables = [
+        "gold_shopify_sessions_by_referrer_master",
+        "gold_shopify_sessions_by_referrer",
+        "gold_shopify_customer_behavior",
+      ];
+      const unionQuery = bigTables
+        .map((t) => `SELECT '${t}' AS tbl, MIN(day) AS min_day, MAX(day) AS max_day FROM dbo.${t}`)
+        .join(" UNION ALL ");
+      const ranges = await queryFabricRaw(sqlEndpoint, database, unionQuery);
+      return NextResponse.json({ ok: true, ranges });
+    } catch (error) {
+      return NextResponse.json({ ok: false, error: String(error) }, { status: 500 });
+    }
+  }
+
   const table = searchParams.get("table") ?? "gold_shopify_channel";
 
   if (!/^[a-zA-Z0-9_]+$/.test(table)) {
