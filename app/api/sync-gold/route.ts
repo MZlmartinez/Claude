@@ -36,7 +36,7 @@ export async function GET(request: Request) {
 
   const sqlEndpoint = searchParams.get("endpoint");
   const database = searchParams.get("database");
-  const onlyTable = searchParams.get("table");
+  const tablesParam = searchParams.get("table");
   const from = searchParams.get("from");
   const to = searchParams.get("to");
 
@@ -47,8 +47,22 @@ export async function GET(request: Request) {
     );
   }
 
-  if (onlyTable && !GOLD_TABLES.includes(onlyTable as (typeof GOLD_TABLES)[number])) {
-    return NextResponse.json({ error: "tabla desconocida" }, { status: 400 });
+  // ?table= acepta una tabla sola o varias separadas por coma, para
+  // sincronizar un grupo de una sola llamada (ej. ?table=a,b,c).
+  const requestedTables = tablesParam
+    ? tablesParam.split(",").map((t) => t.trim())
+    : null;
+
+  if (requestedTables) {
+    const unknown = requestedTables.filter(
+      (t) => !GOLD_TABLES.includes(t as (typeof GOLD_TABLES)[number]),
+    );
+    if (unknown.length > 0) {
+      return NextResponse.json(
+        { error: `tabla(s) desconocida(s): ${unknown.join(", ")}` },
+        { status: 400 },
+      );
+    }
   }
 
   if ((from && !DATE_RE.test(from)) || (to && !DATE_RE.test(to)) || Boolean(from) !== Boolean(to)) {
@@ -58,7 +72,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const tablesToSync = onlyTable ? [onlyTable] : GOLD_TABLES;
+  const tablesToSync = requestedTables ?? GOLD_TABLES;
 
   const supabase = createAdminClient();
   const pool = await connectFabric(sqlEndpoint, database);
