@@ -7,7 +7,12 @@ let pool: Pool | undefined;
 
 function getPool() {
   if (!pool) {
-    pool = new Pool({ connectionString: process.env.SUPABASE_DB_URL });
+    pool = new Pool({
+      connectionString: process.env.SUPABASE_DB_URL,
+      // El pooler de Supabase exige TLS; el certificado no valida contra
+      // las CA por defecto de Node en algunos entornos serverless.
+      ssl: { rejectUnauthorized: false },
+    });
   }
   return pool;
 }
