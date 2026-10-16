@@ -80,6 +80,7 @@ export async function getCampanas(f: InfluencerFilters): Promise<CampanaRow[]> {
       where (CAST($2 AS TEXT) IS NULL OR territorio = CAST($2 AS TEXT))
         and (CAST($3 AS TEXT) IS NULL OR influencer = CAST($3 AS TEXT))
         and (CAST($4 AS TEXT) IS NULL OR scope_recibido_tipo = CAST($4 AS TEXT))
+        and (CAST($1 AS TEXT) IS NULL OR TRUE)
     ), k as (
       select campana, influencer, max(presupuesto)::float8 fee from f group by 1,2
     ), p as (
@@ -119,6 +120,7 @@ export async function getFormatos(f: InfluencerFilters): Promise<FormatoRow[]> {
       where (CAST($1 AS TEXT) IS NULL OR campana = CAST($1 AS TEXT))
         and (CAST($2 AS TEXT) IS NULL OR territorio = CAST($2 AS TEXT))
         and (CAST($3 AS TEXT) IS NULL OR influencer = CAST($3 AS TEXT))
+        and (CAST($4 AS TEXT) IS NULL OR TRUE)
     )
     select coalesce(scope_recibido_tipo,'TODOS') formato,
       count(*)::int piezas,
@@ -165,6 +167,7 @@ export async function getInfluencers(f: InfluencerFilters): Promise<InfluencerRo
       where (CAST($1 AS TEXT) IS NULL OR campana = CAST($1 AS TEXT))
         and (CAST($2 AS TEXT) IS NULL OR territorio = CAST($2 AS TEXT))
         and (CAST($4 AS TEXT) IS NULL OR scope_recibido_tipo = CAST($4 AS TEXT))
+        and (CAST($3 AS TEXT) IS NULL OR TRUE)
     ), k as (
       select influencer, campana, max(presupuesto)::float8 fee from f group by 1,2
     ), kk as (
@@ -215,6 +218,7 @@ export async function getTerritorios(f: InfluencerFilters): Promise<TerritorioRo
       where (CAST($1 AS TEXT) IS NULL OR campana = CAST($1 AS TEXT))
         and (CAST($3 AS TEXT) IS NULL OR influencer = CAST($3 AS TEXT))
         and (CAST($4 AS TEXT) IS NULL OR scope_recibido_tipo = CAST($4 AS TEXT))
+        and (CAST($2 AS TEXT) IS NULL OR TRUE)
     )
     select territorio, count(*)::int piezas, count(distinct influencer)::int influencers,
       coalesce(sum(visualizaciones),0)::float8 visualizaciones
@@ -312,6 +316,7 @@ export async function getContratos(f: InfluencerFilters): Promise<ContratoRow[]>
       where (CAST($1 AS TEXT) IS NULL OR campana = CAST($1 AS TEXT))
         and (CAST($2 AS TEXT) IS NULL OR territorio = CAST($2 AS TEXT))
         and (CAST($3 AS TEXT) IS NULL OR influencer = CAST($3 AS TEXT))
+        and (CAST($4 AS TEXT) IS NULL OR TRUE)
     ), a as (
       select campana, influencer, scope_acordado_tipo tipo, max(scope_acrodado_numero)::int n
       from f where scope_acordado_tipo is not null and coalesce(scope_acrodado_numero,0) > 0

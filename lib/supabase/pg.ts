@@ -12,6 +12,10 @@ function getPool() {
       // El pooler de Supabase exige TLS; el certificado no valida contra
       // las CA por defecto de Node en algunos entornos serverless.
       ssl: { rejectUnauthorized: false },
+      // El plan de Supabase tiene un límite total de 15 conexiones en modo
+      // session — cada instancia de esta función se queda con pocas, para
+      // no agotarlo si corren varias invocaciones a la vez.
+      max: 2,
     });
   }
   return pool;
