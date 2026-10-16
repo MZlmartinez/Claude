@@ -16,4 +16,15 @@ export const GOLD_TABLES = [
   "gold_shopify_sessions_by_session_device_type",
   "gold_shopify_time",
   "gold_shopify_total_sales_by_product",
+  "gold_influencers",
 ] as const;
+
+// Casi todas las tablas viven en el esquema dbo del Lakehouse; gold_influencers
+// es la excepción (vive en el esquema influencers).
+export const SOURCE_SCHEMA_OVERRIDES: Record<string, string> = {
+  gold_influencers: "influencers",
+};
+
+export function sourceSchema(table: string) {
+  return SOURCE_SCHEMA_OVERRIDES[table] ?? "dbo";
+}

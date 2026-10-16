@@ -2,16 +2,21 @@ import { NextResponse } from "next/server";
 import sql from "mssql";
 import { connectFabric } from "@/lib/fabric";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { GOLD_TABLES } from "@/lib/goldTables";
+import { GOLD_TABLES, sourceSchema } from "@/lib/goldTables";
 
 export const maxDuration = 60;
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-// Única diferencia de nombres entre Fabric y Supabase (Postgres no puede
-// tener una columna sin comillas en mayúsculas/minúsculas mixtas cómodamente).
+// Columnas que renombramos al pasar de Fabric a Supabase: por mayúsculas
+// mixtas (UltimoPeriodo) o por caracteres con tilde/ñ, para evitar líos de
+// encoding en nombres de columna de Postgres.
 const COLUMN_RENAMES: Record<string, Record<string, string>> = {
   gold_shopify_time: { UltimoPeriodo: "ultimo_periodo" },
+  gold_influencers: {
+    "campaña": "campana",
+    "presupuesto_año_fiscal": "presupuesto_anio_fiscal",
+  },
 };
 
 function renameColumns(table: string, row: Record<string, unknown>) {
@@ -82,7 +87,7 @@ export async function GET(request: Request) {
       // Una request por tabla, pero todas corren en paralelo sobre el
       // mismo pool (mssql maneja varias conexiones internamente).
       const fabricRequest = pool.request();
-      let query = `SELECT * FROM dbo.${table}`;
+      let query = `SELECT * FROM ${sourceSchema(table)}.${table}`;
 
       // Con from/to filtramos por fecha, para traer el historial de las
       // tablas grandes en pedazos (una corrida por rango) sin pisar lo que

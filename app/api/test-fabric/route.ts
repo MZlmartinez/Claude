@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { queryFabricRaw } from "@/lib/fabric";
-import { GOLD_TABLES } from "@/lib/goldTables";
+import { GOLD_TABLES, sourceSchema } from "@/lib/goldTables";
 
 export const maxDuration = 60;
 
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
   if (searchParams.get("counts")) {
     try {
       const unionQuery = GOLD_TABLES.map(
-        (t) => `SELECT '${t}' AS tbl, COUNT(*) AS total FROM dbo.${t}`,
+        (t) => `SELECT '${t}' AS tbl, COUNT(*) AS total FROM ${sourceSchema(t)}.${t}`,
       ).join(" UNION ALL ");
       const counts = await queryFabricRaw(sqlEndpoint, database, unionQuery);
       return NextResponse.json({ ok: true, counts });
@@ -66,7 +66,7 @@ export async function GET(request: Request) {
     const rows = await queryFabricRaw(
       sqlEndpoint,
       database,
-      `SELECT TOP 5 * FROM dbo.${table}`,
+      `SELECT TOP 5 * FROM ${sourceSchema(table)}.${table}`,
     );
     return NextResponse.json({ ok: true, table, rows });
   } catch (error) {
