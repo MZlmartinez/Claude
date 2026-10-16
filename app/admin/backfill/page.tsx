@@ -80,9 +80,23 @@ export default function BackfillPage() {
           const tableError = data.results?.[table]?.error;
 
           if (tableError) {
-            pushLog({ text: `${table} ${cursor}→${chunkTo}: error — ${tableError}`, kind: "error" });
-            setRunning(false);
-            return;
+            // Timeout de Postgres (statement_timeout) o similar: el tramo
+            // era muy grande para ese pedazo puntual, no un error de datos.
+            // Tratarlo igual que el 504: achicar y reintentar.
+            if (windowDays <= 1) {
+              pushLog({
+                text: `${table} ${cursor}→${chunkTo}: error incluso con 1 día — ${tableError}`,
+                kind: "error",
+              });
+              setRunning(false);
+              return;
+            }
+            windowDays = Math.max(1, Math.floor(windowDays / 2));
+            pushLog({
+              text: `${table} ${cursor}→${chunkTo}: error (${tableError}), achico el tramo a ${windowDays} día(s) y reintento.`,
+              kind: "retry",
+            });
+            continue;
           }
 
           pushLog({ text: `${table} ${cursor}→${chunkTo}: ${rows} filas`, kind: "ok" });
