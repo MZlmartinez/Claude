@@ -14,6 +14,21 @@ const BIG_TABLES = [
   "gold_shopify_sessions_by_referrer_master",
 ] as const;
 
+const SMALL_TABLES = GOLD_TABLES.filter(
+  (t) => !BIG_TABLES.includes(t as (typeof BIG_TABLES)[number]),
+);
+
+// Una sola corrida con las 16 tablas se pasaba de los 60s que permite una
+// función en el plan Hobby de Vercel. Se parte en grupos más chicos, cada
+// uno con su propio Cron Job (ver vercel.json) escalonado cada 5 minutos,
+// para que cada invocación tenga su propia ventana de 60s entera.
+const GROUPS: Record<string, readonly string[]> = {
+  big: BIG_TABLES,
+  a: SMALL_TABLES.slice(0, 5),
+  b: SMALL_TABLES.slice(5, 10),
+  c: SMALL_TABLES.slice(10),
+};
+
 // Ventana de días hacia atrás para las tablas grandes: suficiente para
 // pisar con datos actualizados cualquier sesión que haya llegado tarde,
 // sin tener que releer la historia completa cada día.
@@ -26,11 +41,23 @@ function isoDate(d: Date) {
 // Este endpoint lo llama exclusivamente el Cron Job de Vercel (ver
 // vercel.json), autenticado con el header estándar que Vercel agrega solo
 // cuando existe la env var CRON_SECRET — no acepta la clave de las rutas
-// de prueba/manuales.
+// de prueba/manuales. El parámetro ?group= decide qué subconjunto de
+// tablas sincroniza esta invocación puntual (ver GROUPS arriba).
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const group = searchParams.get("group");
+  const tables = group ? GROUPS[group] : undefined;
+
+  if (!tables) {
+    return NextResponse.json(
+      { error: `?group= inválido o faltante. Opciones: ${Object.keys(GROUPS).join(", ")}` },
+      { status: 400 },
+    );
   }
 
   const sqlEndpoint = process.env.FABRIC_SQL_ENDPOINT;
@@ -47,23 +74,20 @@ export async function GET(request: Request) {
   const from = isoDate(new Date(today.getTime() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000));
   const to = isoDate(today);
 
-  const smallTables = GOLD_TABLES.filter(
-    (t) => !BIG_TABLES.includes(t as (typeof BIG_TABLES)[number]),
-  );
-
   const supabase = createAdminClient();
   const pool = await connectFabric(sqlEndpoint, database);
 
   let results: Record<string, { rows: number; error?: string }>;
   try {
-    const [bigResults, smallResults] = await Promise.all([
-      syncGoldTables(pool, supabase, [...BIG_TABLES], { from, to }),
-      syncGoldTables(pool, supabase, smallTables),
-    ]);
-    results = { ...bigResults, ...smallResults };
+    results = await syncGoldTables(
+      pool,
+      supabase,
+      [...tables],
+      group === "big" ? { from, to } : undefined,
+    );
   } finally {
     await pool.close();
   }
 
-  return NextResponse.json({ ok: true, range: { from, to }, results });
+  return NextResponse.json({ ok: true, group, range: group === "big" ? { from, to } : undefined, results });
 }

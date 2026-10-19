@@ -1,8 +1,20 @@
 {
   "crons": [
     {
-      "path": "/api/cron/sync-gold",
+      "path": "/api/cron/sync-gold?group=big",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/sync-gold?group=a",
+      "schedule": "5 9 * * *"
+    },
+    {
+      "path": "/api/cron/sync-gold?group=b",
+      "schedule": "10 9 * * *"
+    },
+    {
+      "path": "/api/cron/sync-gold?group=c",
+      "schedule": "15 9 * * *"
     }
   ]
 }
