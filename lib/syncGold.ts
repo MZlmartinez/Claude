@@ -28,8 +28,12 @@ function renameColumns(table: string, row: Record<string, unknown>) {
 
 export type SyncResult = { rows: number; error?: string };
 
-// Sincroniza una tabla gold de Fabric a Supabase: borra (la tabla entera, o
-// solo el rango from/to si se pasa) e inserta de nuevo lo que trae Fabric.
+// Sincroniza una tabla gold de Fabric a Supabase: inserta primero lo nuevo
+// que trae Fabric, y recién si esa inserción salió bien borra lo viejo (todo,
+// o solo el rango from/to si se pasa) usando `synced_at` como corte — nunca
+// al revés. Si algo se corta a la mitad (timeout, error de red), el peor
+// caso son filas duplicadas por un rato, nunca una tabla vacía: la
+// inserción previa queda intacta porque todavía no se tocó nada viejo.
 // `from`/`to` requieren que la tabla tenga columna `day` (las 2 tablas
 // grandes de sesiones la tienen; el resto se sincroniza siempre entera).
 export async function syncGoldTable(
@@ -39,6 +43,8 @@ export async function syncGoldTable(
   range?: { from: string; to: string },
 ): Promise<SyncResult> {
   try {
+    const cutoff = new Date().toISOString();
+
     const fabricRequest = pool.request();
     let query = `SELECT * FROM ${sourceSchema(table)}.${table}`;
 
@@ -51,20 +57,21 @@ export async function syncGoldTable(
     const fabricResult = await fabricRequest.query(query);
     const fabricRows = fabricResult.recordset as Record<string, unknown>[];
 
-    // Estas tablas son exclusivas de Decathlon (una tabla por cliente, sin
-    // columna de tenant), así que el borrado es de la tabla entera o del
-    // rango de fechas pedido, no de un profile_id puntual.
-    const deleteBuilder = supabase.from(table).delete().not("id", "is", null);
-    if (range) {
-      await deleteBuilder.gte("day", range.from).lt("day", range.to);
-    } else {
-      await deleteBuilder;
-    }
-
     if (fabricRows.length > 0) {
       const rowsToInsert = fabricRows.map((row) => renameColumns(table, row));
       const { error } = await supabase.from(table).insert(rowsToInsert);
       if (error) throw new Error(error.message);
+    }
+
+    // Estas tablas son exclusivas de Decathlon (una tabla por cliente, sin
+    // columna de tenant), así que el borrado es de la tabla entera o del
+    // rango de fechas pedido, no de un profile_id puntual. El filtro por
+    // synced_at < cutoff deja afuera lo que acabamos de insertar.
+    const deleteBuilder = supabase.from(table).delete().lt("synced_at", cutoff);
+    if (range) {
+      await deleteBuilder.gte("day", range.from).lt("day", range.to);
+    } else {
+      await deleteBuilder;
     }
 
     return { rows: fabricRows.length };

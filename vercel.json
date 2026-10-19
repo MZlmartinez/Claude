@@ -17,8 +17,12 @@
       "schedule": "15 9 * * *"
     },
     {
-      "path": "/api/cron/sync-gold?group=c",
+      "path": "/api/cron/sync-gold?group=influencers",
       "schedule": "20 9 * * *"
+    },
+    {
+      "path": "/api/cron/sync-gold?group=c",
+      "schedule": "25 9 * * *"
     }
   ]
 }

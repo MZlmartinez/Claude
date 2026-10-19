@@ -29,7 +29,11 @@ const GROUPS: Record<string, readonly string[]> = {
   big2: [BIG_TABLES[1]],
   a: SMALL_TABLES.slice(0, 5),
   b: SMALL_TABLES.slice(5, 10),
-  c: SMALL_TABLES.slice(10),
+  // gold_influencers aislada en su propio grupo — es la que alimenta el
+  // reporte de /reportes/influencers, así que no debe compartir Promise.all
+  // con ninguna otra tabla que pueda tardar y arrastrarla a un timeout.
+  influencers: ["gold_influencers"],
+  c: SMALL_TABLES.filter((t) => t !== "gold_influencers").slice(10),
 };
 
 // Ventana de días hacia atrás para las tablas grandes: suficiente para
