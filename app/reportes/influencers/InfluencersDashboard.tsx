@@ -261,15 +261,6 @@ export default function InfluencersDashboard({
         )}
         {page === "campanas" && <PageCampanas filters={filters} campanas={campanas} contratos={contratos} go={go} />}
         {page === "detalle" && <PageDetalle piezas={piezas} />}
-
-        <p className="mx-foot">
-          Fuente: tabla gold_influencers de Supabase, consultada en vivo. Un contrato es un influencer dentro de una campaña: su
-          presupuesto se cuenta una vez aunque tenga varias piezas, y se muestra en pesos aunque la tabla no indica la moneda. Si un
-          influencer tiene contratos en dos campañas, se suman los dos. Interacciones = likes + comentarios + shares + guardados; los
-          clics a @ se muestran aparte. La tasa es interacciones sobre visualizaciones. Visualizaciones y alcance se suman pieza por
-          pieza, así que repiten audiencia. Con un formato elegido, la inversión es la de los contratos que tienen al menos una pieza
-          de ese formato.
-        </p>
       </div>
     </div>
   );
