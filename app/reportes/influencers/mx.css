@@ -290,13 +290,18 @@
 }
 .mx-filters {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)) auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
   gap: 14px;
   align-items: end;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--r);
   padding: 14px 16px;
+}
+@media (max-width: 640px) {
+  .mx-filters {
+    grid-template-columns: 1fr;
+  }
 }
 .mx-filters label {
   display: flex;
