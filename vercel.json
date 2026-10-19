@@ -1,20 +1,24 @@
 {
   "crons": [
     {
-      "path": "/api/cron/sync-gold?group=big",
+      "path": "/api/cron/sync-gold?group=big1",
       "schedule": "0 9 * * *"
     },
     {
-      "path": "/api/cron/sync-gold?group=a",
+      "path": "/api/cron/sync-gold?group=big2",
       "schedule": "5 9 * * *"
     },
     {
-      "path": "/api/cron/sync-gold?group=b",
+      "path": "/api/cron/sync-gold?group=a",
       "schedule": "10 9 * * *"
     },
     {
-      "path": "/api/cron/sync-gold?group=c",
+      "path": "/api/cron/sync-gold?group=b",
       "schedule": "15 9 * * *"
+    },
+    {
+      "path": "/api/cron/sync-gold?group=c",
+      "schedule": "20 9 * * *"
     }
   ]
 }

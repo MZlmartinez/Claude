@@ -22,8 +22,11 @@ const SMALL_TABLES = GOLD_TABLES.filter(
 // función en el plan Hobby de Vercel. Se parte en grupos más chicos, cada
 // uno con su propio Cron Job (ver vercel.json) escalonado cada 5 minutos,
 // para que cada invocación tenga su propia ventana de 60s entera.
+const BIG_RANGE_GROUPS = new Set(["big1", "big2"]);
+
 const GROUPS: Record<string, readonly string[]> = {
-  big: BIG_TABLES,
+  big1: [BIG_TABLES[0]],
+  big2: [BIG_TABLES[1]],
   a: SMALL_TABLES.slice(0, 5),
   b: SMALL_TABLES.slice(5, 10),
   c: SMALL_TABLES.slice(10),
@@ -83,11 +86,16 @@ export async function GET(request: Request) {
       pool,
       supabase,
       [...tables],
-      group === "big" ? { from, to } : undefined,
+      group && BIG_RANGE_GROUPS.has(group) ? { from, to } : undefined,
     );
   } finally {
     await pool.close();
   }
 
-  return NextResponse.json({ ok: true, group, range: group === "big" ? { from, to } : undefined, results });
+  return NextResponse.json({
+    ok: true,
+    group,
+    range: group && BIG_RANGE_GROUPS.has(group) ? { from, to } : undefined,
+    results,
+  });
 }
