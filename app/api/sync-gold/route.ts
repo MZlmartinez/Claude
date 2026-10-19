@@ -1,36 +1,12 @@
 import { NextResponse } from "next/server";
-import sql from "mssql";
 import { connectFabric } from "@/lib/fabric";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { GOLD_TABLES, sourceSchema } from "@/lib/goldTables";
+import { GOLD_TABLES } from "@/lib/goldTables";
+import { syncGoldTables } from "@/lib/syncGold";
 
 export const maxDuration = 60;
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-// Columnas que renombramos al pasar de Fabric a Supabase: por mayúsculas
-// mixtas (UltimoPeriodo) o por caracteres con tilde/ñ, para evitar líos de
-// encoding en nombres de columna de Postgres.
-const COLUMN_RENAMES: Record<string, Record<string, string>> = {
-  gold_shopify_time: { UltimoPeriodo: "ultimo_periodo" },
-  gold_influencers: {
-    "campaña": "campana",
-    "presupuesto_año_fiscal": "presupuesto_anio_fiscal",
-  },
-};
-
-function renameColumns(table: string, row: Record<string, unknown>) {
-  const renames = COLUMN_RENAMES[table];
-  if (!renames) return row;
-  const renamed: Record<string, unknown> = { ...row };
-  for (const [from, to] of Object.entries(renames)) {
-    if (from in renamed) {
-      renamed[to] = renamed[from];
-      delete renamed[from];
-    }
-  }
-  return renamed;
-}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -77,57 +53,19 @@ export async function GET(request: Request) {
     );
   }
 
-  const tablesToSync = requestedTables ?? GOLD_TABLES;
+  const tablesToSync = requestedTables ?? [...GOLD_TABLES];
 
   const supabase = createAdminClient();
   const pool = await connectFabric(sqlEndpoint, database);
 
-  async function syncTable(table: string) {
-    try {
-      // Una request por tabla, pero todas corren en paralelo sobre el
-      // mismo pool (mssql maneja varias conexiones internamente).
-      const fabricRequest = pool.request();
-      let query = `SELECT * FROM ${sourceSchema(table)}.${table}`;
-
-      // Con from/to filtramos por fecha, para traer el historial de las
-      // tablas grandes en pedazos (una corrida por rango) sin pisar lo que
-      // ya se cargó de otros rangos.
-      if (from && to) {
-        fabricRequest.input("fromDate", sql.Date, from);
-        fabricRequest.input("toDate", sql.Date, to);
-        query += ` WHERE day >= @fromDate AND day < @toDate`;
-      }
-
-      const fabricResult = await fabricRequest.query(query);
-      const fabricRows = fabricResult.recordset as Record<string, unknown>[];
-
-      // Estas tablas son exclusivas de Decathlon (una tabla por cliente, sin
-      // columna de tenant), así que el borrado es de la tabla entera o del
-      // rango de fechas pedido, no de un profile_id puntual.
-      const deleteBuilder = supabase.from(table).delete().not("id", "is", null);
-      if (from && to) {
-        await deleteBuilder.gte("day", from).lt("day", to);
-      } else {
-        await deleteBuilder;
-      }
-
-      if (fabricRows.length > 0) {
-        const rowsToInsert = fabricRows.map((row) => renameColumns(table, row));
-
-        const { error } = await supabase.from(table).insert(rowsToInsert);
-        if (error) throw new Error(error.message);
-      }
-
-      return [table, { rows: fabricRows.length }] as const;
-    } catch (error) {
-      return [table, { rows: 0, error: String(error) }] as const;
-    }
-  }
-
   let results: Record<string, { rows: number; error?: string }>;
   try {
-    const entries = await Promise.all(tablesToSync.map(syncTable));
-    results = Object.fromEntries(entries);
+    results = await syncGoldTables(
+      pool,
+      supabase,
+      tablesToSync,
+      from && to ? { from, to } : undefined,
+    );
   } finally {
     await pool.close();
   }
