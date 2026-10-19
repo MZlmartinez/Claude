@@ -219,8 +219,18 @@
 }
 .mx-kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 165px), 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 10px;
+}
+@media (max-width: 900px) {
+  .mx-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 480px) {
+  .mx-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .mx-kpi {
   background: rgba(255, 255, 255, 0.035);
