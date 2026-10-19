@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type {
   CampanaRow,
@@ -96,8 +96,30 @@ export default function InfluencersDashboard({
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [page, setPage] = useState<PageId>("resumen");
   const [campMetric, setCampMetric] = useState<"inversion" | "visualizaciones" | "interacciones">("inversion");
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const go = (href: string) => router.push(href, { scroll: false });
+
+  // Le avisa a la página que lo embebe (Softr) cuánto mide, para que el
+  // iframe se ajuste al contenido real en vez de tener scroll propio —
+  // el scroll dentro de un iframe de otro dominio no se propaga a la
+  // página de afuera.
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || typeof window === "undefined" || window.parent === window) return;
+
+    const post = () => {
+      window.parent.postMessage(
+        { source: "coolmetrics-report", height: el.scrollHeight },
+        "*",
+      );
+    };
+
+    post();
+    const observer = new ResizeObserver(post);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [page, theme]);
 
   const campanaOpts = opciones.filter((o) => o.dimension === "campana").map((o) => o.valor);
   const territorioOpts = opciones.filter((o) => o.dimension === "territorio").map((o) => o.valor);
@@ -112,7 +134,7 @@ export default function InfluencersDashboard({
   } as const;
 
   return (
-    <div className={`mx ${fontClassName}`} data-theme={theme}>
+    <div ref={rootRef} className={`mx ${fontClassName}`} data-theme={theme}>
       <div className="mx-wrap">
         <header>
           <div className="mx-top">
