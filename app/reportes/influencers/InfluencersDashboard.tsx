@@ -121,6 +121,25 @@ export default function InfluencersDashboard({
     return () => observer.disconnect();
   }, [page, theme]);
 
+  // El iframe queda del tamaño exacto del contenido (sin scroll propio),
+  // así que cualquier scroll con la rueda del mouse acá adentro en
+  // realidad le corresponde a la página que lo embebe. Los eventos de
+  // wheel no cruzan solos el límite de un iframe de otro dominio, así
+  // que se lo reenviamos a mano.
+  useEffect(() => {
+    if (typeof window === "undefined" || window.parent === window) return;
+
+    const onWheel = (e: WheelEvent) => {
+      window.parent.postMessage(
+        { source: "coolmetrics-report", wheelDeltaY: e.deltaY },
+        "*",
+      );
+    };
+
+    window.addEventListener("wheel", onWheel, { passive: true });
+    return () => window.removeEventListener("wheel", onWheel);
+  }, []);
+
   const campanaOpts = opciones.filter((o) => o.dimension === "campana").map((o) => o.valor);
   const territorioOpts = opciones.filter((o) => o.dimension === "territorio").map((o) => o.valor);
   const influencerOpts = opciones.filter((o) => o.dimension === "influencer").map((o) => o.valor);
