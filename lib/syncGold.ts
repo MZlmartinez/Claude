@@ -28,6 +28,19 @@ function renameColumns(table: string, row: Record<string, unknown>) {
 
 export type SyncResult = { rows: number; error?: string };
 
+// Un solo INSERT con demasiadas filas puede pasarse del statement_timeout
+// de Postgres (ya nos pasó con gold_shopify_customer_behavior). Se manda
+// en lotes de este tamaño en vez de todo junto.
+const INSERT_BATCH_SIZE = 500;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+}
+
 // Sincroniza una tabla gold de Fabric a Supabase: inserta primero lo nuevo
 // que trae Fabric, y recién si esa inserción salió bien borra lo viejo (todo,
 // o solo el rango from/to si se pasa) usando `synced_at` como corte — nunca
@@ -59,8 +72,10 @@ export async function syncGoldTable(
 
     if (fabricRows.length > 0) {
       const rowsToInsert = fabricRows.map((row) => renameColumns(table, row));
-      const { error } = await supabase.from(table).insert(rowsToInsert);
-      if (error) throw new Error(error.message);
+      for (const batch of chunk(rowsToInsert, INSERT_BATCH_SIZE)) {
+        const { error } = await supabase.from(table).insert(batch);
+        if (error) throw new Error(error.message);
+      }
     }
 
     // Estas tablas son exclusivas de Decathlon (una tabla por cliente, sin
