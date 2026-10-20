@@ -10,7 +10,7 @@
 // NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
 
 import { connectFabric } from "../lib/fabric";
-import { ensureFabricCapacityActive } from "../lib/fabricCapacity";
+import { ensureFabricCapacityActive, pauseFabricCapacity } from "../lib/fabricCapacity";
 import { createAdminClient } from "../lib/supabase/admin";
 import { GOLD_TABLES } from "../lib/goldTables";
 import { syncGoldTables, type SyncResult } from "../lib/syncGold";
@@ -50,17 +50,21 @@ async function main() {
   await ensureFabricCapacityActive();
 
   const supabase = createAdminClient();
-  const pool = await connectFabric(sqlEndpoint, database);
 
   let results: Record<string, SyncResult>;
   try {
-    const [bigResults, smallResults] = await Promise.all([
-      syncGoldTables(pool, supabase, [...BIG_TABLES], { from, to }),
-      syncGoldTables(pool, supabase, [...SMALL_TABLES]),
-    ]);
-    results = { ...bigResults, ...smallResults };
+    const pool = await connectFabric(sqlEndpoint, database);
+    try {
+      const [bigResults, smallResults] = await Promise.all([
+        syncGoldTables(pool, supabase, [...BIG_TABLES], { from, to }),
+        syncGoldTables(pool, supabase, [...SMALL_TABLES]),
+      ]);
+      results = { ...bigResults, ...smallResults };
+    } finally {
+      await pool.close();
+    }
   } finally {
-    await pool.close();
+    await pauseFabricCapacity();
   }
 
   console.log(`Rango para las tablas grandes: ${from} a ${to}`);

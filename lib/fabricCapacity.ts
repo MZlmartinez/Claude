@@ -101,3 +101,30 @@ export async function ensureFabricCapacityActive(): Promise<void> {
 
   throw new Error("La capacidad de Fabric no llegó a estado Active dentro del tiempo de espera (5 min)");
 }
+
+// La capacidad es pay-as-you-go: dejarla prendida fuera del sync factura de
+// más sin necesidad. Se llama al terminar el sync (haya salido bien o mal)
+// para devolverla a pausada. No espera a que termine de pausarse — alcanza
+// con disparar el comando, nada depende de que la pausa sea inmediata.
+export async function pauseFabricCapacity(): Promise<void> {
+  const subscriptionId = requireEnv("AZURE_SUBSCRIPTION_ID");
+  const resourceGroup = requireEnv("AZURE_FABRIC_RESOURCE_GROUP");
+  const capacityName = requireEnv("AZURE_FABRIC_CAPACITY_NAME");
+
+  const token = await getArmToken();
+  const state = await getCapacityState(token, subscriptionId, resourceGroup, capacityName);
+
+  if (state !== "Active") {
+    console.log(`La capacidad de Fabric ya no está activa (estado: ${state}), no hace falta pausarla.`);
+    return;
+  }
+
+  console.log("Pausando la capacidad de Fabric...");
+  const suspendRes = await fetch(
+    `${capacityUrl(subscriptionId, resourceGroup, capacityName)}/suspend?api-version=${ARM_API_VERSION}`,
+    { method: "POST", headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (!suspendRes.ok && suspendRes.status !== 202) {
+    throw new Error(`No se pudo pausar la capacidad de Fabric: ${suspendRes.status} ${await suspendRes.text()}`);
+  }
+}
