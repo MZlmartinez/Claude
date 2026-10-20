@@ -5,10 +5,12 @@
 //
 // Variables de entorno necesarias (se configuran como Secrets del repo en
 // GitHub, no en Vercel): AZURE_TENANT_ID, AZURE_CLIENT_ID,
-// AZURE_CLIENT_SECRET, FABRIC_SQL_ENDPOINT, FABRIC_DATABASE,
+// AZURE_CLIENT_SECRET, AZURE_SUBSCRIPTION_ID, AZURE_FABRIC_RESOURCE_GROUP,
+// AZURE_FABRIC_CAPACITY_NAME, FABRIC_SQL_ENDPOINT, FABRIC_DATABASE,
 // NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
 
 import { connectFabric } from "../lib/fabric";
+import { ensureFabricCapacityActive } from "../lib/fabricCapacity";
 import { createAdminClient } from "../lib/supabase/admin";
 import { GOLD_TABLES } from "../lib/goldTables";
 import { syncGoldTables, type SyncResult } from "../lib/syncGold";
@@ -44,6 +46,8 @@ async function main() {
   const today = new Date();
   const from = isoDate(new Date(today.getTime() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000));
   const to = isoDate(today);
+
+  await ensureFabricCapacityActive();
 
   const supabase = createAdminClient();
   const pool = await connectFabric(sqlEndpoint, database);
