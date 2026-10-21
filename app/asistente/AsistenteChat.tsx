@@ -208,58 +208,77 @@ export default function AsistenteChat({ fontClassName }: { fontClassName: string
 
   return (
     <div className={`asis ${fontClassName}`}>
-      <header className="asis-head">
-        <h1>Asistente Coolmetrics</h1>
-        <p>Preguntale por los datos de Decathlon — arma el gráfico y te muestra el SQL que usó.</p>
-      </header>
+      <div className="asis-wrap">
+        <header className="asis-head">
+          <span className="asis-kicker">Coolmetrics</span>
+          <h1>Asistente de datos</h1>
+          <p>Preguntale por los datos de Decathlon — arma el gráfico y te muestra el SQL que usó.</p>
+        </header>
 
-      <div className="asis-thread">
-        {turns.length === 0 && (
-          <p className="asis-hint">
-            Ej: &ldquo;¿cómo vienen las sesiones este mes contra el anterior?&rdquo;, &ldquo;facturación por canal del
-            último trimestre&rdquo;.
-          </p>
-        )}
-        {turns.map((t, i) =>
-          t.role === "user" ? (
-            <div key={i} className="asis-bubble asis-bubble-user">
-              {t.content}
+        <div className="asis-thread">
+          {turns.length === 0 && (
+            <div className="asis-hint">
+              <p>Probá algo como:</p>
+              <div className="asis-suggestions">
+                <button type="button" onClick={() => setInput("¿Cómo vienen las sesiones este mes contra el anterior?")}>
+                  ¿Cómo vienen las sesiones este mes contra el anterior?
+                </button>
+                <button type="button" onClick={() => setInput("Facturación por canal del último trimestre")}>
+                  Facturación por canal del último trimestre
+                </button>
+                <button type="button" onClick={() => setInput("¿Cuántos influencers tengo activos?")}>
+                  ¿Cuántos influencers tengo activos?
+                </button>
+              </div>
             </div>
-          ) : t.role === "assistant" ? (
-            <AssistantBubble key={i} report={t.report} />
-          ) : (
-            <div key={i} className="asis-bubble asis-bubble-error">
-              {t.message}
+          )}
+          {turns.map((t, i) =>
+            t.role === "user" ? (
+              <div key={i} className="asis-bubble asis-bubble-user">
+                {t.content}
+              </div>
+            ) : t.role === "assistant" ? (
+              <AssistantBubble key={i} report={t.report} />
+            ) : (
+              <div key={i} className="asis-bubble asis-bubble-error">
+                {t.message}
+              </div>
+            ),
+          )}
+          {loading && (
+            <div className="asis-bubble asis-bubble-assistant asis-thinking">
+              <span className="asis-dot" />
+              <span className="asis-dot" />
+              <span className="asis-dot" />
             </div>
-          ),
-        )}
-        {loading && <div className="asis-bubble asis-bubble-assistant asis-thinking">Pensando…</div>}
-      </div>
+          )}
+        </div>
 
-      <form
-        className="asis-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          send();
-        }}
-      >
-        <textarea
-          ref={inputRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              send();
-            }
+        <form
+          className="asis-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            send();
           }}
-          placeholder="Escribí tu pregunta…"
-          rows={2}
-        />
-        <button type="submit" disabled={loading || !input.trim()}>
-          Enviar
-        </button>
-      </form>
+        >
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                send();
+              }
+            }}
+            placeholder="Escribí tu pregunta…"
+            rows={1}
+          />
+          <button type="submit" disabled={loading || !input.trim()}>
+            Enviar
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
