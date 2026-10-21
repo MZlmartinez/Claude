@@ -9,6 +9,10 @@
   --asis-accent: #d8fc4a;
   --asis-accent-fg: #1d1d1b;
   --asis-k1: #4a7be3;
+  --asis-k2: #e8602f;
+  --asis-k3: #3fa56b;
+  --asis-dark-bg: #1d1d1b;
+  --asis-dark-fg: #f5f5f3;
   --asis-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 
   font-family: var(--font-mx-body), sans-serif;
@@ -32,10 +36,17 @@
   gap: 18px;
 }
 
+/* Franja oscura a todo el ancho, a juego con el sidebar negro del portal
+   (no sigue el tema claro/oscuro del resto de la página — queda fija,
+   como el sidebar). */
 .asis-head {
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--asis-line);
-  padding-bottom: 16px;
+  width: 100%;
+  background: var(--asis-dark-bg);
+}
+.asis-head-inner {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 28px 16px 24px;
 }
 .asis-kicker {
   display: inline-block;
@@ -56,10 +67,11 @@
   line-height: 1.05;
   margin: 0 0 6px;
   letter-spacing: 0.01em;
+  color: var(--asis-dark-fg);
 }
 .asis-head p {
   margin: 0;
-  color: var(--asis-fg2);
+  color: #b5b5b2;
   font-size: 13px;
   max-width: 48ch;
 }
@@ -81,17 +93,27 @@
   text-align: left;
   background: var(--asis-card);
   border: 1px solid var(--asis-line);
+  border-left: 3px solid var(--asis-fg3);
   border-radius: 10px;
   padding: 10px 14px;
   font: inherit;
   font-size: 13px;
   color: var(--asis-fg);
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
 .asis-suggestions button:hover {
-  border-color: var(--asis-accent);
-  background: var(--asis-soft);
+  transform: translateX(2px);
+  box-shadow: var(--asis-shadow);
+}
+.asis-sugg-k1 {
+  border-left-color: var(--asis-k1);
+}
+.asis-sugg-k2 {
+  border-left-color: var(--asis-k2);
+}
+.asis-sugg-k3 {
+  border-left-color: var(--asis-k3);
 }
 
 .asis-thread {
@@ -119,6 +141,7 @@
 .asis-bubble-assistant {
   background: var(--asis-card);
   border: 1px solid var(--asis-line);
+  border-left: 3px solid var(--asis-accent);
   box-shadow: var(--asis-shadow);
   align-self: flex-start;
   width: 100%;
@@ -182,9 +205,12 @@
 }
 
 .asis-kpi {
-  display: flex;
+  display: inline-flex;
   flex-direction: column;
   gap: 2px;
+  background: var(--asis-soft);
+  border-radius: 12px;
+  padding: 14px 20px;
 }
 .asis-kpi-v {
   font-family: var(--font-mx-display), sans-serif;

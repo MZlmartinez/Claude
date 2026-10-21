@@ -228,29 +228,33 @@ export default function AsistenteChat({ fontClassName }: { fontClassName: string
     }
   }
 
+  const suggestions = [
+    { text: "¿Cómo vienen las sesiones este mes contra el anterior?", k: "k1" },
+    { text: "Facturación por canal del último trimestre", k: "k2" },
+    { text: "¿Cuántos influencers tengo activos?", k: "k3" },
+  ] as const;
+
   return (
     <div className={`asis ${fontClassName}`} ref={rootRef}>
-      <div className="asis-wrap">
-        <header className="asis-head">
+      <header className="asis-head">
+        <div className="asis-head-inner">
           <span className="asis-kicker">Coolmetrics</span>
           <h1>Asistente de datos</h1>
           <p>Preguntale por los datos de Decathlon — arma el gráfico y te muestra el SQL que usó.</p>
-        </header>
+        </div>
+      </header>
 
+      <div className="asis-wrap">
         <div className="asis-thread">
           {turns.length === 0 && (
             <div className="asis-hint">
               <p>Probá algo como:</p>
               <div className="asis-suggestions">
-                <button type="button" onClick={() => setInput("¿Cómo vienen las sesiones este mes contra el anterior?")}>
-                  ¿Cómo vienen las sesiones este mes contra el anterior?
-                </button>
-                <button type="button" onClick={() => setInput("Facturación por canal del último trimestre")}>
-                  Facturación por canal del último trimestre
-                </button>
-                <button type="button" onClick={() => setInput("¿Cuántos influencers tengo activos?")}>
-                  ¿Cuántos influencers tengo activos?
-                </button>
+                {suggestions.map((s) => (
+                  <button key={s.text} type="button" className={`asis-sugg-${s.k}`} onClick={() => setInput(s.text)}>
+                    {s.text}
+                  </button>
+                ))}
               </div>
             </div>
           )}
