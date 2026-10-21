@@ -27,6 +27,11 @@ const nf = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
 // de barras no sea todo de un solo color.
 const CHART_COLORS = ["var(--asis-accent)", "var(--asis-k1)", "var(--asis-k2)", "var(--asis-k3)"];
 
+// Techo del iframe embebido en Softr, en píxeles — ver el comentario en
+// AsistenteChat sobre por qué existe. Tiene que ser el mismo valor que
+// .asis { max-height } en asistente.css.
+const MAX_FRAME_HEIGHT = 2400;
+
 function fmtValue(v: unknown): string {
   if (v == null) return "—";
   if (typeof v === "number") return nf.format(v);
@@ -184,17 +189,43 @@ export default function AsistenteChat({ fontClassName }: { fontClassName: string
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const threadRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
-  // A diferencia de los dashboards (alto fijo una vez cargan los datos), una
-  // conversación crece sin techo — si hiciéramos crecer todo el iframe con
-  // cada mensaje, la página de Softr terminaría siendo más alta que el
-  // tramo donde su sidebar se mantiene fijo (position: sticky tiene un
-  // límite de alto en esa página). Por eso el iframe queda a un alto fijo
-  // (puesto en el script de Softr) y es el historial el que scrollea
-  // adentro suyo, como cualquier chat.
+  // El iframe crece libre con cada mensaje (como los dashboards) hasta
+  // MAX_FRAME_HEIGHT — pasado ese techo, Softr deja de agrandar el iframe
+  // y .asis entra en scroll interno (ver asistente.css). Ese techo existe
+  // porque una conversación no tiene límite natural: si dejáramos crecer
+  // el iframe sin tope, tarde o temprano la página de Softr termina más
+  // alta que el tramo donde su sidebar sostiene su position:sticky, y el
+  // menú se despega. Con el tope, eso solo puede pasar en conversaciones
+  // largas — y ahí el scroll queda contenido adentro de .asis, no en el
+  // documento entero.
   useEffect(() => {
-    const el = threadRef.current;
+    const el = rootRef.current;
+    if (!el) return;
+    const post = () => {
+      const height = Math.min(el.scrollHeight, MAX_FRAME_HEIGHT);
+      window.parent.postMessage({ source: "coolmetrics-report", height }, "*");
+    };
+    post();
+    const observer = new ResizeObserver(post);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [turns, loading]);
+
+  // El scroll del mouse sobre el iframe no se propaga solo al documento
+  // padre — se reenvía como mensaje para que Softr haga scroll de la
+  // página mientras el contenido entra entero (por debajo del tope).
+  useEffect(() => {
+    const onWheel = (e: WheelEvent) => window.parent.postMessage({ source: "coolmetrics-report", wheelDeltaY: e.deltaY }, "*");
+    window.addEventListener("wheel", onWheel, { passive: true });
+    return () => window.removeEventListener("wheel", onWheel);
+  }, []);
+
+  // Una vez pasado el tope, con cada mensaje nuevo bajamos el scroll
+  // interno al final — si todavía entra entero, esto no hace nada visible.
+  useEffect(() => {
+    const el = rootRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [turns, loading]);
 
@@ -244,7 +275,7 @@ export default function AsistenteChat({ fontClassName }: { fontClassName: string
   ] as const;
 
   return (
-    <div className={`asis ${fontClassName}`}>
+    <div className={`asis ${fontClassName}`} ref={rootRef}>
       <div className="asis-wrap">
         <header className="asis-head">
           <div className="asis-head-text">
@@ -274,7 +305,7 @@ export default function AsistenteChat({ fontClassName }: { fontClassName: string
           </svg>
         </header>
 
-        <div className="asis-thread" ref={threadRef}>
+        <div className="asis-thread">
           {turns.length === 0 && (
             <div className="asis-hint">
               <p>Probá algo como:</p>

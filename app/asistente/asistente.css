@@ -25,9 +25,29 @@
   color: var(--asis-fg);
   background: var(--asis-bg);
   width: 100%;
-  height: 100vh;
-  overflow: hidden;
+  /* Crece libre hasta acá; pasado este alto entra en scroll interno en vez
+     de seguir agrandando el iframe — mismo valor que MAX_FRAME_HEIGHT en
+     AsistenteChat.tsx. Por debajo del tope esto no recorta nada: max-height
+     solo limita, no fuerza un mínimo. */
+  max-height: 2400px;
+  overflow-y: auto;
   box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--asis-line) transparent;
+}
+.asis::-webkit-scrollbar {
+  width: 8px;
+}
+.asis::-webkit-scrollbar-track {
+  background: transparent;
+}
+.asis::-webkit-scrollbar-thumb {
+  background: var(--asis-line);
+  border-radius: 999px;
+  border: 2px solid var(--asis-bg);
+}
+.asis::-webkit-scrollbar-thumb:hover {
+  background: var(--asis-fg3);
 }
 .asis * {
   box-sizing: border-box;
@@ -35,13 +55,11 @@
 
 .asis-wrap {
   max-width: 720px;
-  height: 100%;
   margin: 0 auto;
   padding: clamp(20px, 4vw, 40px) 20px 20px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  min-height: 0;
 }
 
 .asis-head {
@@ -170,26 +188,6 @@
   flex-direction: column;
   gap: 14px;
   flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding-right: 10px;
-  margin-right: -10px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--asis-line) transparent;
-}
-.asis-thread::-webkit-scrollbar {
-  width: 8px;
-}
-.asis-thread::-webkit-scrollbar-track {
-  background: transparent;
-}
-.asis-thread::-webkit-scrollbar-thumb {
-  background: var(--asis-line);
-  border-radius: 999px;
-  border: 2px solid var(--asis-bg);
-}
-.asis-thread::-webkit-scrollbar-thumb:hover {
-  background: var(--asis-fg3);
 }
 
 .asis-bubble {
