@@ -269,7 +269,7 @@ export default function AsistenteChat({ fontClassName }: { fontClassName: string
               <span className="asis-kicker">Coolmetrics</span>
             </div>
             <h1>Asistente de datos</h1>
-            <p className="asis-tagline">Sin Power BI, sin vueltas: preguntá y te arma el gráfico.</p>
+            <p className="asis-tagline">Tu negocio, a una pregunta de distancia.</p>
           </div>
 
           <svg className="asis-head-art" viewBox="0 0 120 100" aria-hidden="true">
