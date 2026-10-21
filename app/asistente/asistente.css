@@ -1,19 +1,22 @@
+/* Siempre oscuro, a propósito: esta página vive pegada al sidebar negro
+   del portal, no al lado de los reportes claros — un fondo claro acá
+   queda como un parche pegado encima, no integrado. No sigue
+   prefers-color-scheme como los reportes: siempre el mismo tema. */
 .asis {
-  --asis-bg: #f7f7f5;
-  --asis-card: #ffffff;
-  --asis-soft: #f2f2f0;
-  --asis-line: #e2e2e0;
-  --asis-fg: #1d1d1b;
-  --asis-fg2: #646363;
-  --asis-fg3: #9a9998;
+  --asis-bg: #141414;
+  --asis-card: #1e1e1e;
+  --asis-card2: #242424;
+  --asis-soft: #1a1a1a;
+  --asis-line: #2d2d2d;
+  --asis-fg: #f5f5f3;
+  --asis-fg2: #b5b5b2;
+  --asis-fg3: #7a7a78;
   --asis-accent: #d8fc4a;
-  --asis-accent-fg: #1d1d1b;
-  --asis-k1: #4a7be3;
-  --asis-k2: #e8602f;
-  --asis-k3: #3fa56b;
-  --asis-dark-bg: #1d1d1b;
-  --asis-dark-fg: #f5f5f3;
-  --asis-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --asis-accent-fg: #141414;
+  --asis-k1: #6d9bff;
+  --asis-k2: #ff8a5c;
+  --asis-k3: #5fcf8f;
+  --asis-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
 
   font-family: var(--font-mx-body), sans-serif;
   color: var(--asis-fg);
@@ -26,31 +29,23 @@
 }
 
 .asis-wrap {
-  max-width: 760px;
+  max-width: 720px;
   margin: 0 auto;
-  padding: clamp(20px, 4vw, 40px) 16px 32px;
+  padding: clamp(28px, 5vw, 56px) 20px 32px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
 }
 
-/* Franja oscura a todo el ancho, a juego con el sidebar negro del portal
-   (no sigue el tema claro/oscuro del resto de la página — queda fija,
-   como el sidebar). */
 .asis-head {
-  width: 100%;
-  background: var(--asis-dark-bg);
-}
-.asis-head-inner {
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 28px 16px 26px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--asis-line);
 }
 .asis-head-top {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 .asis-spark {
   display: inline-flex;
@@ -85,22 +80,22 @@
 .asis-head h1 {
   font-family: var(--font-mx-display), sans-serif;
   font-weight: 400;
-  font-size: 30px;
+  font-size: 34px;
   line-height: 1.05;
-  margin: 0 0 8px;
+  margin: 0 0 10px;
   letter-spacing: 0.01em;
-  color: var(--asis-dark-fg);
+  color: var(--asis-fg);
 }
 .asis-head p {
   margin: 0;
-  color: #b5b5b2;
+  color: var(--asis-fg2);
   font-size: 13px;
   max-width: 48ch;
 }
 .asis-head p.asis-tagline {
-  margin: 0 0 6px;
+  margin: 0 0 8px;
   color: var(--asis-accent);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -122,17 +117,18 @@
   background: var(--asis-card);
   border: 1px solid var(--asis-line);
   border-left: 3px solid var(--asis-fg3);
-  border-radius: 10px;
-  padding: 10px 14px;
+  border-radius: 12px;
+  padding: 12px 16px;
   font: inherit;
   font-size: 13px;
   color: var(--asis-fg);
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
 }
 .asis-suggestions button:hover {
   transform: translateX(2px);
   box-shadow: var(--asis-shadow);
+  border-color: var(--asis-fg3);
 }
 .asis-sugg-k1 {
   border-left-color: var(--asis-k1);
@@ -152,7 +148,7 @@
 }
 
 .asis-bubble {
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 14px 16px;
   font-size: 14px;
   line-height: 1.5;
@@ -164,6 +160,7 @@
   align-self: flex-end;
   max-width: 80%;
   white-space: pre-wrap;
+  font-weight: 500;
   border-bottom-right-radius: 4px;
 }
 .asis-bubble-assistant {
@@ -176,9 +173,9 @@
   border-bottom-left-radius: 4px;
 }
 .asis-bubble-error {
-  background: #fdecea;
-  border: 1px solid #f5c2c0;
-  color: #9c2a21;
+  background: #2e1a18;
+  border: 1px solid #5c2a25;
+  color: #ff9d94;
   align-self: flex-start;
   font-size: 13px;
 }
@@ -236,7 +233,7 @@
   display: inline-flex;
   flex-direction: column;
   gap: 2px;
-  background: var(--asis-soft);
+  background: var(--asis-card2);
   border-radius: 12px;
   padding: 14px 20px;
 }
@@ -268,7 +265,7 @@
   white-space: nowrap;
 }
 .asis-table tbody tr:hover {
-  background: var(--asis-soft);
+  background: var(--asis-card2);
 }
 .asis-table th {
   color: var(--asis-fg2);
@@ -319,21 +316,23 @@
   align-items: flex-end;
   position: sticky;
   bottom: 16px;
-  background: var(--asis-bg);
   padding-top: 4px;
 }
 .asis-form textarea {
   flex: 1;
   resize: none;
   border: 1px solid var(--asis-line);
-  border-radius: 14px;
-  padding: 12px 16px;
+  border-radius: 16px;
+  padding: 13px 18px;
   font-family: inherit;
   font-size: 14px;
   background: var(--asis-card);
   color: var(--asis-fg);
   box-shadow: var(--asis-shadow);
   max-height: 140px;
+}
+.asis-form textarea::placeholder {
+  color: var(--asis-fg3);
 }
 .asis-form textarea:focus {
   outline: none;
@@ -343,9 +342,9 @@
   background: var(--asis-accent);
   color: var(--asis-accent-fg);
   border: none;
-  border-radius: 14px;
-  padding: 0 18px;
-  height: 44px;
+  border-radius: 16px;
+  padding: 0 20px;
+  height: 46px;
   font-weight: 700;
   font-size: 13px;
   cursor: pointer;
@@ -355,33 +354,15 @@
   opacity: 0.9;
 }
 .asis-form button:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: default;
 }
 
 @media (max-width: 480px) {
   .asis-head h1 {
-    font-size: 24px;
+    font-size: 26px;
   }
   .asis-kpi-v {
     font-size: 32px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  .asis {
-    --asis-bg: #161616;
-    --asis-card: #1e1e1e;
-    --asis-soft: #232323;
-    --asis-line: #2f2f2f;
-    --asis-fg: #f5f5f3;
-    --asis-fg2: #b5b5b2;
-    --asis-fg3: #7a7a78;
-    --asis-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  }
-  .asis-bubble-error {
-    background: #3a1f1d;
-    border-color: #6b2d28;
-    color: #ffb4ae;
   }
 }
