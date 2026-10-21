@@ -172,8 +172,24 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding-right: 4px;
-  margin-right: -4px;
+  padding-right: 10px;
+  margin-right: -10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--asis-line) transparent;
+}
+.asis-thread::-webkit-scrollbar {
+  width: 8px;
+}
+.asis-thread::-webkit-scrollbar-track {
+  background: transparent;
+}
+.asis-thread::-webkit-scrollbar-thumb {
+  background: var(--asis-line);
+  border-radius: 999px;
+  border: 2px solid var(--asis-bg);
+}
+.asis-thread::-webkit-scrollbar-thumb:hover {
+  background: var(--asis-fg3);
 }
 
 .asis-bubble {
