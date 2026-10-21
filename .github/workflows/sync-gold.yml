@@ -2,10 +2,12 @@ name: Sync gold (Fabric -> Supabase)
 
 on:
   schedule:
-    # 09:00 UTC = 06:00 Argentina. Cron de GitHub Actions, no de Vercel: no
-    # hay límite de 60/300 segundos acá, así que no hace falta escalonar
-    # nada ni partir el trabajo en grupos.
-    - cron: "0 9 * * *"
+    # ~09:00 UTC = ~06:00 Argentina. Minuto corrido a propósito: GitHub
+    # recomienda evitar los minutos en punto (:00) porque son el momento de
+    # más carga de todo Actions, y ahí es más común que un disparo se
+    # demore o se pierda directamente — como pasó la primera vez que se
+    # programó este workflow en el minuto 0 exacto.
+    - cron: "9 9 * * *"
   workflow_dispatch: {}
 
 jobs:
