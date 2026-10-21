@@ -184,28 +184,19 @@ export default function AsistenteChat({ fontClassName }: { fontClassName: string
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
+  const threadRef = useRef<HTMLDivElement>(null);
 
-  // Avisa al padre (Softr) el alto real del contenido para que el iframe se
-  // ajuste solo — la conversación crece con cada pregunta, a diferencia de
-  // los dashboards que tienen un alto fijo una vez cargados los datos.
+  // A diferencia de los dashboards (alto fijo una vez cargan los datos), una
+  // conversación crece sin techo — si hiciéramos crecer todo el iframe con
+  // cada mensaje, la página de Softr terminaría siendo más alta que el
+  // tramo donde su sidebar se mantiene fijo (position: sticky tiene un
+  // límite de alto en esa página). Por eso el iframe queda a un alto fijo
+  // (puesto en el script de Softr) y es el historial el que scrollea
+  // adentro suyo, como cualquier chat.
   useEffect(() => {
-    const el = rootRef.current;
-    if (!el) return;
-    const post = () => window.parent.postMessage({ source: "coolmetrics-report", height: el.scrollHeight }, "*");
-    post();
-    const observer = new ResizeObserver(post);
-    observer.observe(el);
-    return () => observer.disconnect();
+    const el = threadRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [turns, loading]);
-
-  // El scroll del mouse sobre el iframe no se propaga solo al documento
-  // padre — se reenvía como mensaje para que Softr haga scroll de la página.
-  useEffect(() => {
-    const onWheel = (e: WheelEvent) => window.parent.postMessage({ source: "coolmetrics-report", wheelDeltaY: e.deltaY }, "*");
-    window.addEventListener("wheel", onWheel, { passive: true });
-    return () => window.removeEventListener("wheel", onWheel);
-  }, []);
 
   async function send() {
     const text = input.trim();
@@ -253,7 +244,7 @@ export default function AsistenteChat({ fontClassName }: { fontClassName: string
   ] as const;
 
   return (
-    <div className={`asis ${fontClassName}`} ref={rootRef}>
+    <div className={`asis ${fontClassName}`}>
       <div className="asis-wrap">
         <header className="asis-head">
           <div className="asis-head-text">
@@ -283,7 +274,7 @@ export default function AsistenteChat({ fontClassName }: { fontClassName: string
           </svg>
         </header>
 
-        <div className="asis-thread">
+        <div className="asis-thread" ref={threadRef}>
           {turns.length === 0 && (
             <div className="asis-hint">
               <p>Probá algo como:</p>
