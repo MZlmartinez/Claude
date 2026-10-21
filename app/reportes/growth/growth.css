@@ -574,6 +574,20 @@
   position: relative;
   min-height: 180px;
 }
+/* La tarjeta de la dona queda estirada por el grid a la altura de su
+   vecina (que suele tener más filas) — sin esto, el contenido queda
+   pegado arriba y deja un hueco vacío abajo. Se centra verticalmente
+   solo en esta tarjeta puntual. */
+.mx-card-flex {
+  display: flex;
+  flex-direction: column;
+}
+.mx-card-flex .mx-box-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
 
 /* tiles (KPIs secundarios, no-hero) */
 .mx-tiles {

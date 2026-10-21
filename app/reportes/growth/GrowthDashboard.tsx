@@ -1505,10 +1505,10 @@ function TraficoSubPage({
             />
           </div>
         </div>
-        <div className="mx-card">
+        <div className="mx-card mx-card-flex">
           <h2>Mobile vs desktop</h2>
           <p className="mx-note">Sesiones del período por dispositivo.</p>
-          <div className="mx-box" style={{ minHeight: 240 }}>
+          <div className="mx-box mx-box-center" style={{ minHeight: 240 }}>
             <Donut
               rows={[
                 { label: "Mobile", value: dispositivoAgg?.sesiones_mobile ?? 0 },
