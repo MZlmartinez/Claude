@@ -40,6 +40,23 @@
 .asis-head {
   padding-bottom: 20px;
   border-bottom: 1px solid var(--asis-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.asis-head-text {
+  min-width: 0;
+}
+.asis-head-art {
+  flex-shrink: 0;
+  width: 96px;
+  height: 80px;
+}
+@media (max-width: 560px) {
+  .asis-head-art {
+    display: none;
+  }
 }
 .asis-head-top {
   display: flex;
@@ -171,6 +188,27 @@
   align-self: flex-start;
   width: 100%;
   border-bottom-left-radius: 4px;
+  display: flex;
+  gap: 12px;
+}
+.asis-bubble-body {
+  flex: 1;
+  min-width: 0;
+}
+.asis-avatar {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--asis-card2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--asis-accent);
+}
+.asis-avatar svg {
+  width: 14px;
+  height: 14px;
 }
 .asis-bubble-error {
   background: #2e1a18;
@@ -181,22 +219,27 @@
 }
 .asis-thinking {
   display: flex;
-  gap: 5px;
+  gap: 7px;
   align-items: center;
-  padding: 16px;
+  padding: 14px 16px;
   width: fit-content;
 }
 .asis-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: var(--asis-fg3);
   animation: asis-bounce 1.1s infinite ease-in-out;
 }
-.asis-dot:nth-child(2) {
+.asis-dot-1 {
+  background: var(--asis-accent);
+  animation-delay: 0s;
+}
+.asis-dot-2 {
+  background: var(--asis-k1);
   animation-delay: 0.15s;
 }
-.asis-dot:nth-child(3) {
+.asis-dot-3 {
+  background: var(--asis-k2);
   animation-delay: 0.3s;
 }
 @keyframes asis-bounce {

@@ -22,6 +22,11 @@ type ChatTurn =
 
 const nf = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
 
+// Paleta cíclica para comparar categorías (canales, meses, etc.) — la misma
+// idea que ya usan los gráficos de Growth/Influencers, para que un gráfico
+// de barras no sea todo de un solo color.
+const CHART_COLORS = ["var(--asis-accent)", "var(--asis-k1)", "var(--asis-k2)", "var(--asis-k3)"];
+
 function fmtValue(v: unknown): string {
   if (v == null) return "—";
   if (typeof v === "number") return nf.format(v);
@@ -87,7 +92,7 @@ function BarChart({ chart }: { chart: ChartSpec }) {
         const y = h - pad - bh;
         return (
           <g key={i}>
-            <rect x={x} y={y} width={Math.max(2, barW)} height={bh} fill="var(--asis-accent)" rx={2} />
+            <rect x={x} y={y} width={Math.max(2, barW)} height={bh} fill={CHART_COLORS[i % CHART_COLORS.length]} rx={2} />
             <text x={x + barW / 2} y={h - pad + 14} textAnchor="middle" fontSize={9} fill="var(--asis-fg2)">
               {String(r[xKey]).slice(0, 10)}
             </text>
@@ -146,17 +151,30 @@ function Chart({ chart }: { chart: ChartSpec }) {
   );
 }
 
+function AsisAvatar() {
+  return (
+    <span className="asis-avatar" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z" fill="currentColor" />
+      </svg>
+    </span>
+  );
+}
+
 function AssistantBubble({ report }: { report: AssistantReport }) {
   return (
     <div className="asis-bubble asis-bubble-assistant">
-      <p className="asis-summary">{report.summary}</p>
-      {report.chart && <Chart chart={report.chart} />}
-      {report.sql && (
-        <details className="asis-sql">
-          <summary>Ver el SQL</summary>
-          <pre>{report.sql}</pre>
-        </details>
-      )}
+      <AsisAvatar />
+      <div className="asis-bubble-body">
+        <p className="asis-summary">{report.summary}</p>
+        {report.chart && <Chart chart={report.chart} />}
+        {report.sql && (
+          <details className="asis-sql">
+            <summary>Ver el SQL</summary>
+            <pre>{report.sql}</pre>
+          </details>
+        )}
+      </div>
     </div>
   );
 }
@@ -238,20 +256,31 @@ export default function AsistenteChat({ fontClassName }: { fontClassName: string
     <div className={`asis ${fontClassName}`} ref={rootRef}>
       <div className="asis-wrap">
         <header className="asis-head">
-          <div className="asis-head-top">
-            <span className="asis-spark" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z"
-                  fill="currentColor"
-                />
-              </svg>
-            </span>
-            <span className="asis-kicker">Coolmetrics</span>
+          <div className="asis-head-text">
+            <div className="asis-head-top">
+              <span className="asis-spark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </span>
+              <span className="asis-kicker">Coolmetrics</span>
+            </div>
+            <h1>Asistente de datos</h1>
+            <p className="asis-tagline">Sin Power BI, sin vueltas: preguntá y te arma el gráfico.</p>
           </div>
-          <h1>Asistente de datos</h1>
-          <p className="asis-tagline">Sin Power BI, sin vueltas: preguntá y listo.</p>
-          <p>Le preguntás por los datos de Decathlon, él arma el gráfico y te muestra el SQL que usó.</p>
+
+          <svg className="asis-head-art" viewBox="0 0 120 100" aria-hidden="true">
+            <circle cx="60" cy="50" r="46" fill="none" stroke="var(--asis-line)" strokeWidth="1" />
+            <rect x="24" y="62" width="10" height="20" rx="2" fill="var(--asis-k1)" />
+            <rect x="40" y="48" width="10" height="34" rx="2" fill="var(--asis-accent)" />
+            <rect x="56" y="58" width="10" height="24" rx="2" fill="var(--asis-k2)" />
+            <rect x="72" y="38" width="10" height="44" rx="2" fill="var(--asis-k3)" />
+            <circle cx="77" cy="26" r="4" fill="var(--asis-accent)" />
+            <circle cx="29" cy="30" r="2.5" fill="var(--asis-k1)" />
+          </svg>
         </header>
 
         <div className="asis-thread">
@@ -282,9 +311,10 @@ export default function AsistenteChat({ fontClassName }: { fontClassName: string
           )}
           {loading && (
             <div className="asis-bubble asis-bubble-assistant asis-thinking">
-              <span className="asis-dot" />
-              <span className="asis-dot" />
-              <span className="asis-dot" />
+              <AsisAvatar />
+              <span className="asis-dot asis-dot-1" />
+              <span className="asis-dot asis-dot-2" />
+              <span className="asis-dot asis-dot-3" />
             </div>
           )}
         </div>
