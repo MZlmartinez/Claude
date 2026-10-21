@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./asistente.css";
 
 type ChartSpec = {
@@ -166,6 +166,28 @@ export default function AsistenteChat({ fontClassName }: { fontClassName: string
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Avisa al padre (Softr) el alto real del contenido para que el iframe se
+  // ajuste solo — la conversación crece con cada pregunta, a diferencia de
+  // los dashboards que tienen un alto fijo una vez cargados los datos.
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const post = () => window.parent.postMessage({ source: "coolmetrics-report", height: el.scrollHeight }, "*");
+    post();
+    const observer = new ResizeObserver(post);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [turns, loading]);
+
+  // El scroll del mouse sobre el iframe no se propaga solo al documento
+  // padre — se reenvía como mensaje para que Softr haga scroll de la página.
+  useEffect(() => {
+    const onWheel = (e: WheelEvent) => window.parent.postMessage({ source: "coolmetrics-report", wheelDeltaY: e.deltaY }, "*");
+    window.addEventListener("wheel", onWheel, { passive: true });
+    return () => window.removeEventListener("wheel", onWheel);
+  }, []);
 
   async function send() {
     const text = input.trim();
@@ -207,7 +229,7 @@ export default function AsistenteChat({ fontClassName }: { fontClassName: string
   }
 
   return (
-    <div className={`asis ${fontClassName}`}>
+    <div className={`asis ${fontClassName}`} ref={rootRef}>
       <div className="asis-wrap">
         <header className="asis-head">
           <span className="asis-kicker">Coolmetrics</span>
