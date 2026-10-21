@@ -581,6 +581,22 @@
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
   gap: 12px;
 }
+/* El bloque de Tráfico tiene 7 KPIs: con auto-fit el 7mo queda solo en su
+   propia fila (6 entran, 1 cae) — se fuerza una cantidad fija de columnas
+   que sí divide bien, en vez de dejar que el navegador decida cuántas entran. */
+.mx-tiles-7 {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+@media (max-width: 900px) {
+  .mx-tiles-7 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (max-width: 480px) {
+  .mx-tiles-7 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 .mx-tile {
   background: var(--card);
   border: 1px solid var(--line);

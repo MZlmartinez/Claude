@@ -1449,7 +1449,7 @@ function TraficoSubPage({
         </button>
       </div>
 
-      <div className="mx-tiles">
+      <div className="mx-tiles mx-tiles-7">
         <KpiTile label="Sesiones totales" value={F.int(rangoRow?.sesiones)}>
           <Delta value={rangoRow?.var_sesiones} fmt={D.pct} note="vs mismos días del mes anterior" />
         </KpiTile>
