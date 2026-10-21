@@ -582,7 +582,7 @@ function Donut({ rows, colors }: { rows: { label: string; value: number }[]; col
   const top = data[0];
   return (
     <div>
-      <svg width="100%" viewBox="0 0 200 190" style={{ display: "block" }}>
+      <svg width="100%" viewBox="0 0 200 190" style={{ display: "block", maxWidth: 240, margin: "0 auto" }}>
         {arcs.map((a, i) => (
           <path key={a.label} d={arcPath(a.start, a.end)} fill={colors[i % colors.length]}>
             <title>{`${a.label}: ${F.int(a.value)} · ${((a.value / sum) * 100).toFixed(1)} %`}</title>
@@ -1636,11 +1636,27 @@ function NegocioSubPage({
   }, [rangoRow, negEsMes, m]);
 
   const rows = negocioDia.filter((d) => d.mes === m?.mes);
-  const productosFiltrados = rango
-    ? productosRango
-        .filter((x) => x.desde === rango.desde && x.hasta === rango.hasta && x.fact_sin_iva > 0)
-        .sort((a, b) => Number(a.tipo === "Otros") - Number(b.tipo === "Otros") || b.fact_sin_iva - a.fact_sin_iva)
-    : [];
+  // La query trae el top 25 de tipos del año (+ Otros) — para esta lista en
+  // barras se re-agrupa a un top 10 del período elegido, igual de legible
+  // que el resto de los rankings del dashboard (son todos top 10).
+  const productosFiltrados = useMemo(() => {
+    if (!rango) return [];
+    const delPeriodo = productosRango
+      .filter((x) => x.desde === rango.desde && x.hasta === rango.hasta && x.fact_sin_iva > 0)
+      .sort((a, b) => b.fact_sin_iva - a.fact_sin_iva);
+    const top10 = delPeriodo.filter((x) => x.tipo !== "Otros").slice(0, 10);
+    const resto = delPeriodo.filter((x) => !top10.includes(x));
+    if (!resto.length) return top10;
+    const otros: ProductoRangoRow = {
+      mes: delPeriodo[0].mes,
+      desde: rango.desde,
+      hasta: rango.hasta,
+      tipo: "Otros",
+      fact_sin_iva: resto.reduce((a, x) => a + x.fact_sin_iva, 0),
+      unidades: resto.reduce((a, x) => a + x.unidades, 0),
+    };
+    return [...top10, otros];
+  }, [rango, productosRango]);
 
   return (
     <div className="mx-sub-page">
@@ -1732,7 +1748,7 @@ function NegocioSubPage({
 
       <div className="mx-card">
         <h2>Mix de ventas por tipo de producto</h2>
-        <p className="mx-note">Facturación sin IVA del período. Los tipos fuera del top 10 del año van en Otros.</p>
+        <p className="mx-note">Facturación sin IVA del período. Los tipos fuera del top 10 de este período van en Otros.</p>
         <div className="mx-box" style={{ minHeight: 280 }}>
           <BarList
             rows={productosFiltrados}
