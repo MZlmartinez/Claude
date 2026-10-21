@@ -19,7 +19,6 @@
   color: var(--asis-fg);
   background: var(--asis-bg);
   width: 100%;
-  min-height: 100vh;
   box-sizing: border-box;
 }
 .asis * {
@@ -30,7 +29,6 @@
   max-width: 760px;
   margin: 0 auto;
   padding: clamp(20px, 4vw, 40px) 16px 32px;
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -46,7 +44,32 @@
 .asis-head-inner {
   max-width: 760px;
   margin: 0 auto;
-  padding: 28px 16px 24px;
+  padding: 28px 16px 26px;
+}
+.asis-head-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.asis-spark {
+  display: inline-flex;
+  color: var(--asis-accent);
+  animation: asis-spark-pulse 2.4s ease-in-out infinite;
+}
+.asis-spark svg {
+  width: 18px;
+  height: 18px;
+}
+@keyframes asis-spark-pulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(0.9) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05) rotate(12deg);
+  }
 }
 .asis-kicker {
   display: inline-block;
@@ -58,14 +81,13 @@
   background: var(--asis-accent);
   padding: 3px 9px;
   border-radius: 999px;
-  margin-bottom: 10px;
 }
 .asis-head h1 {
   font-family: var(--font-mx-display), sans-serif;
   font-weight: 400;
   font-size: 30px;
   line-height: 1.05;
-  margin: 0 0 6px;
+  margin: 0 0 8px;
   letter-spacing: 0.01em;
   color: var(--asis-dark-fg);
 }
@@ -74,6 +96,12 @@
   color: #b5b5b2;
   font-size: 13px;
   max-width: 48ch;
+}
+.asis-head p.asis-tagline {
+  margin: 0 0 6px;
+  color: var(--asis-accent);
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .asis-hint {

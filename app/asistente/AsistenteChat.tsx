@@ -238,9 +238,20 @@ export default function AsistenteChat({ fontClassName }: { fontClassName: string
     <div className={`asis ${fontClassName}`} ref={rootRef}>
       <header className="asis-head">
         <div className="asis-head-inner">
-          <span className="asis-kicker">Coolmetrics</span>
+          <div className="asis-head-top">
+            <span className="asis-spark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z"
+                  fill="currentColor"
+                />
+              </svg>
+            </span>
+            <span className="asis-kicker">Coolmetrics</span>
+          </div>
           <h1>Asistente de datos</h1>
-          <p>Preguntale por los datos de Decathlon — arma el gráfico y te muestra el SQL que usó.</p>
+          <p className="asis-tagline">Sin Power BI, sin vueltas: preguntá y listo.</p>
+          <p>Le preguntás por los datos de Decathlon, él arma el gráfico y te muestra el SQL que usó.</p>
         </div>
       </header>
 
