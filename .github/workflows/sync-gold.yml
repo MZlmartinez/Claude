@@ -1,13 +1,12 @@
 name: Sync gold (Fabric -> Supabase)
 
 on:
-  schedule:
-    # ~09:00 UTC = ~06:00 Argentina. Minuto corrido a propósito: GitHub
-    # recomienda evitar los minutos en punto (:00) porque son el momento de
-    # más carga de todo Actions, y ahí es más común que un disparo se
-    # demore o se pierda directamente — como pasó la primera vez que se
-    # programó este workflow en el minuto 0 exacto.
-    - cron: "9 9 * * *"
+  # El schedule nativo de GitHub Actions falló 2 días seguidos (ni con el
+  # cron en minuto :00 ni corrido a :09) — directamente no se disparó solo
+  # ninguna de las dos veces. El disparo diario pasó a vivir en el
+  # scheduler de la sesión de Claude Code, que llama a este workflow por
+  # la API (workflow_dispatch) todos los días ~09:09 UTC. Se deja
+  # workflow_dispatch para ese uso y para poder correrlo a mano.
   workflow_dispatch: {}
 
 jobs:
