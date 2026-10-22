@@ -379,6 +379,76 @@
   margin: 0;
 }
 
+.asis-bubble-foot {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.asis-bubble-foot .asis-sql {
+  margin-top: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.asis-save {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--asis-line);
+  color: var(--asis-fg2);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.asis-save:hover:not(:disabled) {
+  border-color: var(--asis-accent);
+  color: var(--asis-fg);
+}
+.asis-save:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.asis-save-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--asis-k3);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.asis-saved-link {
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 10px;
+  color: var(--asis-fg2);
+  font-size: 12px;
+  text-decoration: none;
+  border-bottom: 1px solid var(--asis-line);
+}
+.asis-saved-link:hover {
+  color: var(--asis-accent);
+  border-color: var(--asis-accent);
+}
+
+.asis-saved-question {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--asis-fg2);
+}
+.asis-saved-date {
+  font-size: 11px;
+  color: var(--asis-fg3);
+  white-space: nowrap;
+}
+
 .asis-form {
   flex-shrink: 0;
   display: flex;

@@ -2,189 +2,76 @@
 
 import { useEffect, useRef, useState } from "react";
 import "./asistente.css";
-
-type ChartSpec = {
-  type: "kpi" | "table" | "bar" | "line";
-  title: string;
-  rows: Record<string, unknown>[];
-  xKey?: string;
-  yKey?: string;
-  valueKey?: string;
-  valueLabel?: string;
-};
+import { Chart, AsisAvatar, type ChartSpec } from "./ReportChart";
 
 type AssistantReport = { summary: string; sql: string; chart: ChartSpec | null };
 
+type SaveState = "idle" | "saving" | "saved" | "error";
+
 type ChatTurn =
   | { role: "user"; content: string }
-  | { role: "assistant"; report: AssistantReport }
+  | { role: "assistant"; question: string; report: AssistantReport; saveState: SaveState }
   | { role: "assistant-error"; message: string };
-
-const nf = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
-
-// Paleta cíclica para comparar categorías (canales, meses, etc.) — la misma
-// idea que ya usan los gráficos de Growth/Influencers, para que un gráfico
-// de barras no sea todo de un solo color.
-const CHART_COLORS = ["var(--asis-accent)", "var(--asis-k1)", "var(--asis-k2)", "var(--asis-k3)"];
 
 // Techo del iframe embebido en Softr, en píxeles — ver el comentario en
 // AsistenteChat sobre por qué existe. Tiene que ser el mismo valor que
 // .asis { max-height } en asistente.css.
 const MAX_FRAME_HEIGHT = 2400;
 
-function fmtValue(v: unknown): string {
-  if (v == null) return "—";
-  if (typeof v === "number") return nf.format(v);
-  return String(v);
-}
-
-function Kpi({ chart }: { chart: ChartSpec }) {
-  const row = chart.rows[0];
-  if (!row) return <p className="asis-empty">Sin datos.</p>;
-  const key = chart.valueKey ?? Object.keys(row)[0];
+function SaveButton({ state, onSave }: { state: SaveState; onSave: () => void }) {
+  if (state === "saved") {
+    return (
+      <span className="asis-save asis-save-done">
+        <svg viewBox="0 0 24 24" fill="none" width="13" height="13">
+          <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        Guardado
+      </span>
+    );
+  }
   return (
-    <div className="asis-kpi">
-      <div className="asis-kpi-v">{fmtValue(row[key])}</div>
-      <div className="asis-kpi-l">{chart.valueLabel ?? chart.title}</div>
-    </div>
+    <button type="button" className="asis-save" onClick={onSave} disabled={state === "saving"}>
+      {state === "saving" ? "Guardando…" : "Guardar"}
+    </button>
   );
 }
 
-function Table({ chart }: { chart: ChartSpec }) {
-  if (!chart.rows.length) return <p className="asis-empty">Sin datos.</p>;
-  const columns = Object.keys(chart.rows[0]);
-  return (
-    <div className="asis-table-wrap">
-      <table className="asis-table">
-        <thead>
-          <tr>
-            {columns.map((c) => (
-              <th key={c}>{c}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {chart.rows.map((r, i) => (
-            <tr key={i}>
-              {columns.map((c) => (
-                <td key={c}>{fmtValue(r[c])}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function BarChart({ chart }: { chart: ChartSpec }) {
-  const xKey = chart.xKey ?? Object.keys(chart.rows[0] ?? {})[0];
-  const yKey = chart.yKey ?? Object.keys(chart.rows[0] ?? {})[1];
-  if (!chart.rows.length || !xKey || !yKey) return <p className="asis-empty">Sin datos.</p>;
-  const values = chart.rows.map((r) => Number(r[yKey]) || 0);
-  const max = Math.max(1, ...values);
-  const w = 640,
-    h = 220,
-    pad = 28,
-    barGap = 6;
-  const barW = (w - pad * 2) / chart.rows.length - barGap;
-  return (
-    <svg width="100%" viewBox={`0 0 ${w} ${h}`} style={{ display: "block" }}>
-      {chart.rows.map((r, i) => {
-        const v = Number(r[yKey]) || 0;
-        const bh = ((h - pad * 2) * v) / max;
-        const x = pad + i * ((w - pad * 2) / chart.rows.length);
-        const y = h - pad - bh;
-        return (
-          <g key={i}>
-            <rect x={x} y={y} width={Math.max(2, barW)} height={bh} fill={CHART_COLORS[i % CHART_COLORS.length]} rx={2} />
-            <text x={x + barW / 2} y={h - pad + 14} textAnchor="middle" fontSize={9} fill="var(--asis-fg2)">
-              {String(r[xKey]).slice(0, 10)}
-            </text>
-            <text x={x + barW / 2} y={y - 4} textAnchor="middle" fontSize={9} fill="var(--asis-fg)">
-              {nf.format(v)}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-function LineChart({ chart }: { chart: ChartSpec }) {
-  const xKey = chart.xKey ?? Object.keys(chart.rows[0] ?? {})[0];
-  const yKey = chart.yKey ?? Object.keys(chart.rows[0] ?? {})[1];
-  if (!chart.rows.length || !xKey || !yKey) return <p className="asis-empty">Sin datos.</p>;
-  const values = chart.rows.map((r) => Number(r[yKey]) || 0);
-  const max = Math.max(1, ...values);
-  const min = Math.min(0, ...values);
-  const w = 640,
-    h = 220,
-    pad = 28;
-  const span = max - min || 1;
-  const points = chart.rows.map((r, i) => {
-    const v = Number(r[yKey]) || 0;
-    const x = pad + (i * (w - pad * 2)) / Math.max(1, chart.rows.length - 1);
-    const y = h - pad - ((v - min) / span) * (h - pad * 2);
-    return [x, y] as const;
-  });
-  return (
-    <svg width="100%" viewBox={`0 0 ${w} ${h}`} style={{ display: "block" }}>
-      <polyline fill="none" stroke="var(--asis-accent)" strokeWidth={2} points={points.map((p) => p.join(",")).join(" ")} />
-      {points.map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r={2.5} fill="var(--asis-accent)" />
-      ))}
-      <text x={pad} y={h - 6} fontSize={9} fill="var(--asis-fg2)">
-        {String(chart.rows[0][xKey]).slice(0, 10)}
-      </text>
-      <text x={w - pad} y={h - 6} fontSize={9} fill="var(--asis-fg2)" textAnchor="end">
-        {String(chart.rows[chart.rows.length - 1][xKey]).slice(0, 10)}
-      </text>
-    </svg>
-  );
-}
-
-function Chart({ chart }: { chart: ChartSpec }) {
-  return (
-    <div className="asis-chart">
-      <h3>{chart.title}</h3>
-      {chart.type === "kpi" && <Kpi chart={chart} />}
-      {chart.type === "table" && <Table chart={chart} />}
-      {chart.type === "bar" && <BarChart chart={chart} />}
-      {chart.type === "line" && <LineChart chart={chart} />}
-    </div>
-  );
-}
-
-function AsisAvatar() {
-  return (
-    <span className="asis-avatar" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none">
-        <path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z" fill="currentColor" />
-      </svg>
-    </span>
-  );
-}
-
-function AssistantBubble({ report }: { report: AssistantReport }) {
+function AssistantBubble({
+  report,
+  saveState,
+  onSave,
+}: {
+  report: AssistantReport;
+  saveState: SaveState;
+  onSave: () => void;
+}) {
   return (
     <div className="asis-bubble asis-bubble-assistant">
       <AsisAvatar />
       <div className="asis-bubble-body">
         <p className="asis-summary">{report.summary}</p>
         {report.chart && <Chart chart={report.chart} />}
-        {report.sql && (
-          <details className="asis-sql">
-            <summary>Ver el SQL</summary>
-            <pre>{report.sql}</pre>
-          </details>
-        )}
+        <div className="asis-bubble-foot">
+          {report.sql && (
+            <details className="asis-sql">
+              <summary>Ver el SQL</summary>
+              <pre>{report.sql}</pre>
+            </details>
+          )}
+          <SaveButton state={saveState} onSave={onSave} />
+        </div>
       </div>
     </div>
   );
 }
 
-export default function AsistenteChat({ fontClassName }: { fontClassName: string }) {
+export default function AsistenteChat({
+  fontClassName,
+  userId,
+}: {
+  fontClassName: string;
+  userId: string | null;
+}) {
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -229,6 +116,32 @@ export default function AsistenteChat({ fontClassName }: { fontClassName: string
     if (el) el.scrollTop = el.scrollHeight;
   }, [turns, loading]);
 
+  async function saveTurn(index: number) {
+    const turn = turns[index];
+    if (turn.role !== "assistant") return;
+
+    setTurns((prev) => prev.map((t, i) => (i === index && t.role === "assistant" ? { ...t, saveState: "saving" } : t)));
+
+    try {
+      const res = await fetch("/api/asistente/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          question: turn.question,
+          summary: turn.report.summary,
+          sql: turn.report.sql,
+          chart: turn.report.chart,
+        }),
+      });
+      setTurns((prev) =>
+        prev.map((t, i) => (i === index && t.role === "assistant" ? { ...t, saveState: res.ok ? "saved" : "error" } : t)),
+      );
+    } catch {
+      setTurns((prev) => prev.map((t, i) => (i === index && t.role === "assistant" ? { ...t, saveState: "error" } : t)));
+    }
+  }
+
   async function send() {
     const text = input.trim();
     if (!text || loading) return;
@@ -255,7 +168,10 @@ export default function AsistenteChat({ fontClassName }: { fontClassName: string
       if (!res.ok) {
         setTurns((prev) => [...prev, { role: "assistant-error", message: data.error ?? "Error desconocido." }]);
       } else {
-        setTurns((prev) => [...prev, { role: "assistant", report: data as AssistantReport }]);
+        setTurns((prev) => [
+          ...prev,
+          { role: "assistant", question: text, report: data as AssistantReport, saveState: "idle" },
+        ]);
       }
     } catch (error) {
       setTurns((prev) => [
@@ -292,6 +208,11 @@ export default function AsistenteChat({ fontClassName }: { fontClassName: string
             </div>
             <h1>Asistente de datos</h1>
             <p className="asis-tagline">Tu negocio, a una pregunta de distancia.</p>
+            {userId && (
+              <a className="asis-saved-link" href={`/asistente/guardados?u=${encodeURIComponent(userId)}`}>
+                Ver mis guardados →
+              </a>
+            )}
           </div>
 
           <svg className="asis-head-art" viewBox="0 0 120 100" aria-hidden="true">
@@ -324,7 +245,7 @@ export default function AsistenteChat({ fontClassName }: { fontClassName: string
                 {t.content}
               </div>
             ) : t.role === "assistant" ? (
-              <AssistantBubble key={i} report={t.report} />
+              <AssistantBubble key={i} report={t.report} saveState={t.saveState} onSave={() => saveTurn(i)} />
             ) : (
               <div key={i} className="asis-bubble asis-bubble-error">
                 {t.message}
