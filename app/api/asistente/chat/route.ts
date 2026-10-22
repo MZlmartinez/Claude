@@ -8,7 +8,11 @@ import { runAssistantQuery } from "@/lib/supabase/readonlyPg";
 export const dynamic = "force-dynamic";
 
 const DEFAULT_MODEL = "claude-sonnet-5-5";
-const MAX_SQL_CALLS = 6;
+// Preguntas complejas (ej. "¿cómo afectó tal campaña a las ventas?")
+// necesitan encontrar la campaña, su rango de fechas, y recién ahí cruzar
+// con ventas — varios pasos legítimos. 6 se quedaba corto incluso con el
+// schema completo documentado.
+const MAX_SQL_CALLS = 14;
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
@@ -29,7 +33,8 @@ const SYSTEM_PROMPT = `Sos el asistente de datos de Decathlon dentro de Coolmetr
 Reglas:
 - Es un solo cliente (Decathlon) — no hay riesgo de mezclar datos de otro cliente porque no existen en esta base.
 - Solo podés leer datos con la tool run_sql (SELECT o WITH). Nunca inventes un número: si una consulta no trae filas, o trae NULL, decilo tal cual en tu respuesta — no lo reemplaces por una estimación ni por cero sin aclararlo.
-- Si una tabla no está documentada en el schema de abajo, explorala primero con "select * from <tabla> limit 3" antes de armar la consulta real.
+- El schema de abajo ya tiene las columnas reales de las 16 tablas — no deberías necesitar "select * ... limit 3" para descubrir qué columnas existen. Usalo solo si una columna puntual tiene un formato dudoso (está marcado en el schema cuándo conviene revisarlo así).
+- Preguntas complejas (ej. relacionar una campaña puntual con su efecto en ventas) necesitan varios pasos — está bien, tenés margen. Pero no repitas una exploración que ya hiciste: si ya viste la forma de una tabla, usá ese conocimiento en el resto de la conversación.
 - Cuando tengas la respuesta, llamá a la tool present_report UNA sola vez, con el SQL FINAL que de verdad respalda la respuesta (el que trajo los datos que mostrás, no uno intermedio de exploración) — ese SQL se le muestra al usuario para que lo pueda verificar, así que tiene que ser exacto.
 - Preferí el gráfico más simple que represente bien la pregunta: "kpi" para un solo número, "table" para un desglose con varias columnas, "bar" para comparar categorías, "line" para una evolución en el tiempo.
 - Respondé siempre en español, tono directo y breve.
@@ -109,7 +114,7 @@ export async function POST(request: Request) {
     try {
       response = await anthropic.messages.create({
         model,
-        max_tokens: 4096,
+        max_tokens: 8192,
         system: SYSTEM_PROMPT,
         tools: TOOLS,
         messages,
@@ -151,7 +156,7 @@ export async function POST(request: Request) {
     sqlCalls += sqlCalls_.length;
     if (sqlCalls > MAX_SQL_CALLS) {
       return NextResponse.json(
-        { error: "La consulta se volvió demasiado larga de resolver (más de 6 pasos). Probá con una pregunta más acotada." },
+        { error: `La consulta se volvió demasiado larga de resolver (más de ${MAX_SQL_CALLS} pasos). Probá con una pregunta más acotada.` },
         { status: 422 },
       );
     }
