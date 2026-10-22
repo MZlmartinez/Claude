@@ -448,6 +448,12 @@
   color: var(--asis-fg3);
   white-space: nowrap;
 }
+.asis-saved-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
 .asis-form {
   flex-shrink: 0;
