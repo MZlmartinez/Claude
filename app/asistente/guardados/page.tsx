@@ -1,5 +1,6 @@
 import { listSavedReports } from "@/lib/assistant/savedReports";
 import SavedReportCard from "../SavedReportCard";
+import PageHeightReporter from "../PageHeightReporter";
 import { mxBody, mxDisplay } from "../fonts";
 import "../asistente.css";
 
@@ -17,7 +18,7 @@ export default async function GuardadosPage({
 
   if (!userId) {
     return (
-      <div className={`asis ${fontClassName}`}>
+      <PageHeightReporter fontClassName={fontClassName}>
         <div className="asis-wrap">
           <header className="asis-head">
             <div className="asis-head-text">
@@ -27,14 +28,14 @@ export default async function GuardadosPage({
             </div>
           </header>
         </div>
-      </div>
+      </PageHeightReporter>
     );
   }
 
   const reports = await listSavedReports(userId);
 
   return (
-    <div className={`asis ${fontClassName}`}>
+    <PageHeightReporter fontClassName={fontClassName}>
       <div className="asis-wrap">
         <header className="asis-head">
           <div className="asis-head-text">
@@ -56,6 +57,6 @@ export default async function GuardadosPage({
           ))}
         </div>
       </div>
-    </div>
+    </PageHeightReporter>
   );
 }
