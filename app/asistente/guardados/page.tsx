@@ -1,6 +1,7 @@
 import { listSavedReports } from "@/lib/assistant/savedReports";
 import SavedReportThumb from "../SavedReportThumb";
 import PageHeightReporter from "../PageHeightReporter";
+import { AsistenteHeader } from "../AsistenteHeader";
 import { mxBody, mxDisplay } from "../fonts";
 import "../asistente.css";
 
@@ -20,13 +21,8 @@ export default async function GuardadosPage({
     return (
       <PageHeightReporter fontClassName={fontClassName}>
         <div className="asis-wrap">
-          <header className="asis-head">
-            <div className="asis-head-text">
-              <span className="asis-kicker">Coolmetrics</span>
-              <h1>Mis guardados</h1>
-              <p className="asis-tagline">No pudimos identificar quién sos — entrá desde el portal.</p>
-            </div>
-          </header>
+          <AsistenteHeader />
+          <p className="asis-empty">No pudimos identificar quién sos — entrá desde el portal.</p>
         </div>
       </PageHeightReporter>
     );
@@ -37,13 +33,7 @@ export default async function GuardadosPage({
   return (
     <PageHeightReporter fontClassName={fontClassName}>
       <div className="asis-wrap">
-        <header className="asis-head">
-          <div className="asis-head-text">
-            <span className="asis-kicker">Coolmetrics</span>
-            <h1>Mis guardados</h1>
-            <p className="asis-tagline">Los reportes que guardaste del asistente.</p>
-          </div>
-        </header>
+        <AsistenteHeader />
 
         <div className="asis-thread">
           <a className="asis-saved-link" href={`/asistente?u=${encodeURIComponent(userId)}`}>

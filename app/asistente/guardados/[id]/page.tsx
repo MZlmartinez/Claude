@@ -1,5 +1,6 @@
 import AsistenteChat, { type ChatTurn } from "../../AsistenteChat";
 import PageHeightReporter from "../../PageHeightReporter";
+import { AsistenteHeader } from "../../AsistenteHeader";
 import { getSavedReport, listSavedReports } from "@/lib/assistant/savedReports";
 import { mxBody, mxDisplay } from "../../fonts";
 import "../../asistente.css";
@@ -28,13 +29,8 @@ export default async function GuardadoDetallePage({
     return (
       <PageHeightReporter fontClassName={fontClassName}>
         <div className="asis-wrap">
-          <header className="asis-head">
-            <div className="asis-head-text">
-              <span className="asis-kicker">Coolmetrics</span>
-              <h1>Reporte guardado</h1>
-              <p className="asis-tagline">No encontramos ese reporte.</p>
-            </div>
-          </header>
+          <AsistenteHeader />
+          <p className="asis-empty">No encontramos ese reporte.</p>
           <a className="asis-saved-link" href={`/asistente?u=${encodeURIComponent(userId ?? "")}`}>
             ← Volver al asistente
           </a>

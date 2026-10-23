@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import "./asistente.css";
 import { Chart, AsisAvatar, type ChartSpec } from "./ReportChart";
+import { AsistenteHeader } from "./AsistenteHeader";
 import type { SavedReport } from "@/lib/assistant/savedReports";
 
 type AssistantReport = { summary: string; sql: string; chart: ChartSpec | null };
@@ -243,33 +244,7 @@ export default function AsistenteChat({
     <div className={`asis ${fontClassName}`} ref={rootRef}>
       <div className="asis-layout">
       <div className="asis-wrap">
-        <header className="asis-head">
-          <div className="asis-head-text">
-            <div className="asis-head-top">
-              <span className="asis-spark" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z"
-                    fill="currentColor"
-                  />
-                </svg>
-              </span>
-              <span className="asis-kicker">Coolmetrics</span>
-            </div>
-            <h1>Asistente de datos</h1>
-            <p className="asis-tagline">Tu negocio, a una pregunta de distancia.</p>
-          </div>
-
-          <svg className="asis-head-art" viewBox="0 0 120 100" aria-hidden="true">
-            <circle cx="60" cy="50" r="46" fill="none" stroke="var(--asis-line)" strokeWidth="1" />
-            <rect x="24" y="62" width="10" height="20" rx="2" fill="var(--asis-k1)" />
-            <rect x="40" y="48" width="10" height="34" rx="2" fill="var(--asis-accent)" />
-            <rect x="56" y="58" width="10" height="24" rx="2" fill="var(--asis-k2)" />
-            <rect x="72" y="38" width="10" height="44" rx="2" fill="var(--asis-k3)" />
-            <circle cx="77" cy="26" r="4" fill="var(--asis-accent)" />
-            <circle cx="29" cy="30" r="2.5" fill="var(--asis-k1)" />
-          </svg>
-        </header>
+        <AsistenteHeader />
 
         <div className="asis-thread">
           {turns.length === 0 && (
