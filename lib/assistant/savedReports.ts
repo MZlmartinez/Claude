@@ -40,6 +40,20 @@ export async function saveReport(input: {
   return data as SavedReport;
 }
 
+export async function getSavedReport(id: string, createdBy: string): Promise<SavedReport | null> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("assistant_reports")
+    .select("id, created_at, created_by, question, summary, sql, chart")
+    .eq("id", id)
+    .eq("created_by", createdBy)
+    .eq("status", "draft")
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return (data as SavedReport | null) ?? null;
+}
+
 export async function listSavedReports(createdBy: string): Promise<SavedReport[]> {
   const supabase = createAdminClient();
   const { data, error } = await supabase

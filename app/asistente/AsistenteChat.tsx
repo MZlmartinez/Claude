@@ -302,7 +302,7 @@ export default function AsistenteChat({
           <a
             key={r.id}
             className="asis-sidebar-item"
-            href={`/asistente/guardados?u=${encodeURIComponent(userId ?? "")}`}
+            href={`/asistente/guardados/${r.id}?u=${encodeURIComponent(userId ?? "")}`}
           >
             <span className="asis-sidebar-item-q">{r.question}</span>
             <span className="asis-sidebar-item-d">{sidebarFecha.format(new Date(r.created_at))}</span>
