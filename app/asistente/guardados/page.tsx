@@ -20,9 +20,12 @@ export default async function GuardadosPage({
   if (!userId) {
     return (
       <PageHeightReporter fontClassName={fontClassName}>
-        <div className="asis-wrap">
-          <AsistenteHeader />
-          <p className="asis-empty">No pudimos identificar quién sos — entrá desde el portal.</p>
+        <div className="asis-layout">
+          <div className="asis-wrap">
+            <AsistenteHeader />
+            <h2 className="asis-section-title">Mis reportes guardados</h2>
+            <p className="asis-empty">No pudimos identificar quién sos — entrá desde el portal.</p>
+          </div>
         </div>
       </PageHeightReporter>
     );
@@ -32,20 +35,23 @@ export default async function GuardadosPage({
 
   return (
     <PageHeightReporter fontClassName={fontClassName}>
-      <div className="asis-wrap">
-        <AsistenteHeader />
+      <div className="asis-layout">
+        <div className="asis-wrap">
+          <AsistenteHeader />
+          <h2 className="asis-section-title">Mis reportes guardados</h2>
 
-        <div className="asis-thread">
-          <a className="asis-saved-link" href={`/asistente?u=${encodeURIComponent(userId)}`}>
-            ← Volver al asistente
-          </a>
+          <div className="asis-thread">
+            <a className="asis-saved-link" href={`/asistente?u=${encodeURIComponent(userId)}`}>
+              ← Volver al asistente
+            </a>
 
-          {reports.length === 0 && <p className="asis-empty">Todavía no guardaste ningún reporte.</p>}
+            {reports.length === 0 && <p className="asis-empty">Todavía no guardaste ningún reporte.</p>}
 
-          <div className="asis-thumb-grid">
-            {reports.map((r) => (
-              <SavedReportThumb key={r.id} report={r} userId={userId} />
-            ))}
+            <div className="asis-thumb-grid">
+              {reports.map((r) => (
+                <SavedReportThumb key={r.id} report={r} userId={userId} />
+              ))}
+            </div>
           </div>
         </div>
       </div>

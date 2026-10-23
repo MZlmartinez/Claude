@@ -97,7 +97,8 @@
     padding: 0 20px 20px;
   }
 }
-.asis-sidebar h2 {
+.asis-sidebar h2,
+.asis-section-title {
   font-family: var(--font-mx-display), sans-serif;
   font-weight: 400;
   font-size: 15px;
@@ -105,6 +106,9 @@
   margin: 0 0 4px;
   color: var(--asis-fg2);
   text-transform: uppercase;
+}
+.asis-section-title {
+  margin-top: 16px;
 }
 .asis-sidebar-item {
   display: flex;

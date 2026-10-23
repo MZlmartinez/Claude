@@ -28,12 +28,14 @@ export default async function GuardadoDetallePage({
   if (!report) {
     return (
       <PageHeightReporter fontClassName={fontClassName}>
-        <div className="asis-wrap">
-          <AsistenteHeader />
-          <p className="asis-empty">No encontramos ese reporte.</p>
-          <a className="asis-saved-link" href={`/asistente?u=${encodeURIComponent(userId ?? "")}`}>
-            ← Volver al asistente
-          </a>
+        <div className="asis-layout">
+          <div className="asis-wrap">
+            <AsistenteHeader />
+            <p className="asis-empty">No encontramos ese reporte.</p>
+            <a className="asis-saved-link" href={`/asistente?u=${encodeURIComponent(userId ?? "")}`}>
+              ← Volver al asistente
+            </a>
+          </div>
         </div>
       </PageHeightReporter>
     );
