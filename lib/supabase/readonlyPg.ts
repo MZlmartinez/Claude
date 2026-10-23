@@ -12,7 +12,18 @@ function getPool() {
     pool = new Pool({
       connectionString: process.env.SUPABASE_READONLY_DB_URL,
       ssl: { rejectUnauthorized: false },
-      max: 2,
+      // decathlon_readonly tiene CONNECTION LIMIT 3 en Postgres — ese límite
+      // es GLOBAL al rol, no por instancia de esta función. En Vercel cada
+      // ruta (chat, rerun) es una función serverless aparte, y cada una
+      // puede tener su propia instancia "congelada" entre invocaciones sin
+      // soltar su conexión prolijamente. Con max:2 en cada una, alcanza con
+      // dos rutas activas a la vez para llenar el límite y dejarlo trabado
+      // (nos pasó: 3 conexiones quietas, la más vieja de 6 minutos). max:1
+      // + un idle timeout corto reduce cuánto tarda cada instancia en
+      // soltar la conexión sola si queda colgada.
+      max: 1,
+      idleTimeoutMillis: 5_000,
+      connectionTimeoutMillis: 10_000,
     });
   }
   return pool;
