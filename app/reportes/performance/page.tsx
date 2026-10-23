@@ -1,4 +1,4 @@
-import { getInsightsByPeriod, getPerformanceMetrics } from "@/lib/reports/performance";
+import { getPerformanceSnapshotData } from "@/lib/reports/performance";
 import { PerformanceSnapshot } from "@/components/PerformanceSnapshot";
 
 export const dynamic = "force-dynamic";
@@ -8,10 +8,7 @@ export const dynamic = "force-dynamic";
 // del Home. Un solo cliente real en este pipeline (Decathlon), así que no
 // hace falta identificar usuario ni filtrar por tenant.
 export default async function PerformanceEmbedPage() {
-  const [metricsByPeriod, insightByPeriod] = await Promise.all([
-    getPerformanceMetrics(),
-    getInsightsByPeriod(),
-  ]);
+  const { metricsByPeriod, insightByPeriod } = await getPerformanceSnapshotData();
   const periods = Object.keys(metricsByPeriod).sort((a, b) => b.localeCompare(a));
 
   return (

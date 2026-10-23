@@ -1,4 +1,5 @@
 import { queryReport } from "@/lib/supabase/pg";
+import { formatPercent } from "@/lib/format";
 import type { InsightOfMonth, Metric } from "@/lib/types";
 
 // Reemplaza la vista dbo.portal_metrics de Fabric (que exigía tener la
@@ -20,7 +21,7 @@ type PerformanceRow = {
   cumplimiento_pct: number | null;
 };
 
-const PERIODS_LIMIT = 6;
+const PERIODS_LIMIT = 3;
 
 async function getPerformanceRows(): Promise<PerformanceRow[]> {
   return queryReport<PerformanceRow>(`
@@ -108,69 +109,91 @@ function goalSentiment(value: number): Metric["sentiment"] {
   return value >= 100 ? "positive" : "negative";
 }
 
-export async function getPerformanceMetrics(): Promise<Record<string, Metric[]>> {
-  const rows = await getPerformanceRows();
-  const metricsByPeriod: Record<string, Metric[]> = {};
+function buildMetrics(period: string, row: PerformanceRow): Metric[] {
+  const metrics: Metric[] = [];
 
-  for (const row of rows) {
-    const period = periodoToIsoDate(row.periodo);
-    const metrics: Metric[] = [];
-
-    if (row.facturacion_var_pct !== null) {
-      metrics.push({
-        id: `${period}-facturacion`,
-        period,
-        label: "Facturación",
-        value_pct: row.facturacion_var_pct,
-        sentiment: trendSentiment(row.facturacion_var_pct),
-        sort_order: 1,
-      });
-    }
-    if (row.ticket_var_pct !== null) {
-      metrics.push({
-        id: `${period}-ticket`,
-        period,
-        label: "Ticket promedio",
-        value_pct: row.ticket_var_pct,
-        sentiment: trendSentiment(row.ticket_var_pct),
-        sort_order: 2,
-      });
-    }
-    if (row.sesiones_var_pct !== null) {
-      metrics.push({
-        id: `${period}-sesiones`,
-        period,
-        label: "Sesiones totales",
-        value_pct: row.sesiones_var_pct,
-        sentiment: trendSentiment(row.sesiones_var_pct),
-        sort_order: 3,
-      });
-    }
-    if (row.cumplimiento_pct !== null) {
-      metrics.push({
-        id: `${period}-cumplimiento`,
-        period,
-        label: "Cumplimiento del objetivo",
-        value_pct: row.cumplimiento_pct,
-        sentiment: goalSentiment(row.cumplimiento_pct),
-        sort_order: 4,
-      });
-    }
-
-    if (metrics.length) {
-      metricsByPeriod[period] = metrics;
-    }
+  if (row.facturacion_var_pct !== null) {
+    metrics.push({
+      id: `${period}-facturacion`,
+      period,
+      label: "Facturación",
+      value_pct: row.facturacion_var_pct,
+      sentiment: trendSentiment(row.facturacion_var_pct),
+      sort_order: 1,
+    });
+  }
+  if (row.ticket_var_pct !== null) {
+    metrics.push({
+      id: `${period}-ticket`,
+      period,
+      label: "Ticket promedio",
+      value_pct: row.ticket_var_pct,
+      sentiment: trendSentiment(row.ticket_var_pct),
+      sort_order: 2,
+    });
+  }
+  if (row.sesiones_var_pct !== null) {
+    metrics.push({
+      id: `${period}-sesiones`,
+      period,
+      label: "Sesiones totales",
+      value_pct: row.sesiones_var_pct,
+      sentiment: trendSentiment(row.sesiones_var_pct),
+      sort_order: 3,
+    });
+  }
+  if (row.cumplimiento_pct !== null) {
+    metrics.push({
+      id: `${period}-cumplimiento`,
+      period,
+      label: "Cumplimiento del objetivo",
+      value_pct: row.cumplimiento_pct,
+      sentiment: goalSentiment(row.cumplimiento_pct),
+      sort_order: 4,
+    });
   }
 
-  return metricsByPeriod;
+  return metrics;
+}
+
+// Insight redactado en el momento a partir de las mismas 3 métricas de
+// variación (sin tocar "Cumplimiento del objetivo": esa depende de metas
+// de ejemplo, no reales — ver comentario arriba — así que no armamos
+// ningún texto a partir de ella hasta que haya datos de verdad ahí).
+function buildComputedInsight(period: string, row: PerformanceRow): InsightOfMonth | null {
+  const fact = row.facturacion_var_pct;
+  if (fact === null) return null;
+
+  const sesiones = row.sesiones_var_pct;
+  const ticket = row.ticket_var_pct;
+  const factSubio = fact >= 0;
+  const factVerbo = factSubio ? "subió" : "cayó";
+  const pct = (value: number) => formatPercent(Math.abs(value));
+
+  let title: string;
+  let body: string;
+
+  if (sesiones !== null && Math.sign(sesiones) === Math.sign(fact) && Math.abs(sesiones) >= Math.abs(fact) * 0.4) {
+    title = factSubio ? "Más sesiones impulsan la facturación" : "La caída de sesiones impacta en la facturación";
+    body = `La facturación ${factVerbo} ${pct(fact)}, en un contexto de ${sesiones >= 0 ? "aumento" : "disminución"} de ${pct(sesiones)} en las sesiones. La ${sesiones >= 0 ? "mayor" : "menor"} actividad aparece como uno de los principales factores detrás de ${factSubio ? "la suba" : "la caída"}.`;
+  } else if (ticket !== null && Math.sign(ticket) === Math.sign(fact) && Math.abs(ticket) >= Math.abs(fact) * 0.3) {
+    title = factSubio ? "Un mejor ticket promedio impulsa la facturación" : "La caída del ticket promedio afecta la facturación";
+    body = `La facturación ${factVerbo} ${pct(fact)}, acompañada por ${ticket >= 0 ? "un aumento" : "una caída"} de ${pct(ticket)} en el ticket promedio.`;
+  } else {
+    title = factSubio ? "La facturación mejora este mes" : "La facturación retrocede este mes";
+    body = `La facturación ${factVerbo} ${pct(fact)} respecto del período anterior.`;
+  }
+
+  return { id: `${period}-computed`, period, title, body, highlight: null };
 }
 
 // insights_of_month tiene RLS por profile_id (solo lo puede leer el dueño
 // logueado con Supabase Auth) — igual que growth.ts/influencers.ts, esta
 // página se embebe sin login propio (la identifica Softr), así que leemos
-// directo por Postgres. Al ser un solo cliente real en este pipeline no
-// hace falta filtrar por profile_id.
-export async function getInsightsByPeriod(): Promise<Record<string, InsightOfMonth>> {
+// directo por Postgres. Es una tabla de curación manual (hoy vacía): si en
+// algún momento alguien carga una fila para un período puntual, esa gana
+// por sobre el insight redactado automáticamente para ese mismo período.
+async function getManualInsights(): Promise<Record<string, InsightOfMonth>> {
   const rows = await queryReport<{
     id: string;
     period: string;
@@ -183,9 +206,35 @@ export async function getInsightsByPeriod(): Promise<Record<string, InsightOfMon
      order by period desc`,
   );
 
-  const insightByPeriod: Record<string, InsightOfMonth> = {};
+  const byPeriod: Record<string, InsightOfMonth> = {};
   for (const row of rows) {
-    insightByPeriod[row.period] = row;
+    byPeriod[row.period] = row;
   }
-  return insightByPeriod;
+  return byPeriod;
+}
+
+export async function getPerformanceSnapshotData(): Promise<{
+  metricsByPeriod: Record<string, Metric[]>;
+  insightByPeriod: Record<string, InsightOfMonth>;
+}> {
+  const [rows, manualInsights] = await Promise.all([getPerformanceRows(), getManualInsights()]);
+
+  const metricsByPeriod: Record<string, Metric[]> = {};
+  const insightByPeriod: Record<string, InsightOfMonth> = {};
+
+  for (const row of rows) {
+    const period = periodoToIsoDate(row.periodo);
+
+    const metrics = buildMetrics(period, row);
+    if (metrics.length) {
+      metricsByPeriod[period] = metrics;
+    }
+
+    const computed = buildComputedInsight(period, row);
+    if (computed) {
+      insightByPeriod[period] = manualInsights[period] ?? computed;
+    }
+  }
+
+  return { metricsByPeriod, insightByPeriod };
 }

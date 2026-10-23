@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { getPerformanceMetrics } from "@/lib/reports/performance";
-import type { DocumentItem, InsightOfMonth, Meeting, Metric, Profile } from "@/lib/types";
+import { getPerformanceSnapshotData } from "@/lib/reports/performance";
+import type { DocumentItem, Meeting } from "@/lib/types";
 
 export async function getUpcomingMeetings(profileId: string): Promise<Meeting[]> {
   const supabase = await createClient();
@@ -27,40 +27,26 @@ export async function getRecentDocuments(profileId: string): Promise<DocumentIte
   return data ?? [];
 }
 
-export type PerformanceSnapshot = {
+export type PerformanceSnapshot = Awaited<ReturnType<typeof getPerformanceSnapshotData>> & {
   periods: string[];
-  metricsByPeriod: Record<string, Metric[]>;
-  insightByPeriod: Record<string, InsightOfMonth>;
 };
 
-async function safePerformanceMetrics() {
+async function safePerformanceSnapshotData() {
   try {
-    return await getPerformanceMetrics();
+    return await getPerformanceSnapshotData();
   } catch (error) {
     // Un problema puntual con Supabase no debe romper el home: se degrada
     // a "sin métricas" en vez de tumbar la página entera.
     console.error("Error calculando el performance snapshot", error);
-    return {};
+    return { metricsByPeriod: {}, insightByPeriod: {} };
   }
 }
 
-export async function getPerformanceSnapshot(profile: Profile): Promise<PerformanceSnapshot> {
-  const supabase = await createClient();
-
-  const [metricsByPeriod, { data: insights }] = await Promise.all([
-    safePerformanceMetrics(),
-    supabase
-      .from("insights_of_month")
-      .select("*")
-      .eq("profile_id", profile.id)
-      .order("period", { ascending: false }),
-  ]);
-
-  const insightByPeriod: Record<string, InsightOfMonth> = {};
-  for (const insight of insights ?? []) {
-    insightByPeriod[insight.period] = insight;
-  }
-
+// El Home tiene login propio (profile viene de Supabase Auth), pero el
+// snapshot en sí es de un solo cliente real (Decathlon) — no hace falta
+// el profile para armarlo.
+export async function getPerformanceSnapshot(): Promise<PerformanceSnapshot> {
+  const { metricsByPeriod, insightByPeriod } = await safePerformanceSnapshotData();
   const periods = Object.keys(metricsByPeriod).sort((a, b) => b.localeCompare(a));
 
   return { periods, metricsByPeriod, insightByPeriod };
