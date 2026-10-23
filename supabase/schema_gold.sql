@@ -220,6 +220,58 @@ create table public.gold_shopify_total_sales_by_product (
   synced_at timestamptz not null default now()
 );
 
+-- Índices por día en las tablas grandes que se filtran/cruzan por fecha
+-- (el asistente de IA arma SQL ad-hoc contra estas tablas y sí puede
+-- filtrar por rango de fechas, a diferencia de growth.ts que agrega todo
+-- el histórico sin WHERE — ver las vistas materializadas más abajo para
+-- ese caso). Las tablas chicas (<1000 filas) no los necesitan.
+create index concurrently if not exists idx_gold_shopify_sessions_by_referrer_master_day on public.gold_shopify_sessions_by_referrer_master (day);
+create index concurrently if not exists idx_gold_shopify_sessions_by_referrer_day on public.gold_shopify_sessions_by_referrer (day);
+create index concurrently if not exists idx_gold_shopify_customer_behavior_day on public.gold_shopify_customer_behavior (day);
+create index concurrently if not exists idx_gold_shopify_total_sales_by_product_day on public.gold_shopify_total_sales_by_product (day);
+create index concurrently if not exists idx_gold_shopify_sessions_by_session_device_type_day on public.gold_shopify_sessions_by_session_device_type (day);
+create index concurrently if not exists idx_gold_shopify_conversion_rate_over_time_day on public.gold_shopify_conversion_rate_over_time (day);
+create index concurrently if not exists idx_gold_shopify_orders_over_time_day on public.gold_shopify_orders_over_time (day);
+
+-- Vistas materializadas de agregación diaria para /reportes/growth
+-- (lib/reports/growth.ts): varias queries del dashboard escaneaban
+-- gold_shopify_sessions_by_referrer_master (880k+ filas) y
+-- gold_shopify_total_sales_by_product repetidas veces en cada carga de
+-- página — medido, una sola de esas agregaciones sin filtrar tardaba ~7s.
+-- Estas vistas agregan por día una sola vez; growth.ts lee de acá en vez
+-- de las tablas crudas. Se refrescan en scripts/sync-gold.ts
+-- (refreshGrowthRollups), una vez por día después del sync — no dependen
+-- de RLS porque lib/supabase/pg.ts ya corre con una conexión que no la usa
+-- (igual que el resto de las tablas gold_* leídas desde ese módulo).
+create materialized view public.gold_shopify_sessions_daily_rollup as
+select
+  day,
+  coalesce(referring_channel, 'N/A') as referring_channel,
+  traffic_type,
+  session_device_type,
+  sum(sessions)::bigint as sessions,
+  sum(bounces)::bigint as bounces,
+  sum(sessions_that_completed_checkout)::bigint as sessions_that_completed_checkout
+from public.gold_shopify_sessions_by_referrer_master
+group by 1, 2, 3, 4;
+
+create unique index idx_gold_shopify_sessions_daily_rollup_uniq
+  on public.gold_shopify_sessions_daily_rollup (day, referring_channel, traffic_type, session_device_type);
+
+create materialized view public.gold_shopify_sales_daily_rollup as
+select
+  day,
+  coalesce(referring_channel, 'N/A') as referring_channel,
+  coalesce(nullif(product_type, ''), 'N/A') as product_type,
+  new_or_returning_customer,
+  sum(total_sales)::numeric as total_sales,
+  sum(net_items_sold)::bigint as net_items_sold
+from public.gold_shopify_total_sales_by_product
+group by 1, 2, 3, 4;
+
+create unique index idx_gold_shopify_sales_daily_rollup_uniq
+  on public.gold_shopify_sales_daily_rollup (day, referring_channel, product_type, new_or_returning_customer);
+
 -- RLS: solo el usuario de Decathlon puede leer estas 15 tablas (son suyas
 -- en exclusiva). El UUID es el de su fila en auth.users/profiles.
 do $$

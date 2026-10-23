@@ -14,6 +14,7 @@ import { ensureFabricCapacityActive, pauseFabricCapacity } from "../lib/fabricCa
 import { createAdminClient } from "../lib/supabase/admin";
 import { GOLD_TABLES } from "../lib/goldTables";
 import { syncGoldTables, type SyncResult } from "../lib/syncGold";
+import { refreshGrowthRollups } from "../lib/reports/growth";
 
 const BIG_TABLES = [
   "gold_shopify_sessions_by_referrer",
@@ -66,6 +67,14 @@ async function main() {
   } finally {
     await pauseFabricCapacity();
   }
+
+  // Los rollups diarios que usa /reportes/growth (ver lib/reports/growth.ts)
+  // se recalculan acá, una sola vez por día, después de sincronizar — así
+  // el dashboard lee una tabla ya agregada en vez de escanear las tablas
+  // crudas de sesiones/ventas (880k+ filas) en cada visita. No depende de
+  // Fabric, así que corre después de pausar la capacidad, sin extender el
+  // tiempo que queda despierta.
+  await refreshGrowthRollups();
 
   console.log(`Rango para las tablas grandes: ${from} a ${to}`);
   console.table(
