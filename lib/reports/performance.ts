@@ -1,5 +1,5 @@
 import { queryReport } from "@/lib/supabase/pg";
-import type { Metric } from "@/lib/types";
+import type { InsightOfMonth, Metric } from "@/lib/types";
 
 // Reemplaza la vista dbo.portal_metrics de Fabric (que exigía tener la
 // capacidad despierta en cada carga del Home, algo que no pasa casi nunca
@@ -163,4 +163,29 @@ export async function getPerformanceMetrics(): Promise<Record<string, Metric[]>>
   }
 
   return metricsByPeriod;
+}
+
+// insights_of_month tiene RLS por profile_id (solo lo puede leer el dueño
+// logueado con Supabase Auth) — igual que growth.ts/influencers.ts, esta
+// página se embebe sin login propio (la identifica Softr), así que leemos
+// directo por Postgres. Al ser un solo cliente real en este pipeline no
+// hace falta filtrar por profile_id.
+export async function getInsightsByPeriod(): Promise<Record<string, InsightOfMonth>> {
+  const rows = await queryReport<{
+    id: string;
+    period: string;
+    title: string;
+    body: string;
+    highlight: string | null;
+  }>(
+    `select id::text as id, to_char(period, 'YYYY-MM-DD') as period, title, body, highlight
+     from insights_of_month
+     order by period desc`,
+  );
+
+  const insightByPeriod: Record<string, InsightOfMonth> = {};
+  for (const row of rows) {
+    insightByPeriod[row.period] = row;
+  }
+  return insightByPeriod;
 }
