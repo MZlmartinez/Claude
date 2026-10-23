@@ -14,10 +14,11 @@ export type ChatTurn =
   | { role: "assistant"; question: string; report: AssistantReport; saveState: SaveState }
   | { role: "assistant-error"; message: string };
 
-// Techo del iframe embebido en Softr, en píxeles — ver el comentario en
-// AsistenteChat sobre por qué existe. Tiene que ser el mismo valor que
-// .asis { max-height } en asistente.css.
-const MAX_FRAME_HEIGHT = 2400;
+// Alto fijo del iframe embebido en Softr, en píxeles — se reporta UNA sola
+// vez al montar y nunca cambia, así el iframe nunca vuelve a redimensionar
+// la página de Softr (ver el comentario sobre por qué en el useEffect de
+// abajo). Tiene que ser el mismo valor que .asis { height } en asistente.css.
+const FRAME_HEIGHT = 880;
 
 const sidebarFecha = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit" });
 
@@ -121,27 +122,17 @@ export default function AsistenteChat({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  // El iframe crece libre con cada mensaje (como los dashboards) hasta
-  // MAX_FRAME_HEIGHT — pasado ese techo, Softr deja de agrandar el iframe
-  // y .asis entra en scroll interno (ver asistente.css). Ese techo existe
-  // porque una conversación no tiene límite natural: si dejáramos crecer
-  // el iframe sin tope, tarde o temprano la página de Softr termina más
-  // alta que el tramo donde su sidebar sostiene su position:sticky, y el
-  // menú se despega. Con el tope, eso solo puede pasar en conversaciones
-  // largas — y ahí el scroll queda contenido adentro de .asis, no en el
-  // documento entero.
+  // Avisamos a Softr el alto UNA sola vez, al montar, y siempre el mismo
+  // valor fijo — nunca volvemos a avisar un alto distinto, sin importar
+  // cuánto crezca la conversación (eso queda contenido adentro de .asis,
+  // ver asistente.css). Antes el iframe crecía con cada mensaje: resultó
+  // que el sidebar sticky de Softr se rompía apenas el iframe cambiaba de
+  // alto una vez cargada la página, sin importar cuánto creciera. Con el
+  // alto fijo de entrada, la página de Softr nunca vuelve a redimensionarse
+  // por nuestra culpa.
   useEffect(() => {
-    const el = rootRef.current;
-    if (!el) return;
-    const post = () => {
-      const height = Math.min(el.scrollHeight, MAX_FRAME_HEIGHT);
-      window.parent.postMessage({ source: "coolmetrics-report", height }, "*");
-    };
-    post();
-    const observer = new ResizeObserver(post);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [turns, loading]);
+    window.parent.postMessage({ source: "coolmetrics-report", height: FRAME_HEIGHT }, "*");
+  }, []);
 
   // El scroll del mouse sobre el iframe se reenvía a Softr para que la
   // página real se mueva — pero solo cuando .asis ya no tiene margen para
@@ -162,8 +153,9 @@ export default function AsistenteChat({
     return () => window.removeEventListener("wheel", onWheel);
   }, []);
 
-  // Una vez pasado el tope, con cada mensaje nuevo bajamos el scroll
-  // interno al final — si todavía entra entero, esto no hace nada visible.
+  // Con cada mensaje nuevo bajamos el scroll interno de .asis al final —
+  // si la conversación todavía entra en los FRAME_HEIGHT px fijos, esto no
+  // hace nada visible.
   useEffect(() => {
     const el = rootRef.current;
     if (el) el.scrollTop = el.scrollHeight;

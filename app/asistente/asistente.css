@@ -25,11 +25,14 @@
   color: var(--asis-fg);
   background: var(--asis-bg);
   width: 100%;
-  /* Crece libre hasta acá; pasado este alto entra en scroll interno en vez
-     de seguir agrandando el iframe — mismo valor que MAX_FRAME_HEIGHT en
-     AsistenteChat.tsx. Por debajo del tope esto no recorta nada: max-height
-     solo limita, no fuerza un mínimo. */
-  max-height: 2400px;
+  /* Alto FIJO desde el primer render, no crece con la conversación — el
+     iframe en Softr se dimensiona una sola vez y nunca vuelve a cambiar.
+     Dejarlo crecer con cada mensaje (lo que hacíamos antes) resultaba en
+     que el sidebar sticky de Softr se rompía apenas el iframe cambiaba de
+     alto, sin importar cuánto creciera. Con esto, todo lo que no entra
+     scrollea ADENTRO de .asis — mismo valor que FRAME_HEIGHT en
+     AsistenteChat.tsx y PageHeightReporter.tsx. */
+  height: 880px;
   overflow-y: auto;
   box-sizing: border-box;
   scrollbar-width: thin;

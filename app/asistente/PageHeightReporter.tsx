@@ -2,12 +2,12 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 
-// Mismo mecanismo que AsistenteChat: avisa a Softr cuánto mide esta página
-// (hasta un techo) para que agrande el iframe, y reenvía el scroll del
-// mouse mientras el contenido entra entero. Hace falta acá también porque
-// /asistente/guardados es una página server-side sin este código — sin
-// esto el iframe se queda en el alto inicial y el resto queda invisible.
-const MAX_FRAME_HEIGHT = 2400;
+// Mismo mecanismo que AsistenteChat: avisa a Softr un alto FIJO (una sola
+// vez, al montar) y reenvía el scroll del mouse mientras el contenido
+// entra entero. Hace falta acá también porque /asistente/guardados es una
+// página server-side sin este código — sin esto el iframe se queda en el
+// alto inicial de Softr y el resto queda invisible.
+const FRAME_HEIGHT = 880;
 
 export default function PageHeightReporter({
   fontClassName,
@@ -19,16 +19,7 @@ export default function PageHeightReporter({
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const el = rootRef.current;
-    if (!el) return;
-    const post = () => {
-      const height = Math.min(el.scrollHeight, MAX_FRAME_HEIGHT);
-      window.parent.postMessage({ source: "coolmetrics-report", height }, "*");
-    };
-    post();
-    const observer = new ResizeObserver(post);
-    observer.observe(el);
-    return () => observer.disconnect();
+    window.parent.postMessage({ source: "coolmetrics-report", height: FRAME_HEIGHT }, "*");
   }, []);
 
   // Igual que en AsistenteChat: solo reenviar el scroll a Softr cuando
