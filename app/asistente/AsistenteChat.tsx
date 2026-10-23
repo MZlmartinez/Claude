@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import "./asistente.css";
 import { Chart, AsisAvatar, type ChartSpec } from "./ReportChart";
+import type { SavedReport } from "@/lib/assistant/savedReports";
 
 type AssistantReport = { summary: string; sql: string; chart: ChartSpec | null };
 
@@ -17,6 +18,8 @@ type ChatTurn =
 // AsistenteChat sobre por qué existe. Tiene que ser el mismo valor que
 // .asis { max-height } en asistente.css.
 const MAX_FRAME_HEIGHT = 2400;
+
+const sidebarFecha = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit" });
 
 function SaveButton({ state, onSave }: { state: SaveState; onSave: () => void }) {
   if (state === "saved") {
@@ -68,13 +71,16 @@ function AssistantBubble({
 export default function AsistenteChat({
   fontClassName,
   userId,
+  initialSaved,
 }: {
   fontClassName: string;
   userId: string | null;
+  initialSaved: SavedReport[];
 }) {
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [savedList, setSavedList] = useState<SavedReport[]>(initialSaved);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -134,9 +140,13 @@ export default function AsistenteChat({
           chart: turn.report.chart,
         }),
       });
+      const data = await res.json();
       setTurns((prev) =>
         prev.map((t, i) => (i === index && t.role === "assistant" ? { ...t, saveState: res.ok ? "saved" : "error" } : t)),
       );
+      if (res.ok) {
+        setSavedList((prev) => [data as SavedReport, ...prev]);
+      }
     } catch {
       setTurns((prev) => prev.map((t, i) => (i === index && t.role === "assistant" ? { ...t, saveState: "error" } : t)));
     }
@@ -192,6 +202,7 @@ export default function AsistenteChat({
 
   return (
     <div className={`asis ${fontClassName}`} ref={rootRef}>
+      <div className="asis-layout">
       <div className="asis-wrap">
         <header className="asis-head">
           <div className="asis-head-text">
@@ -208,11 +219,6 @@ export default function AsistenteChat({
             </div>
             <h1>Asistente de datos</h1>
             <p className="asis-tagline">Tu negocio, a una pregunta de distancia.</p>
-            {userId && (
-              <a className="asis-saved-link" href={`/asistente/guardados?u=${encodeURIComponent(userId)}`}>
-                Ver mis guardados →
-              </a>
-            )}
           </div>
 
           <svg className="asis-head-art" viewBox="0 0 120 100" aria-hidden="true">
@@ -286,6 +292,28 @@ export default function AsistenteChat({
             Enviar
           </button>
         </form>
+      </div>
+
+      <aside className="asis-sidebar">
+        <h2>Mis guardados</h2>
+        {!userId && <p className="asis-empty">Entrá desde el portal para guardar reportes.</p>}
+        {userId && savedList.length === 0 && <p className="asis-empty">Todavía no guardaste ningún reporte.</p>}
+        {savedList.map((r) => (
+          <a
+            key={r.id}
+            className="asis-sidebar-item"
+            href={`/asistente/guardados?u=${encodeURIComponent(userId ?? "")}`}
+          >
+            <span className="asis-sidebar-item-q">{r.question}</span>
+            <span className="asis-sidebar-item-d">{sidebarFecha.format(new Date(r.created_at))}</span>
+          </a>
+        ))}
+        {userId && savedList.length > 0 && (
+          <a className="asis-saved-link" href={`/asistente/guardados?u=${encodeURIComponent(userId)}`}>
+            Ver todos →
+          </a>
+        )}
+      </aside>
       </div>
     </div>
   );

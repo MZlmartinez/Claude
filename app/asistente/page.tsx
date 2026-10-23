@@ -1,4 +1,5 @@
 import AsistenteChat from "./AsistenteChat";
+import { listSavedReports } from "@/lib/assistant/savedReports";
 import { mxBody, mxDisplay } from "./fonts";
 
 export const dynamic = "force-dynamic";
@@ -16,5 +17,13 @@ export default async function AsistentePage({
   const u = params.u;
   const userId = (Array.isArray(u) ? u[0] : u) || null;
 
-  return <AsistenteChat fontClassName={`${mxDisplay.variable} ${mxBody.variable}`} userId={userId} />;
+  const initialSaved = userId ? await listSavedReports(userId) : [];
+
+  return (
+    <AsistenteChat
+      fontClassName={`${mxDisplay.variable} ${mxBody.variable}`}
+      userId={userId}
+      initialSaved={initialSaved}
+    />
+  );
 }

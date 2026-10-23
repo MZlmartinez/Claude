@@ -41,7 +41,10 @@ export async function POST(request: Request) {
       sql,
       chart: body.chart ?? null,
     });
-    return NextResponse.json({ id: saved.id });
+    // Devolvemos el registro completo (no solo el id): así el sidebar de
+    // guardados se actualiza al toque con lo que acaba de entrar, sin
+    // tener que volver a pedirle la lista entera al servidor.
+    return NextResponse.json(saved);
   } catch (error) {
     return NextResponse.json(
       { error: `No se pudo guardar: ${error instanceof Error ? error.message : String(error)}` },
