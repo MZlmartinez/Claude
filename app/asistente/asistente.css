@@ -503,6 +503,73 @@
   border-color: var(--asis-accent);
 }
 
+.asis-thumb-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+@media (max-width: 560px) {
+  .asis-thumb-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.asis-thumb {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--asis-card);
+  border: 1px solid var(--asis-line);
+  border-left: 3px solid var(--asis-accent);
+  border-radius: 14px;
+  padding: 12px 14px;
+  text-decoration: none;
+  box-shadow: var(--asis-shadow);
+  transition: border-color 0.15s, transform 0.15s;
+}
+.asis-thumb:hover {
+  border-color: var(--asis-accent);
+  transform: translateY(-2px);
+}
+.asis-thumb-q {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--asis-fg);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.asis-thumb-chart {
+  height: 130px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.asis-thumb-chart .asis-chart {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+.asis-thumb-chart .asis-chart h3 {
+  display: none;
+}
+.asis-thumb-chart .asis-kpi {
+  padding: 8px 12px;
+}
+.asis-thumb-chart .asis-kpi-v {
+  font-size: 26px;
+}
+.asis-thumb-chart .asis-kpi-l {
+  font-size: 10px;
+}
+.asis-thumb-chart .asis-table {
+  font-size: 10px;
+}
+.asis-thumb-date {
+  font-size: 10px;
+  color: var(--asis-fg3);
+}
+
 .asis-saved-question {
   margin: 0 0 6px;
   font-size: 12px;

@@ -1,5 +1,5 @@
 import { listSavedReports } from "@/lib/assistant/savedReports";
-import SavedReportCard from "../SavedReportCard";
+import SavedReportThumb from "../SavedReportThumb";
 import PageHeightReporter from "../PageHeightReporter";
 import { mxBody, mxDisplay } from "../fonts";
 import "../asistente.css";
@@ -52,9 +52,11 @@ export default async function GuardadosPage({
 
           {reports.length === 0 && <p className="asis-empty">Todavía no guardaste ningún reporte.</p>}
 
-          {reports.map((r) => (
-            <SavedReportCard key={r.id} report={r} />
-          ))}
+          <div className="asis-thumb-grid">
+            {reports.map((r) => (
+              <SavedReportThumb key={r.id} report={r} userId={userId} />
+            ))}
+          </div>
         </div>
       </div>
     </PageHeightReporter>
