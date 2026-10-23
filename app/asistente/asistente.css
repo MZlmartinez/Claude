@@ -575,6 +575,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
   background: var(--asis-card);
   border: 1px solid var(--asis-line);
   border-left: 3px solid var(--asis-accent);
@@ -599,6 +600,7 @@
 }
 .asis-thumb-chart {
   height: 130px;
+  min-width: 0;
   overflow: hidden;
   pointer-events: none;
 }
