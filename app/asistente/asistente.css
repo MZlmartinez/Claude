@@ -447,34 +447,6 @@
   letter-spacing: 0.04em;
 }
 
-.asis-sql {
-  margin-top: 12px;
-  font-size: 12px;
-}
-.asis-sql summary {
-  cursor: pointer;
-  color: var(--asis-fg2);
-  font-weight: 500;
-  user-select: none;
-}
-.asis-sql summary:hover {
-  color: var(--asis-fg);
-}
-.asis-sql pre {
-  margin: 8px 0 0;
-  padding: 12px;
-  background: var(--asis-soft);
-  border: 1px solid var(--asis-line);
-  border-radius: 10px;
-  overflow-x: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-family: ui-monospace, "SF Mono", Consolas, monospace;
-  font-size: 11px;
-  line-height: 1.5;
-  color: var(--asis-fg2);
-}
-
 .asis-empty {
   color: var(--asis-fg2);
   font-size: 12px;
@@ -486,14 +458,8 @@
   margin-top: 12px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-}
-.asis-bubble-foot .asis-sql {
-  margin-top: 0;
-  flex: 1;
-  min-width: 0;
 }
 
 .asis-save {
@@ -646,6 +612,7 @@
 .asis-bubble-actions {
   flex-shrink: 0;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
 }

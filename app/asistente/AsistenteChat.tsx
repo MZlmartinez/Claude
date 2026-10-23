@@ -23,6 +23,61 @@ const FRAME_HEIGHT = 880;
 
 const sidebarFecha = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit" });
 
+function slugify(text: string): string {
+  return (
+    text
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
+      .slice(0, 60) || "reporte"
+  );
+}
+
+function downloadBlob(filename: string, content: string | Blob, mime?: string) {
+  const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// CSV con separador ";" y BOM UTF-8 — así Excel en configuración regional
+// es-AR (coma como separador decimal) lo abre bien y respeta los acentos,
+// en vez de interpretarlo como una sola columna con comas sueltas.
+function rowsToCsv(rows: Record<string, unknown>[]): string {
+  if (!rows.length) return "";
+  const columns = Object.keys(rows[0]);
+  const escape = (value: unknown) => {
+    if (value === null || value === undefined) return "";
+    const text = String(value);
+    return /[";\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  };
+  const lines = [columns.join(";"), ...rows.map((row) => columns.map((c) => escape(row[c])).join(";"))];
+  return "﻿" + lines.join("\n");
+}
+
+async function exportReportAsPdf(question: string, node: HTMLElement) {
+  const [{ jsPDF }, { default: html2canvas }] = await Promise.all([import("jspdf"), import("html2canvas")]);
+  const canvas = await html2canvas(node, { backgroundColor: "#27262a", scale: 2 });
+  const imgData = canvas.toDataURL("image/png");
+
+  const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+  const margin = 32;
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const imgWidth = pageWidth - margin * 2;
+  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+  pdf.setFontSize(13);
+  const titleLines = pdf.splitTextToSize(question, imgWidth);
+  pdf.text(titleLines, margin, margin);
+  pdf.addImage(imgData, "PNG", margin, margin + titleLines.length * 16 + 8, imgWidth, imgHeight);
+  pdf.save(`${slugify(question)}.pdf`);
+}
+
 function SaveButton({ state, onSave, onUnsave }: { state: SaveState; onSave: () => void; onUnsave: () => void }) {
   if (state === "saved") {
     return (
@@ -57,11 +112,13 @@ function SaveButton({ state, onSave, onUnsave }: { state: SaveState; onSave: () 
 }
 
 function AssistantBubble({
+  question,
   report,
   saveState,
   onSave,
   onUnsave,
 }: {
+  question: string;
   report: AssistantReport;
   saveState: SaveState;
   onSave: () => void;
@@ -70,6 +127,25 @@ function AssistantBubble({
   const [chart, setChart] = useState(report.chart);
   const [rerunning, setRerunning] = useState(false);
   const [rerunError, setRerunError] = useState("");
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
+
+  async function downloadPdf() {
+    if (!exportRef.current || exportingPdf) return;
+    setExportingPdf(true);
+    try {
+      await exportReportAsPdf(question, exportRef.current);
+    } catch (error) {
+      console.error("No se pudo exportar el PDF", error);
+    } finally {
+      setExportingPdf(false);
+    }
+  }
+
+  function downloadCsv() {
+    if (!chart?.rows.length) return;
+    downloadBlob(`${slugify(question)}.csv`, rowsToCsv(chart.rows), "text/csv;charset=utf-8");
+  }
 
   async function rerun() {
     if (!report.sql || rerunning) return;
@@ -98,20 +174,24 @@ function AssistantBubble({
     <div className="asis-bubble asis-bubble-assistant">
       <AsisAvatar />
       <div className="asis-bubble-body">
-        <p className="asis-summary">{report.summary}</p>
-        {chart && <Chart chart={chart} />}
+        <div ref={exportRef} className="asis-exportable">
+          <p className="asis-summary">{report.summary}</p>
+          {chart && <Chart chart={chart} />}
+        </div>
         {rerunError && <p className="asis-empty">Error al actualizar: {rerunError}</p>}
         <div className="asis-bubble-foot">
-          {report.sql && (
-            <details className="asis-sql">
-              <summary>Ver el SQL</summary>
-              <pre>{report.sql}</pre>
-            </details>
-          )}
           <div className="asis-bubble-actions">
             {report.sql && (
               <button type="button" className="asis-save" onClick={rerun} disabled={rerunning}>
                 {rerunning ? "Actualizando…" : "Volver a ejecutar"}
+              </button>
+            )}
+            <button type="button" className="asis-save" onClick={downloadPdf} disabled={exportingPdf}>
+              {exportingPdf ? "Generando…" : "PDF"}
+            </button>
+            {!!chart?.rows.length && (
+              <button type="button" className="asis-save" onClick={downloadCsv}>
+                Excel
               </button>
             )}
             <SaveButton state={saveState} onSave={onSave} onUnsave={onUnsave} />
@@ -343,6 +423,7 @@ export default function AsistenteChat({
             ) : t.role === "assistant" ? (
               <AssistantBubble
                 key={i}
+                question={t.question}
                 report={t.report}
                 saveState={t.saveState}
                 onSave={() => saveTurn(i)}
