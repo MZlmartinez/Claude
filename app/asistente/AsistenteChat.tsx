@@ -106,11 +106,21 @@ export default function AsistenteChat({
     return () => observer.disconnect();
   }, [turns, loading]);
 
-  // El scroll del mouse sobre el iframe no se propaga solo al documento
-  // padre — se reenvía como mensaje para que Softr haga scroll de la
-  // página mientras el contenido entra entero (por debajo del tope).
+  // El scroll del mouse sobre el iframe se reenvía a Softr para que la
+  // página real se mueva — pero solo cuando .asis ya no tiene margen para
+  // scrollear internamente en esa dirección. Reenviarlo siempre, aun
+  // cuando .asis también scrollea de forma nativa por haber pasado el
+  // tope, hacía que ambos scrolls pasaran a la vez: ese salto doble era
+  // lo que rompía el sidebar sticky de Softr en respuestas largas.
   useEffect(() => {
-    const onWheel = (e: WheelEvent) => window.parent.postMessage({ source: "coolmetrics-report", wheelDeltaY: e.deltaY }, "*");
+    const onWheel = (e: WheelEvent) => {
+      const el = rootRef.current;
+      if (!el) return;
+      const atTop = el.scrollTop <= 0;
+      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+      if ((e.deltaY < 0 && !atTop) || (e.deltaY > 0 && !atBottom)) return;
+      window.parent.postMessage({ source: "coolmetrics-report", wheelDeltaY: e.deltaY }, "*");
+    };
     window.addEventListener("wheel", onWheel, { passive: true });
     return () => window.removeEventListener("wheel", onWheel);
   }, []);

@@ -31,8 +31,20 @@ export default function PageHeightReporter({
     return () => observer.disconnect();
   }, []);
 
+  // Igual que en AsistenteChat: solo reenviar el scroll a Softr cuando
+  // .asis ya no tiene margen para scrollear internamente en esa
+  // dirección — reenviarlo siempre, aun scrolleando de forma nativa por
+  // haber pasado el tope, duplicaba el movimiento y rompía el sidebar
+  // sticky de Softr.
   useEffect(() => {
-    const onWheel = (e: WheelEvent) => window.parent.postMessage({ source: "coolmetrics-report", wheelDeltaY: e.deltaY }, "*");
+    const onWheel = (e: WheelEvent) => {
+      const el = rootRef.current;
+      if (!el) return;
+      const atTop = el.scrollTop <= 0;
+      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+      if ((e.deltaY < 0 && !atTop) || (e.deltaY > 0 && !atBottom)) return;
+      window.parent.postMessage({ source: "coolmetrics-report", wheelDeltaY: e.deltaY }, "*");
+    };
     window.addEventListener("wheel", onWheel, { passive: true });
     return () => window.removeEventListener("wheel", onWheel);
   }, []);
