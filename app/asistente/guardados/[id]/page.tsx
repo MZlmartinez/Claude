@@ -49,6 +49,7 @@ export default async function GuardadoDetallePage({
       question: report.question,
       report: { summary: report.summary, sql: report.sql, chart: report.chart },
       saveState: "saved",
+      savedId: report.id,
     },
   ];
 

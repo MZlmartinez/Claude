@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { saveReport } from "@/lib/assistant/savedReports";
+import { deleteSavedReport, saveReport } from "@/lib/assistant/savedReports";
 import type { ChartSpec } from "@/app/api/asistente/chat/route";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +48,33 @@ export async function POST(request: Request) {
   } catch (error) {
     return NextResponse.json(
       { error: `No se pudo guardar: ${error instanceof Error ? error.message : String(error)}` },
+      { status: 500 },
+    );
+  }
+}
+
+type DeleteBody = { id?: string; userId?: string | null };
+
+export async function DELETE(request: Request) {
+  let body: DeleteBody;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Body inválido." }, { status: 400 });
+  }
+
+  const id = (body.id ?? "").trim();
+  const userId = body.userId || null;
+  if (!id || !userId) {
+    return NextResponse.json({ error: "Falta el id del reporte o el usuario." }, { status: 400 });
+  }
+
+  try {
+    await deleteSavedReport(id, userId);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return NextResponse.json(
+      { error: `No se pudo eliminar: ${error instanceof Error ? error.message : String(error)}` },
       { status: 500 },
     );
   }

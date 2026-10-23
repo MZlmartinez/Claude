@@ -111,18 +111,46 @@
   margin-top: 16px;
 }
 .asis-sidebar-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  position: relative;
   background: var(--asis-card);
   border: 1px solid var(--asis-line);
   border-radius: 10px;
   padding: 10px 12px;
-  text-decoration: none;
   transition: border-color 0.15s;
 }
 .asis-sidebar-item:hover {
   border-color: var(--asis-accent);
+}
+.asis-sidebar-item-link {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-decoration: none;
+  padding-right: 18px;
+}
+.asis-sidebar-item-del {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--asis-fg3);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+.asis-sidebar-item:hover .asis-sidebar-item-del {
+  opacity: 1;
+}
+.asis-sidebar-item-del:hover {
+  color: #ff6b5e;
+  background: rgba(255, 107, 94, 0.12);
 }
 .asis-sidebar-item-q {
   font-size: 12px;
@@ -494,6 +522,28 @@
   color: var(--asis-k3);
   font-size: 11px;
   font-weight: 600;
+}
+/* .asis-save-done es ahora un botón (clickear "Guardado" borra el
+   guardado) — al pasar el mouse cambia el texto/ícono a "Eliminar" en
+   rojo, para que no parezca que se puede borrar sin querer. */
+.asis-save-done:hover:not(:disabled) {
+  border-color: #ff6b5e;
+  color: #ff6b5e;
+}
+.asis-save-done-default,
+.asis-save-done-hover {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.asis-save-done-hover {
+  display: none;
+}
+.asis-save-done:hover .asis-save-done-default {
+  display: none;
+}
+.asis-save-done:hover .asis-save-done-hover {
+  display: inline-flex;
 }
 
 .asis-saved-link {

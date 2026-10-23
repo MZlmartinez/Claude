@@ -8,11 +8,11 @@ import type { SavedReport } from "@/lib/assistant/savedReports";
 
 type AssistantReport = { summary: string; sql: string; chart: ChartSpec | null };
 
-type SaveState = "idle" | "saving" | "saved" | "error";
+type SaveState = "idle" | "saving" | "saved" | "deleting" | "error";
 
 export type ChatTurn =
   | { role: "user"; content: string }
-  | { role: "assistant"; question: string; report: AssistantReport; saveState: SaveState }
+  | { role: "assistant"; question: string; report: AssistantReport; saveState: SaveState; savedId: string | null }
   | { role: "assistant-error"; message: string };
 
 // Alto fijo del iframe embebido en Softr, en píxeles — se reporta UNA sola
@@ -23,14 +23,29 @@ const FRAME_HEIGHT = 880;
 
 const sidebarFecha = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit" });
 
-function SaveButton({ state, onSave }: { state: SaveState; onSave: () => void }) {
+function SaveButton({ state, onSave, onUnsave }: { state: SaveState; onSave: () => void; onUnsave: () => void }) {
   if (state === "saved") {
     return (
-      <span className="asis-save asis-save-done">
-        <svg viewBox="0 0 24 24" fill="none" width="13" height="13">
-          <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        Guardado
+      <button type="button" className="asis-save asis-save-done" onClick={onUnsave} title="Eliminar guardado">
+        <span className="asis-save-done-default">
+          <svg viewBox="0 0 24 24" fill="none" width="13" height="13">
+            <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Guardado
+        </span>
+        <span className="asis-save-done-hover">
+          <svg viewBox="0 0 24 24" fill="none" width="13" height="13">
+            <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+          </svg>
+          Eliminar
+        </span>
+      </button>
+    );
+  }
+  if (state === "deleting") {
+    return (
+      <span className="asis-save asis-save-done" style={{ opacity: 0.6 }}>
+        Eliminando…
       </span>
     );
   }
@@ -45,10 +60,12 @@ function AssistantBubble({
   report,
   saveState,
   onSave,
+  onUnsave,
 }: {
   report: AssistantReport;
   saveState: SaveState;
   onSave: () => void;
+  onUnsave: () => void;
 }) {
   const [chart, setChart] = useState(report.chart);
   const [rerunning, setRerunning] = useState(false);
@@ -97,7 +114,7 @@ function AssistantBubble({
                 {rerunning ? "Actualizando…" : "Volver a ejecutar"}
               </button>
             )}
-            <SaveButton state={saveState} onSave={onSave} />
+            <SaveButton state={saveState} onSave={onSave} onUnsave={onUnsave} />
           </div>
         </div>
       </div>
@@ -182,13 +199,72 @@ export default function AsistenteChat({
       });
       const data = await res.json();
       setTurns((prev) =>
-        prev.map((t, i) => (i === index && t.role === "assistant" ? { ...t, saveState: res.ok ? "saved" : "error" } : t)),
+        prev.map((t, i) =>
+          i === index && t.role === "assistant"
+            ? { ...t, saveState: res.ok ? "saved" : "error", savedId: res.ok ? (data as SavedReport).id : null }
+            : t,
+        ),
       );
       if (res.ok) {
         setSavedList((prev) => [data as SavedReport, ...prev]);
       }
     } catch {
       setTurns((prev) => prev.map((t, i) => (i === index && t.role === "assistant" ? { ...t, saveState: "error" } : t)));
+    }
+  }
+
+  async function unsaveTurn(index: number) {
+    const turn = turns[index];
+    if (turn.role !== "assistant" || !turn.savedId) return;
+    const id = turn.savedId;
+
+    setTurns((prev) => prev.map((t, i) => (i === index && t.role === "assistant" ? { ...t, saveState: "deleting" } : t)));
+
+    try {
+      const res = await fetch("/api/asistente/save", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, userId }),
+      });
+      if (!res.ok) {
+        setTurns((prev) => prev.map((t, i) => (i === index && t.role === "assistant" ? { ...t, saveState: "saved" } : t)));
+        return;
+      }
+      setTurns((prev) =>
+        prev.map((t, i) => (i === index && t.role === "assistant" ? { ...t, saveState: "idle", savedId: null } : t)),
+      );
+      setSavedList((prev) => prev.filter((r) => r.id !== id));
+    } catch {
+      setTurns((prev) => prev.map((t, i) => (i === index && t.role === "assistant" ? { ...t, saveState: "saved" } : t)));
+    }
+  }
+
+  // Si el mismo guardado se borra desde el panel de la derecha, el bubble
+  // del chat que lo tenía como "Guardado" tiene que volver a "Guardar" —
+  // si no, quedaría ofreciendo "Eliminar" un guardado que ya no existe.
+  function dropSavedId(id: string) {
+    setTurns((prev) =>
+      prev.map((t) => (t.role === "assistant" && t.savedId === id ? { ...t, saveState: "idle", savedId: null } : t)),
+    );
+  }
+
+  async function deleteFromSidebar(id: string) {
+    const removed = savedList.find((r) => r.id === id);
+    setSavedList((prev) => prev.filter((r) => r.id !== id));
+    dropSavedId(id);
+    try {
+      const res = await fetch("/api/asistente/save", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, userId }),
+      });
+      // No pudimos confirmar el borrado en el servidor — lo mostramos de
+      // nuevo en vez de dejar al usuario pensando que se borró.
+      if (!res.ok && removed) {
+        setSavedList((prev) => [removed, ...prev]);
+      }
+    } catch {
+      if (removed) setSavedList((prev) => [removed, ...prev]);
     }
   }
 
@@ -220,7 +296,7 @@ export default function AsistenteChat({
       } else {
         setTurns((prev) => [
           ...prev,
-          { role: "assistant", question: text, report: data as AssistantReport, saveState: "idle" },
+          { role: "assistant", question: text, report: data as AssistantReport, saveState: "idle", savedId: null },
         ]);
       }
     } catch (error) {
@@ -265,7 +341,13 @@ export default function AsistenteChat({
                 {t.content}
               </div>
             ) : t.role === "assistant" ? (
-              <AssistantBubble key={i} report={t.report} saveState={t.saveState} onSave={() => saveTurn(i)} />
+              <AssistantBubble
+                key={i}
+                report={t.report}
+                saveState={t.saveState}
+                onSave={() => saveTurn(i)}
+                onUnsave={() => unsaveTurn(i)}
+              />
             ) : (
               <div key={i} className="asis-bubble asis-bubble-error">
                 {t.message}
@@ -313,14 +395,26 @@ export default function AsistenteChat({
         {!userId && <p className="asis-empty">Entrá desde el portal para guardar reportes.</p>}
         {userId && savedList.length === 0 && <p className="asis-empty">Todavía no guardaste ningún reporte.</p>}
         {savedList.map((r) => (
-          <a
-            key={r.id}
-            className="asis-sidebar-item"
-            href={`/asistente/guardados/${r.id}?u=${encodeURIComponent(userId ?? "")}`}
-          >
-            <span className="asis-sidebar-item-q">{r.question}</span>
-            <span className="asis-sidebar-item-d">{sidebarFecha.format(new Date(r.created_at))}</span>
-          </a>
+          <div key={r.id} className="asis-sidebar-item">
+            <a className="asis-sidebar-item-link" href={`/asistente/guardados/${r.id}?u=${encodeURIComponent(userId ?? "")}`}>
+              <span className="asis-sidebar-item-q">{r.question}</span>
+              <span className="asis-sidebar-item-d">{sidebarFecha.format(new Date(r.created_at))}</span>
+            </a>
+            <button
+              type="button"
+              className="asis-sidebar-item-del"
+              title="Eliminar guardado"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                deleteFromSidebar(r.id);
+              }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" width="12" height="12">
+                <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
         ))}
         {userId && savedList.length > 0 && (
           <a className="asis-saved-link" href={`/asistente/guardados?u=${encodeURIComponent(userId)}`}>

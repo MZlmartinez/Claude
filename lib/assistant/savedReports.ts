@@ -54,6 +54,19 @@ export async function getSavedReport(id: string, createdBy: string): Promise<Sav
   return (data as SavedReport | null) ?? null;
 }
 
+// Filtra por created_by además de id: así nadie puede borrar un guardado
+// ajeno adivinando o reusando un id, aunque no haya login propio acá.
+export async function deleteSavedReport(id: string, createdBy: string): Promise<void> {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("assistant_reports")
+    .delete()
+    .eq("id", id)
+    .eq("created_by", createdBy);
+
+  if (error) throw new Error(error.message);
+}
+
 export async function listSavedReports(createdBy: string): Promise<SavedReport[]> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
