@@ -60,21 +60,108 @@ function rowsToCsv(rows: Record<string, unknown>[]): string {
   return "﻿" + lines.join("\n");
 }
 
+// Colores de marca MOSCU/Coolmetrics (mismos que --asis-bg/--asis-card/
+// --asis-accent en asistente.css) — el PDF tiene que verse como parte del
+// mismo producto, no una captura de pantalla pelada.
+const PDF_BG: [number, number, number] = [29, 29, 27]; // #1d1d1b
+const PDF_CARD: [number, number, number] = [39, 38, 42]; // #27262a
+const PDF_LINE: [number, number, number] = [56, 55, 59]; // #38373b
+const PDF_ACCENT: [number, number, number] = [216, 252, 74]; // #d8fc4a
+const PDF_FG: [number, number, number] = [245, 245, 243]; // #f5f5f3
+const PDF_FG2: [number, number, number] = [181, 181, 178]; // #b5b5b2
+const PDF_FG3: [number, number, number] = [122, 122, 120]; // #7a7a78
+
+const pdfFecha = new Intl.DateTimeFormat("es-AR", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
 async function exportReportAsPdf(question: string, node: HTMLElement) {
   const [{ jsPDF }, { default: html2canvas }] = await Promise.all([import("jspdf"), import("html2canvas")]);
   const canvas = await html2canvas(node, { backgroundColor: "#27262a", scale: 2 });
-  const imgData = canvas.toDataURL("image/png");
 
   const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
-  const margin = 32;
   const pageWidth = pdf.internal.pageSize.getWidth();
-  const imgWidth = pageWidth - margin * 2;
-  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const margin = 40;
+  const contentWidth = pageWidth - margin * 2;
 
-  pdf.setFontSize(13);
-  const titleLines = pdf.splitTextToSize(question, imgWidth);
-  pdf.text(titleLines, margin, margin);
-  pdf.addImage(imgData, "PNG", margin, margin + titleLines.length * 16 + 8, imgWidth, imgHeight);
+  pdf.setFillColor(...PDF_BG);
+  pdf.rect(0, 0, pageWidth, pageHeight, "F");
+
+  // Wordmark "COOLmetrics", mismo tratamiento de dos colores que el pie de
+  // página real de la app (span blanco + span lima).
+  const wordmarkY = margin + 4;
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(15);
+  pdf.setTextColor(...PDF_FG);
+  pdf.text("COOL", margin, wordmarkY);
+  const coolWidth = pdf.getTextWidth("COOL");
+  pdf.setTextColor(...PDF_ACCENT);
+  pdf.text("metrics", margin + coolWidth, wordmarkY);
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(9);
+  pdf.setTextColor(...PDF_FG3);
+  pdf.text(pdfFecha.format(new Date()), pageWidth - margin, wordmarkY, { align: "right" });
+
+  pdf.setDrawColor(...PDF_LINE);
+  pdf.setLineWidth(0.75);
+  pdf.line(margin, wordmarkY + 14, pageWidth - margin, wordmarkY + 14);
+
+  // Título (la pregunta que generó el reporte).
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(16);
+  pdf.setTextColor(...PDF_FG);
+  const titleY = wordmarkY + 44;
+  const titleLines: string[] = pdf.splitTextToSize(question, contentWidth);
+  pdf.text(titleLines, margin, titleY);
+
+  // Tarjeta con el resumen + gráfico capturado, mismo estilo que las
+  // respuestas del chat (fondo --asis-card, borde lima a la izquierda).
+  const cardPadding = 14;
+  const cardTop = titleY + titleLines.length * 19 + 16;
+  const footerHeight = 40;
+  const maxCardHeight = pageHeight - margin - footerHeight - cardTop;
+  const maxImgWidth = contentWidth - cardPadding * 2;
+  const maxImgHeight = maxCardHeight - cardPadding * 2;
+  const scale = Math.min(maxImgWidth / canvas.width, maxImgHeight / canvas.height);
+  const imgWidth = canvas.width * scale;
+  const imgHeight = canvas.height * scale;
+  const cardHeight = imgHeight + cardPadding * 2;
+
+  pdf.setFillColor(...PDF_CARD);
+  pdf.roundedRect(margin, cardTop, contentWidth, cardHeight, 10, 10, "F");
+  pdf.setFillColor(...PDF_ACCENT);
+  pdf.rect(margin, cardTop, 3, cardHeight, "F");
+  pdf.addImage(canvas.toDataURL("image/png"), "PNG", margin + cardPadding, cardTop + cardPadding, imgWidth, imgHeight);
+
+  // Pie de página, mismo tagline que el resto del producto.
+  const footerY = pageHeight - margin / 2;
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(10);
+  pdf.setTextColor(...PDF_FG);
+  const footCool = "COOL";
+  const footMetrics = "metrics";
+  const footSep = "  ·  Client Intelligence Platform";
+  pdf.setFont("helvetica", "normal");
+  const footSepWidth = pdf.getTextWidth(footSep);
+  pdf.setFont("helvetica", "bold");
+  const footTotalWidth = pdf.getTextWidth(footCool) + pdf.getTextWidth(footMetrics) + footSepWidth;
+  let footX = (pageWidth - footTotalWidth) / 2;
+  pdf.setTextColor(...PDF_FG);
+  pdf.text(footCool, footX, footerY);
+  footX += pdf.getTextWidth(footCool);
+  pdf.setTextColor(...PDF_ACCENT);
+  pdf.text(footMetrics, footX, footerY);
+  footX += pdf.getTextWidth(footMetrics);
+  pdf.setFont("helvetica", "normal");
+  pdf.setTextColor(...PDF_FG2);
+  pdf.text(footSep, footX, footerY);
+
   pdf.save(`${slugify(question)}.pdf`);
 }
 
