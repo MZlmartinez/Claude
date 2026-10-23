@@ -9,7 +9,7 @@ type AssistantReport = { summary: string; sql: string; chart: ChartSpec | null }
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
-type ChatTurn =
+export type ChatTurn =
   | { role: "user"; content: string }
   | { role: "assistant"; question: string; report: AssistantReport; saveState: SaveState }
   | { role: "assistant-error"; message: string };
@@ -48,12 +48,40 @@ function AssistantBubble({
   saveState: SaveState;
   onSave: () => void;
 }) {
+  const [chart, setChart] = useState(report.chart);
+  const [rerunning, setRerunning] = useState(false);
+  const [rerunError, setRerunError] = useState("");
+
+  async function rerun() {
+    if (!report.sql || rerunning) return;
+    setRerunning(true);
+    setRerunError("");
+    try {
+      const res = await fetch("/api/asistente/rerun", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sql: report.sql }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setRerunError(data.error ?? "No se pudo actualizar.");
+        return;
+      }
+      setChart((c) => (c ? { ...c, rows: data.rows } : c));
+    } catch (error) {
+      setRerunError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setRerunning(false);
+    }
+  }
+
   return (
     <div className="asis-bubble asis-bubble-assistant">
       <AsisAvatar />
       <div className="asis-bubble-body">
         <p className="asis-summary">{report.summary}</p>
-        {report.chart && <Chart chart={report.chart} />}
+        {chart && <Chart chart={chart} />}
+        {rerunError && <p className="asis-empty">Error al actualizar: {rerunError}</p>}
         <div className="asis-bubble-foot">
           {report.sql && (
             <details className="asis-sql">
@@ -61,7 +89,14 @@ function AssistantBubble({
               <pre>{report.sql}</pre>
             </details>
           )}
-          <SaveButton state={saveState} onSave={onSave} />
+          <div className="asis-bubble-actions">
+            {report.sql && (
+              <button type="button" className="asis-save" onClick={rerun} disabled={rerunning}>
+                {rerunning ? "Actualizando…" : "Volver a ejecutar"}
+              </button>
+            )}
+            <SaveButton state={saveState} onSave={onSave} />
+          </div>
         </div>
       </div>
     </div>
@@ -72,12 +107,14 @@ export default function AsistenteChat({
   fontClassName,
   userId,
   initialSaved,
+  initialTurns,
 }: {
   fontClassName: string;
   userId: string | null;
   initialSaved: SavedReport[];
+  initialTurns?: ChatTurn[];
 }) {
-  const [turns, setTurns] = useState<ChatTurn[]>([]);
+  const [turns, setTurns] = useState<ChatTurn[]>(initialTurns ?? []);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [savedList, setSavedList] = useState<SavedReport[]>(initialSaved);

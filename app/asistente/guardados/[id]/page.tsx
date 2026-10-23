@@ -1,11 +1,14 @@
-import { getSavedReport } from "@/lib/assistant/savedReports";
-import SavedReportCard from "../../SavedReportCard";
+import AsistenteChat, { type ChatTurn } from "../../AsistenteChat";
 import PageHeightReporter from "../../PageHeightReporter";
+import { getSavedReport, listSavedReports } from "@/lib/assistant/savedReports";
 import { mxBody, mxDisplay } from "../../fonts";
 import "../../asistente.css";
 
 export const dynamic = "force-dynamic";
 
+// Abrir un guardado no muestra una ficha estática: carga el mismo chat del
+// asistente con esa pregunta y esa respuesta ya puestas como primer
+// intercambio, para poder seguir preguntándole al reporte (no solo verlo).
 export default async function GuardadoDetallePage({
   params,
   searchParams,
@@ -21,26 +24,37 @@ export default async function GuardadoDetallePage({
 
   const report = userId ? await getSavedReport(id, userId) : null;
 
-  return (
-    <PageHeightReporter fontClassName={fontClassName}>
-      <div className="asis-wrap">
-        <header className="asis-head">
-          <div className="asis-head-text">
-            <span className="asis-kicker">Coolmetrics</span>
-            <h1>Reporte guardado</h1>
-            <p className="asis-tagline">
-              <a className="asis-saved-link" href={`/asistente?u=${encodeURIComponent(userId ?? "")}`}>
-                ← Volver al asistente
-              </a>
-            </p>
-          </div>
-        </header>
-
-        <div className="asis-thread">
-          {!report && <p className="asis-empty">No encontramos ese reporte.</p>}
-          {report && <SavedReportCard report={report} />}
+  if (!report) {
+    return (
+      <PageHeightReporter fontClassName={fontClassName}>
+        <div className="asis-wrap">
+          <header className="asis-head">
+            <div className="asis-head-text">
+              <span className="asis-kicker">Coolmetrics</span>
+              <h1>Reporte guardado</h1>
+              <p className="asis-tagline">No encontramos ese reporte.</p>
+            </div>
+          </header>
+          <a className="asis-saved-link" href={`/asistente?u=${encodeURIComponent(userId ?? "")}`}>
+            ← Volver al asistente
+          </a>
         </div>
-      </div>
-    </PageHeightReporter>
+      </PageHeightReporter>
+    );
+  }
+
+  const initialSaved = await listSavedReports(userId!);
+  const initialTurns: ChatTurn[] = [
+    { role: "user", content: report.question },
+    {
+      role: "assistant",
+      question: report.question,
+      report: { summary: report.summary, sql: report.sql, chart: report.chart },
+      saveState: "saved",
+    },
+  ];
+
+  return (
+    <AsistenteChat fontClassName={fontClassName} userId={userId} initialSaved={initialSaved} initialTurns={initialTurns} />
   );
 }
