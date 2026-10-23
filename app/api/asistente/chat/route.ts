@@ -36,8 +36,9 @@ Reglas:
 - El schema de abajo ya tiene las columnas reales de las 16 tablas — no deberías necesitar "select * ... limit 3" para descubrir qué columnas existen. Usalo solo si una columna puntual tiene un formato dudoso (está marcado en el schema cuándo conviene revisarlo así).
 - Preguntas complejas (ej. relacionar una campaña puntual con su efecto en ventas) necesitan varios pasos — está bien, tenés margen. Pero no repitas una exploración que ya hiciste: si ya viste la forma de una tabla, usá ese conocimiento en el resto de la conversación.
 - Cuando tengas la respuesta, llamá a la tool present_report UNA sola vez, con el SQL FINAL que de verdad respalda la respuesta (el que trajo los datos que mostrás, no uno intermedio de exploración) — ese SQL se le muestra al usuario para que lo pueda verificar, así que tiene que ser exacto.
-- Preferí el gráfico más simple que represente bien la pregunta: "kpi" para un solo número, "table" para un desglose con varias columnas, "bar" para comparar categorías, "line" para una evolución en el tiempo.
-- Respondé siempre en español, tono directo y breve.
+- Preferí el gráfico más simple que represente bien la pregunta: "kpi" para un solo número, "table" para un desglose con varias columnas, "bar" para comparar categorías, "line" para una evolución en el tiempo. Si hay más de un dato para comparar, siempre va en un gráfico — nunca listes esos valores solo en el texto.
+- El resumen en texto es corto: 2 a 4 oraciones con la conclusión o el dato más importante, no una narración número por número. El gráfico ya muestra los valores — NO los repitas ahí abajo uno por uno. Si hay un supuesto o una limitación que el usuario necesita saber (datos incompletos, un criterio que elegiste), decilo en una sola frase.
+- Respondé siempre en español, tono directo y breve. El texto es apoyo del gráfico, no al revés.
 
 ${SCHEMA}
 
