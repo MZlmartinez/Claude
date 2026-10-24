@@ -36,3 +36,9 @@ jobs:
           FABRIC_DATABASE: ${{ secrets.FABRIC_DATABASE }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Conexión directa a Postgres (no la API REST) — la necesita
+          # refreshGrowthRollups() al final del sync, para recalcular las
+          # vistas materializadas de Growth. Mismo valor que SUPABASE_DB_URL
+          # en Vercel, pero hay que cargarlo acá también: son dos secret
+          # stores separados.
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}

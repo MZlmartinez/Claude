@@ -4,10 +4,13 @@
 // sincronizan todas juntas, sin partir el trabajo en grupos.
 //
 // Variables de entorno necesarias (se configuran como Secrets del repo en
-// GitHub, no en Vercel): AZURE_TENANT_ID, AZURE_CLIENT_ID,
-// AZURE_CLIENT_SECRET, AZURE_SUBSCRIPTION_ID, AZURE_FABRIC_RESOURCE_GROUP,
+// GitHub, no en Vercel — son dos almacenes separados, hay que cargarlas en
+// los dos lados): AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET,
+// AZURE_SUBSCRIPTION_ID, AZURE_FABRIC_RESOURCE_GROUP,
 // AZURE_FABRIC_CAPACITY_NAME, FABRIC_SQL_ENDPOINT, FABRIC_DATABASE,
-// NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
+// NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_DB_URL
+// (esta última la usa refreshGrowthRollups() al final, conexión directa a
+// Postgres — no alcanza con la API REST).
 
 import { connectFabric } from "../lib/fabric";
 import { ensureFabricCapacityActive, pauseFabricCapacity } from "../lib/fabricCapacity";
