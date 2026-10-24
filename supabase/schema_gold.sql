@@ -225,9 +225,14 @@ create table public.gold_shopify_total_sales_by_product (
 -- filtrar por rango de fechas, a diferencia de growth.ts que agrega todo
 -- el histórico sin WHERE — ver las vistas materializadas más abajo para
 -- ese caso). Las tablas chicas (<1000 filas) no los necesitan.
+--
+-- gold_shopify_sessions_by_referrer y gold_shopify_customer_behavior NO
+-- tienen índice a propósito: ningún reporte fijo las usa (solo el
+-- asistente, de vez en cuando) y juntas pesaban ~68 MB de índice — con el
+-- proyecto pegado al límite de 0,5 GB del plan Free de Supabase, no valía
+-- la pena. Si se upgradea a un plan con más espacio, se pueden volver a
+-- crear igual que las demás.
 create index concurrently if not exists idx_gold_shopify_sessions_by_referrer_master_day on public.gold_shopify_sessions_by_referrer_master (day);
-create index concurrently if not exists idx_gold_shopify_sessions_by_referrer_day on public.gold_shopify_sessions_by_referrer (day);
-create index concurrently if not exists idx_gold_shopify_customer_behavior_day on public.gold_shopify_customer_behavior (day);
 create index concurrently if not exists idx_gold_shopify_total_sales_by_product_day on public.gold_shopify_total_sales_by_product (day);
 create index concurrently if not exists idx_gold_shopify_sessions_by_session_device_type_day on public.gold_shopify_sessions_by_session_device_type (day);
 create index concurrently if not exists idx_gold_shopify_conversion_rate_over_time_day on public.gold_shopify_conversion_rate_over_time (day);
