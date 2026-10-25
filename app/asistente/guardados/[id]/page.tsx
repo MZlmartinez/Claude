@@ -20,7 +20,9 @@ export default async function GuardadoDetallePage({
   const { id } = await params;
   const sp = await searchParams;
   const u = sp.u;
+  const t = sp.t;
   const userId = (Array.isArray(u) ? u[0] : u) || null;
+  const token = (Array.isArray(t) ? t[0] : t) || null;
   const fontClassName = `${mxDisplay.variable} ${mxBody.variable}`;
 
   const report = userId ? await getSavedReport(id, userId) : null;
@@ -32,7 +34,7 @@ export default async function GuardadoDetallePage({
           <div className="asis-wrap">
             <AsistenteHeader />
             <p className="asis-empty">No encontramos ese reporte.</p>
-            <a className="asis-saved-link" href={`/asistente?u=${encodeURIComponent(userId ?? "")}`}>
+            <a className="asis-saved-link" href={`/asistente?u=${encodeURIComponent(userId ?? "")}&t=${encodeURIComponent(token ?? "")}`}>
               ← Volver al asistente
             </a>
           </div>
@@ -54,6 +56,12 @@ export default async function GuardadoDetallePage({
   ];
 
   return (
-    <AsistenteChat fontClassName={fontClassName} userId={userId} initialSaved={initialSaved} initialTurns={initialTurns} />
+    <AsistenteChat
+      fontClassName={fontClassName}
+      userId={userId}
+      token={token}
+      initialSaved={initialSaved}
+      initialTurns={initialTurns}
+    />
   );
 }

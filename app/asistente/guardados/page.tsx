@@ -14,7 +14,9 @@ export default async function GuardadosPage({
 }) {
   const params = await searchParams;
   const u = params.u;
+  const t = params.t;
   const userId = (Array.isArray(u) ? u[0] : u) || null;
+  const token = (Array.isArray(t) ? t[0] : t) || null;
   const fontClassName = `${mxDisplay.variable} ${mxBody.variable}`;
 
   if (!userId) {
@@ -41,7 +43,7 @@ export default async function GuardadosPage({
           <h2 className="asis-section-title">Mis reportes guardados</h2>
 
           <div className="asis-thread">
-            <a className="asis-saved-link" href={`/asistente?u=${encodeURIComponent(userId)}`}>
+            <a className="asis-saved-link" href={`/asistente?u=${encodeURIComponent(userId)}&t=${encodeURIComponent(token ?? "")}`}>
               ← Volver al asistente
             </a>
 
@@ -49,7 +51,7 @@ export default async function GuardadosPage({
 
             <div className="asis-thumb-grid">
               {reports.map((r) => (
-                <SavedReportThumb key={r.id} report={r} userId={userId} />
+                <SavedReportThumb key={r.id} report={r} userId={userId} token={token} />
               ))}
             </div>
           </div>

@@ -8,6 +8,11 @@ export const dynamic = "force-dynamic";
 // como query param con el mail del usuario logueado (window.logged_in_user).
 // Sin esto no hay forma de saber de quién es cada guardado: la página no
 // tiene login propio, confía en el que ya hizo Softr.
+//
+// "t" es la firma de ese mismo email (ver lib/assistant/clientAuth.ts):
+// Softr no la calcula, solo la reenvía desde un campo ya precalculado por
+// nosotros — así el chat (que decide de qué cliente son los datos) puede
+// verificar que el email no fue editado a mano en la URL.
 export default async function AsistentePage({
   searchParams,
 }: {
@@ -15,7 +20,9 @@ export default async function AsistentePage({
 }) {
   const params = await searchParams;
   const u = params.u;
+  const t = params.t;
   const userId = (Array.isArray(u) ? u[0] : u) || null;
+  const token = (Array.isArray(t) ? t[0] : t) || null;
 
   const initialSaved = userId ? await listSavedReports(userId) : [];
 
@@ -23,6 +30,7 @@ export default async function AsistentePage({
     <AsistenteChat
       fontClassName={`${mxDisplay.variable} ${mxBody.variable}`}
       userId={userId}
+      token={token}
       initialSaved={initialSaved}
     />
   );

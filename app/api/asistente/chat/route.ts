@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { SCHEMA } from "@/lib/assistant/clients/decathlon/schema";
 import { CONVENTIONS } from "@/lib/assistant/clients/decathlon/conventions";
 import { runAssistantQuery } from "@/lib/supabase/readonlyPg";
+import { getClientSlugForEmail, verifyEmailToken } from "@/lib/assistant/clientAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -94,8 +95,9 @@ function missingEnvResponse(name: string) {
 export async function POST(request: Request) {
   if (!process.env.ANTHROPIC_API_KEY) return missingEnvResponse("ANTHROPIC_API_KEY");
   if (!process.env.SUPABASE_READONLY_DB_URL) return missingEnvResponse("SUPABASE_READONLY_DB_URL");
+  if (!process.env.ASISTENTE_SIGNING_SECRET) return missingEnvResponse("ASISTENTE_SIGNING_SECRET");
 
-  let body: { messages?: ChatMessage[] };
+  let body: { messages?: ChatMessage[]; email?: string; token?: string };
   try {
     body = await request.json();
   } catch {
@@ -104,6 +106,28 @@ export async function POST(request: Request) {
   const history = body.messages ?? [];
   if (!history.length) {
     return NextResponse.json({ error: "Falta el mensaje del usuario." }, { status: 400 });
+  }
+
+  // El email llega como dato de Softr, pero por un query param editable por
+  // cualquiera — no alcanza como identidad. token lo firmamos nosotros (ver
+  // lib/assistant/clientAuth.ts) y Softr solo lo reenvía sin poder generarlo,
+  // así que si no coincide, no fue Softr quien armó esta request.
+  if (!body.email || !verifyEmailToken(body.email, body.token)) {
+    return NextResponse.json({ error: "No se pudo verificar el usuario." }, { status: 401 });
+  }
+  const clientSlug = await getClientSlugForEmail(body.email);
+  if (!clientSlug) {
+    return NextResponse.json({ error: "Este usuario no está habilitado para el asistente." }, { status: 403 });
+  }
+  // Todavía el único cliente con rol/base propia para el asistente es
+  // Decathlon — el resto queda preparado en client_users pero sin pool ni
+  // schema propios hasta que tengan datos reales (ver lib/supabase/readonlyPg.ts
+  // getClientPool). Mejor un error claro acá que servir el schema equivocado.
+  if (clientSlug !== "decathlon") {
+    return NextResponse.json(
+      { error: "El asistente de IA todavía no está habilitado para este cliente." },
+      { status: 501 },
+    );
   }
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });

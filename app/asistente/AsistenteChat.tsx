@@ -292,11 +292,13 @@ function AssistantBubble({
 export default function AsistenteChat({
   fontClassName,
   userId,
+  token,
   initialSaved,
   initialTurns,
 }: {
   fontClassName: string;
   userId: string | null;
+  token: string | null;
   initialSaved: SavedReport[];
   initialTurns?: ChatTurn[];
 }) {
@@ -455,7 +457,7 @@ export default function AsistenteChat({
       const res = await fetch("/api/asistente/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history }),
+        body: JSON.stringify({ messages: history, email: userId, token }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -564,7 +566,10 @@ export default function AsistenteChat({
         {userId && savedList.length === 0 && <p className="asis-empty">Todavía no guardaste ningún reporte.</p>}
         {savedList.map((r) => (
           <div key={r.id} className="asis-sidebar-item">
-            <a className="asis-sidebar-item-link" href={`/asistente/guardados/${r.id}?u=${encodeURIComponent(userId ?? "")}`}>
+            <a
+              className="asis-sidebar-item-link"
+              href={`/asistente/guardados/${r.id}?u=${encodeURIComponent(userId ?? "")}&t=${encodeURIComponent(token ?? "")}`}
+            >
               <span className="asis-sidebar-item-q">{r.question}</span>
               <span className="asis-sidebar-item-d">{sidebarFecha.format(new Date(r.created_at))}</span>
             </a>
@@ -585,7 +590,7 @@ export default function AsistenteChat({
           </div>
         ))}
         {userId && savedList.length > 0 && (
-          <a className="asis-saved-link" href={`/asistente/guardados?u=${encodeURIComponent(userId)}`}>
+          <a className="asis-saved-link" href={`/asistente/guardados?u=${encodeURIComponent(userId)}&t=${encodeURIComponent(token ?? "")}`}>
             Ver todos →
           </a>
         )}
