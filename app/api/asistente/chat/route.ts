@@ -1,8 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { MessageParam, Tool, ToolUseBlock } from "@anthropic-ai/sdk/resources/messages";
 import { NextResponse } from "next/server";
-import { SCHEMA } from "@/lib/assistant/schema";
-import { CONVENTIONS } from "@/lib/assistant/conventions";
+import { SCHEMA } from "@/lib/assistant/clients/decathlon/schema";
+import { CONVENTIONS } from "@/lib/assistant/clients/decathlon/conventions";
 import { runAssistantQuery } from "@/lib/supabase/readonlyPg";
 
 export const dynamic = "force-dynamic";
