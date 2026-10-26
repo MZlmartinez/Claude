@@ -5,14 +5,9 @@
 -- "campana" y "mencion_gestion" vienen sin tilde/ñ a propósito (en Fabric
 -- son "campaña" y "mención_gestión") — el sync las renombra al copiar,
 -- mismo patrón que gold_influencers. El "id" float que trae Fabric queda
--- afuera del todo (ni se pide ni se guarda): tiene valores NaN/Infinity
--- que el SQL endpoint de Fabric no puede convertir, y no lo necesitamos
--- igual — Postgres genera su propio uuid.
---
--- "inversion" queda SIN sincronizar por el mismo motivo (NaN/Infinity en
--- Fabric) — la columna sigue acá pero el sync no la llena hasta que se
--- arregle el dato en el Dataflow/notebook de Fabric que arma gold_prensa
--- (ver lib/goldTables.ts, selectColumnsOverrides).
+-- afuera del todo (ni se pide ni se guarda) — no lo necesitamos igual,
+-- Postgres genera su propio uuid (ver lib/goldTables.ts,
+-- selectColumnsOverrides).
 
 create table public.gold_prensa (
   id uuid primary key default gen_random_uuid(),
