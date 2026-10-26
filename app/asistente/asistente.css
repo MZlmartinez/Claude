@@ -21,6 +21,12 @@
   --asis-fg3: #8a8a87;
   --asis-accent: #d8fc4a;
   --asis-accent-fg: #1d1d1b;
+  /* Para texto en lima (ej. el kicker): el lima puro casi no tiene
+     contraste sobre blanco — en oscuro es el mismo --asis-accent (ahí
+     sí contrasta bien), en claro se oscurece (ver [data-theme="light"]
+     más abajo). Nunca se usa para rellenos (botones, el punto del
+     kicker), solo donde el lima es el color del TEXTO. */
+  --asis-accent-text: var(--asis-accent);
   --asis-k1: #6d9bff;
   --asis-k2: #ff8a5c;
   --asis-k3: #5fcf8f;
@@ -77,6 +83,10 @@
   --asis-fg: #1d1d1b;
   --asis-fg2: #646363;
   --asis-fg3: #9a9998;
+  /* Lima oscurecido para texto (el kicker) — el lima puro (--asis-accent,
+     sin cambios, se sigue usando para rellenos) se pierde sobre un
+     fondo claro. */
+  --asis-accent-text: #5c7a00;
   --asis-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
 }
 .asis::-webkit-scrollbar {
@@ -278,7 +288,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--asis-accent);
+  color: var(--asis-accent-text);
 }
 .asis-kicker-dot {
   width: 6px;
@@ -449,6 +459,11 @@
 .asis-history-label {
   font-size: 11px;
   color: var(--asis-fg3);
+}
+/* --asis-fg3 (gris clarito) se pierde sobre el fondo claro — en oscuro
+   contrasta bien contra el negro, se deja como está. */
+.asis[data-theme="light"] .asis-history-label {
+  color: var(--asis-fg2);
 }
 
 .asis-bubble {
