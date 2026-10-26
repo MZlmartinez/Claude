@@ -45,6 +45,10 @@ const GOLD_CONFIG: Record<ClientSlug, ClientGoldConfig> = {
     tables: ["gold_prensa"],
     schemaOverrides: { gold_prensa: "prensa" },
     selectColumnsOverrides: {
+      // "inversion" (float) también trae NaN/Infinity en algunas filas —
+      // mismo problema que "id", afuera por ahora. Sacar esta línea en
+      // cuanto se corrija el dato en el Dataflow/notebook de Fabric que
+      // arma gold_prensa.
       gold_prensa: [
         "cliente",
         "marca",
@@ -63,7 +67,6 @@ const GOLD_CONFIG: Record<ClientSlug, ClientGoldConfig> = {
         "tono",
         "mención_gestión",
         "pago_organico",
-        "inversion",
         "reach",
         "cpe_vap",
         "link_a_nota",
