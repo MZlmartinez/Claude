@@ -1,7 +1,7 @@
-/* Siempre oscuro, a propósito: esta página vive pegada al sidebar negro
-   del portal, no al lado de los reportes claros — un fondo claro acá
-   queda como un parche pegado encima, no integrado. No sigue
-   prefers-color-scheme como los reportes: siempre el mismo tema. */
+/* Oscuro por default (coincide con el sidebar negro del portal). El toggle
+   Oscura/Clara (ver AsistenteHeader.tsx) sigue el mismo criterio que ya
+   usan los reportes (mx.css): el tema cambia SOLO los colores de fondo/
+   texto de abajo — nunca el acento lima, la tipografía ni el layout. */
 .asis {
   /* #1d1d1b es el negro real de fondo de la página en Softr (lo sacamos
      inspeccionando el body publicado) — tiene que calzar exacto, si no el
@@ -37,6 +37,20 @@
   box-sizing: border-box;
   scrollbar-width: thin;
   scrollbar-color: var(--asis-line) transparent;
+}
+/* Tema claro: mismos valores que usa mx.css (growth/influencers) para su
+   versión clara — solo fondo/tarjetas/líneas/texto, el acento y el resto
+   del diseño quedan igual que en oscuro. */
+.asis[data-theme="light"] {
+  --asis-bg: #f7f7f5;
+  --asis-card: #ffffff;
+  --asis-card2: #f2f2f0;
+  --asis-soft: #f2f2f0;
+  --asis-line: #e2e2e0;
+  --asis-fg: #1d1d1b;
+  --asis-fg2: #646363;
+  --asis-fg3: #9a9998;
+  --asis-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
 }
 .asis::-webkit-scrollbar {
   width: 8px;
@@ -192,6 +206,28 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 14px;
+}
+.asis-theme {
+  display: flex;
+  border: 1px solid var(--asis-line);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--asis-card);
+  margin-left: auto;
+}
+.asis-theme button {
+  padding: 5px 12px;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  color: var(--asis-fg2);
+}
+.asis-theme button[aria-pressed="true"] {
+  background: var(--asis-accent);
+  color: var(--asis-accent-fg);
+  font-weight: 700;
 }
 .asis-spark {
   display: inline-flex;
