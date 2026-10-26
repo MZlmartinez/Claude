@@ -47,8 +47,11 @@
   height: 840px;
   overflow-y: auto;
   box-sizing: border-box;
-  scrollbar-width: thin;
-  scrollbar-color: var(--asis-line) transparent;
+  /* El scroll sigue andando (el contenido que no entra en el alto fijo
+     tiene que poder verse igual), pero sin la barra visible — quedaba
+     pegada al borde redondeado de la tarjeta y se veía como un recorte. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 /* Tema claro: mismos valores que usa mx.css (growth/influencers) para su
    versión clara — solo fondo/tarjetas/líneas/texto, el acento y el resto
@@ -65,18 +68,7 @@
   --asis-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
 }
 .asis::-webkit-scrollbar {
-  width: 8px;
-}
-.asis::-webkit-scrollbar-track {
-  background: transparent;
-}
-.asis::-webkit-scrollbar-thumb {
-  background: var(--asis-line);
-  border-radius: 999px;
-  border: 2px solid var(--asis-bg);
-}
-.asis::-webkit-scrollbar-thumb:hover {
-  background: var(--asis-fg3);
+  display: none;
 }
 .asis * {
   box-sizing: border-box;
