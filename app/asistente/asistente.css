@@ -4,13 +4,14 @@
    colores de fondo/texto de abajo — nunca el acento lima, la tipografía
    ni el layout. */
 .asis {
-  /* Mismo lenguaje visual que la Home (ver app/page.tsx/SidePanel):
-     fondo #181818 (igual que --background de globals.css) y tarjetas
-     como overlay blanco translúcido en vez de un gris sólido — así una
-     tarjeta adentro de otra (ej. una burbuja adentro de .asis-wrap)
-     se nota más clara sola por superposición, sin necesitar más
-     variables. */
-  --asis-bg: #181818;
+  /* #1d1d1b es el negro real de fondo de la página en Softr (no
+     #181818 de globals.css — son colores distintos, aunque parezcan
+     iguales a simple vista, y el de Softr es el que manda acá porque
+     es ahí donde esto se embebe). Tarjetas como overlay blanco
+     translúcido en vez de un gris sólido — así una tarjeta adentro de
+     otra (ej. una burbuja adentro de .asis-wrap) se nota más clara
+     sola por superposición, sin necesitar más variables. */
+  --asis-bg: #1d1d1b;
   --asis-card: rgba(255, 255, 255, 0.03);
   --asis-card2: rgba(255, 255, 255, 0.05);
   --asis-soft: rgba(255, 255, 255, 0.05);
@@ -27,11 +28,14 @@
 
   font-family: var(--font-mx-body), sans-serif;
   color: var(--asis-fg);
-  /* Sin fondo propio: antes .asis pintaba su propio #181818 encima del
-     fondo de la página (el mismo color, pero una capa aparte) y leía
-     como un "marco" negro separado alrededor del header y las tarjetas,
-     en vez de que header+tarjetas floten directo sobre el fondo real
-     de la página. */
+  /* Antes esto no tenía background propio (para no "duplicar" el fondo
+     de la página) — pero el fondo de la página (globals.css,
+     #181818) no es el mismo negro que usa Softr (#1d1d1b), así que el
+     margen/espacio vacío alrededor del header y las tarjetas se veía
+     de un negro ligeramente distinto al resto de la página real de
+     Softr. Repintar acá con --asis-bg (ya calibrado al negro de Softr)
+     lo iguala. */
+  background: var(--asis-bg);
   padding: 20px;
   /* Header fijo arriba + .asis-layout estirado para llenar el resto del
      alto fijo — si no, con poco contenido (ej. sin preguntas todavía)
