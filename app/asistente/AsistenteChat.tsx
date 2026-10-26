@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { jsPDF as JsPDFInstance } from "jspdf";
 import "./asistente.css";
 import { Chart, AsisAvatar, type ChartSpec } from "./ReportChart";
 import { AsistenteHeader } from "./AsistenteHeader";
@@ -79,11 +80,11 @@ const pdfFecha = new Intl.DateTimeFormat("es-AR", {
   minute: "2-digit",
 });
 
-async function exportReportAsPdf(question: string, node: HTMLElement) {
-  const [{ jsPDF }, { default: html2canvas }] = await Promise.all([import("jspdf"), import("html2canvas")]);
-  const canvas = await html2canvas(node, { backgroundColor: "#27262a", scale: 2 });
-
-  const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+// Dibuja una página completa (fondo, wordmark, fecha, título, tarjeta con
+// la imagen capturada, pie de página) — compartido entre el export de una
+// sola respuesta y el del historial completo (ahí se llama una vez por
+// pregunta, con pdf.addPage() entre medio).
+function drawPdfReportPage(pdf: JsPDFInstance, question: string, canvas: HTMLCanvasElement) {
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
   const margin = 40;
@@ -161,8 +162,40 @@ async function exportReportAsPdf(question: string, node: HTMLElement) {
   pdf.setFont("helvetica", "normal");
   pdf.setTextColor(...PDF_FG2);
   pdf.text(footSep, footX, footerY);
+}
 
+async function exportReportAsPdf(question: string, node: HTMLElement) {
+  const [{ jsPDF }, { default: html2canvas }] = await Promise.all([import("jspdf"), import("html2canvas")]);
+  const canvas = await html2canvas(node, { backgroundColor: "#27262a", scale: 2 });
+  const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+  drawPdfReportPage(pdf, question, canvas);
   pdf.save(`${slugify(question)}.pdf`);
+}
+
+// Export de TODA la conversación: una página por pregunta, mismo
+// formato que el export individual — pensado para armar un reporte para
+// llevar a una reunión en vez de bajar pregunta por pregunta.
+async function exportHistoryAsPdf(entries: { question: string; node: HTMLElement }[]) {
+  const [{ jsPDF }, { default: html2canvas }] = await Promise.all([import("jspdf"), import("html2canvas")]);
+  const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+  for (let i = 0; i < entries.length; i++) {
+    const canvas = await html2canvas(entries[i].node, { backgroundColor: "#27262a", scale: 2 });
+    if (i > 0) pdf.addPage();
+    drawPdfReportPage(pdf, entries[i].question, canvas);
+  }
+  pdf.save(`coolmetrics-historial-${new Date().toISOString().slice(0, 10)}.pdf`);
+}
+
+// Mismo criterio que el CSV de una sola pregunta, pero con una sección por
+// pregunta (encabezado con la pregunta, después sus columnas/filas) — no es
+// una sola tabla porque cada pregunta puede traer columnas distintas.
+function historyToCsv(entries: { question: string; rows: Record<string, unknown>[] }[]): string {
+  const sections = entries.map(({ question, rows }) => {
+    const header = `"${question.replace(/"/g, '""')}"`;
+    if (!rows.length) return `${header}\n(sin datos tabulares)`;
+    return `${header}\n${rowsToCsv(rows).replace(/^﻿/, "")}`;
+  });
+  return "﻿" + sections.join("\n\n");
 }
 
 function SaveButton({ state, onSave, onUnsave }: { state: SaveState; onSave: () => void; onUnsave: () => void }) {
@@ -306,8 +339,43 @@ export default function AsistenteChat({
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [savedList, setSavedList] = useState<SavedReport[]>(initialSaved);
+  const [exportingHistory, setExportingHistory] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+
+  const assistantTurns = turns.filter(
+    (t): t is Extract<ChatTurn, { role: "assistant" }> => t.role === "assistant",
+  );
+
+  // Exportar TODA la conversación (no solo una respuesta) para armar un
+  // reporte para llevar a una reunión. Los nodos .asis-exportable aparecen
+  // en el DOM en el mismo orden que assistantTurns, así que los zippeamos
+  // por índice en vez de necesitar un ref por burbuja.
+  async function downloadHistoryPdf() {
+    if (!rootRef.current || !assistantTurns.length || exportingHistory) return;
+    setExportingHistory(true);
+    try {
+      const nodes = Array.from(rootRef.current.querySelectorAll<HTMLElement>(".asis-exportable"));
+      const entries = assistantTurns
+        .map((t, i) => ({ question: t.question, node: nodes[i] }))
+        .filter((e): e is { question: string; node: HTMLElement } => !!e.node);
+      if (entries.length) await exportHistoryAsPdf(entries);
+    } catch (error) {
+      console.error("No se pudo exportar el historial a PDF", error);
+    } finally {
+      setExportingHistory(false);
+    }
+  }
+
+  function downloadHistoryCsv() {
+    if (!assistantTurns.length) return;
+    const entries = assistantTurns.map((t) => ({ question: t.question, rows: t.report.chart?.rows ?? [] }));
+    downloadBlob(
+      `coolmetrics-historial-${new Date().toISOString().slice(0, 10)}.csv`,
+      historyToCsv(entries),
+      "text/csv;charset=utf-8",
+    );
+  }
 
   // Avisamos a Softr el alto UNA sola vez, al montar, y siempre el mismo
   // valor fijo — nunca volvemos a avisar un alto distinto, sin importar
@@ -490,6 +558,18 @@ export default function AsistenteChat({
       <div className="asis-layout">
       <div className="asis-wrap">
         <AsistenteHeader />
+
+        {assistantTurns.length > 0 && (
+          <div className="asis-history-bar">
+            <span className="asis-history-label">Exportar toda la conversación:</span>
+            <button type="button" className="asis-save" onClick={downloadHistoryPdf} disabled={exportingHistory}>
+              {exportingHistory ? "Generando…" : "PDF"}
+            </button>
+            <button type="button" className="asis-save" onClick={downloadHistoryCsv}>
+              Excel
+            </button>
+          </div>
+        )}
 
         <div className="asis-thread">
           {turns.length === 0 && (

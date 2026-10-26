@@ -293,6 +293,18 @@
   flex: 1;
 }
 
+.asis-history-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 4px 0 2px;
+}
+.asis-history-label {
+  font-size: 11px;
+  color: var(--asis-fg3);
+}
+
 .asis-bubble {
   border-radius: 16px;
   padding: 14px 16px;
