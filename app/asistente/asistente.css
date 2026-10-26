@@ -58,15 +58,18 @@
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
-/* Tema claro: mismo criterio (overlay translúcido, ahora negro en vez de
-   blanco, sobre un fondo claro) — el acento y el resto del diseño quedan
-   igual que en oscuro. */
+/* Tema claro: los mismos valores (sólidos, no overlay) que ya usa
+   mx.css en growth/influencers — el overlay translúcido (blanco en
+   oscuro) es un truco que depende de un fondo bien oscuro para
+   notarse; calcado en claro (negro 3% sobre un fondo ya claro) daba
+   un gris lavado, sin contraste, feo. El acento y el resto del diseño
+   quedan igual que en oscuro. */
 .asis[data-theme="light"] {
   --asis-bg: #f7f7f5;
-  --asis-card: rgba(0, 0, 0, 0.03);
-  --asis-card2: rgba(0, 0, 0, 0.05);
-  --asis-soft: rgba(0, 0, 0, 0.05);
-  --asis-line: rgba(0, 0, 0, 0.1);
+  --asis-card: #ffffff;
+  --asis-card2: #f2f2f0;
+  --asis-soft: #f2f2f0;
+  --asis-line: #e2e2e0;
   --asis-fg: #1d1d1b;
   --asis-fg2: #646363;
   --asis-fg3: #9a9998;
