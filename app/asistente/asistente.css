@@ -26,15 +26,25 @@
   font-family: var(--font-mx-body), sans-serif;
   color: var(--asis-fg);
   background: var(--asis-bg);
-  width: 100%;
+  /* Enmarcado: una tarjeta con borde redondeado flotando sobre el fondo
+     de la página (--background en globals.css, ya oscuro) en vez de
+     fondo plano pegado a los bordes del iframe — mismo lenguaje visual
+     que el bloque "resumen" de growth/influencers. El margen de 20px se
+     resta del alto fijo para no tener que tocar FRAME_HEIGHT ni el
+     ancho, que ya era 100% del contenedor. */
+  margin: 20px;
+  border: 1px solid var(--asis-line);
+  border-radius: 20px;
+  box-shadow: var(--asis-shadow);
   /* Alto FIJO desde el primer render, no crece con la conversación — el
      iframe en Softr se dimensiona una sola vez y nunca vuelve a cambiar.
      Dejarlo crecer con cada mensaje (lo que hacíamos antes) resultaba en
      que el sidebar sticky de Softr se rompía apenas el iframe cambiaba de
      alto, sin importar cuánto creciera. Con esto, todo lo que no entra
-     scrollea ADENTRO de .asis — mismo valor que FRAME_HEIGHT en
-     AsistenteChat.tsx y PageHeightReporter.tsx. */
-  height: 880px;
+     scrollea ADENTRO de .asis — el iframe mide FRAME_HEIGHT (880px en
+     AsistenteChat.tsx y PageHeightReporter.tsx); este alto es ese menos
+     los 2×20px de margen de arriba y abajo. */
+  height: 840px;
   overflow-y: auto;
   box-sizing: border-box;
   scrollbar-width: thin;
