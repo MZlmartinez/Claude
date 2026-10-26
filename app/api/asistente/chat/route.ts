@@ -194,7 +194,10 @@ export async function POST(request: Request) {
     const toolResults = await Promise.all(
       sqlCalls_.map(async (block) => {
         const { sql } = block.input as { sql: string };
-        const result = await runAssistantQuery(sql);
+        // clientSlug ya está confirmado "deca" más arriba (único cliente
+        // habilitado hoy) — se pasa el literal para que el chequeo de
+        // tablas permitidas en runAssistantQuery use la lista correcta.
+        const result = await runAssistantQuery(sql, "deca");
         const content = "error" in result ? `Error: ${result.error}` : JSON.stringify(result.rows);
         return { type: "tool_result" as const, tool_use_id: block.id, content };
       }),

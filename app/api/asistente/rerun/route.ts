@@ -24,7 +24,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Falta el SQL a ejecutar." }, { status: 400 });
   }
 
-  const result = await runAssistantQuery(sql);
+  // Mismo supuesto que el chat en vivo: hoy el único cliente con pool de
+  // solo lectura es Decathlon ("deca") — ver lib/supabase/readonlyPg.ts.
+  const result = await runAssistantQuery(sql, "deca");
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: 422 });
   }
