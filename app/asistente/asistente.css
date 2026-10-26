@@ -186,6 +186,7 @@
 }
 
 .asis-head {
+  position: relative;
   flex-shrink: 0;
   margin-bottom: 20px;
   display: flex;
@@ -213,12 +214,14 @@
   margin-bottom: 14px;
 }
 .asis-theme {
+  position: absolute;
+  top: 0;
+  right: 0;
   display: flex;
   border: 1px solid var(--asis-line);
   border-radius: 999px;
   overflow: hidden;
   background: var(--asis-card);
-  margin-left: auto;
 }
 .asis-theme button {
   padding: 5px 12px;

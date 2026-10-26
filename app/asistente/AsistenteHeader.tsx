@@ -21,6 +21,15 @@ export function AsistenteHeader() {
 
   return (
     <header className="asis-head">
+      <div className="asis-theme" role="group" aria-label="Tema">
+        <button type="button" aria-pressed={theme === "dark"} onClick={() => setTheme("dark")}>
+          Oscura
+        </button>
+        <button type="button" aria-pressed={theme === "light"} onClick={() => setTheme("light")}>
+          Clara
+        </button>
+      </div>
+
       <div className="asis-head-text">
         <div className="asis-head-top">
           <span className="asis-spark" aria-hidden="true">
@@ -29,14 +38,6 @@ export function AsistenteHeader() {
             </svg>
           </span>
           <span className="asis-kicker">Coolmetrics</span>
-          <div className="asis-theme" role="group" aria-label="Tema">
-            <button type="button" aria-pressed={theme === "dark"} onClick={() => setTheme("dark")}>
-              Oscura
-            </button>
-            <button type="button" aria-pressed={theme === "light"} onClick={() => setTheme("light")}>
-              Clara
-            </button>
-          </div>
         </div>
         <h1>Asistente de datos</h1>
         <p className="asis-tagline">Tu negocio, a una pregunta de distancia.</p>
