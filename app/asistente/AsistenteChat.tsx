@@ -80,21 +80,15 @@ const pdfFecha = new Intl.DateTimeFormat("es-AR", {
   minute: "2-digit",
 });
 
-// Dibuja una página completa (fondo, wordmark, fecha, título, tarjeta con
-// la imagen capturada, pie de página) — compartido entre el export de una
-// sola respuesta y el del historial completo (ahí se llama una vez por
-// pregunta, con pdf.addPage() entre medio).
-function drawPdfReportPage(pdf: JsPDFInstance, question: string, canvas: HTMLCanvasElement) {
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-  const margin = 40;
-  const contentWidth = pageWidth - margin * 2;
-
+function drawPdfPageBackground(pdf: JsPDFInstance, pageWidth: number, pageHeight: number) {
   pdf.setFillColor(...PDF_BG);
   pdf.rect(0, 0, pageWidth, pageHeight, "F");
+}
 
-  // Wordmark "COOLmetrics", mismo tratamiento de dos colores que el pie de
-  // página real de la app (span blanco + span lima).
+// Wordmark + fecha + línea divisoria: igual en todas las páginas de
+// cualquier PDF que generamos. Devuelve el Y de la línea, así el que
+// llama sabe desde dónde seguir dibujando contenido debajo.
+function drawPdfHeader(pdf: JsPDFInstance, pageWidth: number, margin: number): number {
   const wordmarkY = margin + 4;
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(15);
@@ -111,13 +105,28 @@ function drawPdfReportPage(pdf: JsPDFInstance, question: string, canvas: HTMLCan
 
   pdf.setDrawColor(...PDF_LINE);
   pdf.setLineWidth(0.75);
-  pdf.line(margin, wordmarkY + 14, pageWidth - margin, wordmarkY + 14);
+  const dividerY = wordmarkY + 14;
+  pdf.line(margin, dividerY, pageWidth - margin, dividerY);
+  return dividerY;
+}
+
+// Dibuja una página completa (fondo, header, título, tarjeta con la
+// imagen capturada, pie de página) — usada por el export de una sola
+// respuesta.
+function drawPdfReportPage(pdf: JsPDFInstance, question: string, canvas: HTMLCanvasElement) {
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const margin = 40;
+  const contentWidth = pageWidth - margin * 2;
+
+  drawPdfPageBackground(pdf, pageWidth, pageHeight);
+  const dividerY = drawPdfHeader(pdf, pageWidth, margin);
 
   // Título (la pregunta que generó el reporte).
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(16);
   pdf.setTextColor(...PDF_FG);
-  const titleY = wordmarkY + 44;
+  const titleY = dividerY + 30;
   const titleLines: string[] = pdf.splitTextToSize(question, contentWidth);
   pdf.text(titleLines, margin, titleY);
 
@@ -172,30 +181,83 @@ async function exportReportAsPdf(question: string, node: HTMLElement) {
   pdf.save(`${slugify(question)}.pdf`);
 }
 
-// Export de TODA la conversación: una página por pregunta, mismo
-// formato que el export individual — pensado para armar un reporte para
-// llevar a una reunión en vez de bajar pregunta por pregunta.
+// Export de TODA la conversación: las preguntas van una a continuación de
+// la otra (sin un salto de página forzado por cada una, como en el export
+// individual) — una tarjeta nueva arranca página solo si de verdad no
+// entra en el espacio que queda, no porque "le toque" su propia hoja.
 async function exportHistoryAsPdf(entries: { question: string; node: HTMLElement }[]) {
   const [{ jsPDF }, { default: html2canvas }] = await Promise.all([import("jspdf"), import("html2canvas")]);
   const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
-  for (let i = 0; i < entries.length; i++) {
-    const canvas = await html2canvas(entries[i].node, { backgroundColor: "#27262a", scale: 2 });
-    if (i > 0) pdf.addPage();
-    drawPdfReportPage(pdf, entries[i].question, canvas);
-  }
-  pdf.save(`coolmetrics-historial-${new Date().toISOString().slice(0, 10)}.pdf`);
-}
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const margin = 40;
+  const contentWidth = pageWidth - margin * 2;
+  const cardPadding = 14;
+  const blockGap = 22;
+  // Tope de alto para que una sola tarjeta nunca sea más grande que una
+  // página entera (si la imagen es muy alta, se achica para entrar en una
+  // página — no la recortamos entre dos).
+  const maxCardHeight = pageHeight - margin * 2;
 
-// Mismo criterio que el CSV de una sola pregunta, pero con una sección por
-// pregunta (encabezado con la pregunta, después sus columnas/filas) — no es
-// una sola tabla porque cada pregunta puede traer columnas distintas.
-function historyToCsv(entries: { question: string; rows: Record<string, unknown>[] }[]): string {
-  const sections = entries.map(({ question, rows }) => {
-    const header = `"${question.replace(/"/g, '""')}"`;
-    if (!rows.length) return `${header}\n(sin datos tabulares)`;
-    return `${header}\n${rowsToCsv(rows).replace(/^﻿/, "")}`;
-  });
-  return "﻿" + sections.join("\n\n");
+  let y = margin;
+  let started = false;
+
+  function startPage() {
+    if (started) pdf.addPage();
+    started = true;
+    drawPdfPageBackground(pdf, pageWidth, pageHeight);
+    const dividerY = drawPdfHeader(pdf, pageWidth, margin);
+    y = dividerY + 26;
+  }
+
+  startPage();
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(18);
+  pdf.setTextColor(...PDF_FG);
+  pdf.text("Historial de la conversación", margin, y);
+  y += 28;
+
+  for (const { question, node } of entries) {
+    const canvas = await html2canvas(node, { backgroundColor: "#27262a", scale: 2 });
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(13);
+    const titleLines: string[] = pdf.splitTextToSize(question, contentWidth);
+    const titleHeight = titleLines.length * 16 + 8;
+
+    let imgWidth = contentWidth - cardPadding * 2;
+    let imgHeight = canvas.height * (imgWidth / canvas.width);
+    const maxImgHeight = maxCardHeight - titleHeight - cardPadding * 2;
+    if (imgHeight > maxImgHeight) {
+      const scale = maxImgHeight / imgHeight;
+      imgHeight *= scale;
+      imgWidth *= scale;
+    }
+    const cardHeight = imgHeight + cardPadding * 2;
+    const blockHeight = titleHeight + cardHeight;
+
+    // Si no entra en lo que queda de página, recién ahí pasa a la
+    // siguiente — nunca por default.
+    if (y + blockHeight > pageHeight - margin) {
+      startPage();
+    }
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(13);
+    pdf.setTextColor(...PDF_FG);
+    pdf.text(titleLines, margin, y + 12);
+
+    const cardTop = y + titleHeight;
+    pdf.setFillColor(...PDF_CARD);
+    pdf.roundedRect(margin, cardTop, contentWidth, cardHeight, 10, 10, "F");
+    pdf.setFillColor(...PDF_ACCENT);
+    pdf.rect(margin, cardTop, 3, cardHeight, "F");
+    pdf.addImage(canvas.toDataURL("image/png"), "PNG", margin + cardPadding, cardTop + cardPadding, imgWidth, imgHeight);
+
+    y = cardTop + cardHeight + blockGap;
+  }
+
+  pdf.save(`coolmetrics-historial-${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
 function SaveButton({ state, onSave, onUnsave }: { state: SaveState; onSave: () => void; onUnsave: () => void }) {
@@ -367,15 +429,6 @@ export default function AsistenteChat({
     }
   }
 
-  function downloadHistoryCsv() {
-    if (!assistantTurns.length) return;
-    const entries = assistantTurns.map((t) => ({ question: t.question, rows: t.report.chart?.rows ?? [] }));
-    downloadBlob(
-      `coolmetrics-historial-${new Date().toISOString().slice(0, 10)}.csv`,
-      historyToCsv(entries),
-      "text/csv;charset=utf-8",
-    );
-  }
 
   // Avisamos a Softr el alto UNA sola vez, al montar, y siempre el mismo
   // valor fijo — nunca volvemos a avisar un alto distinto, sin importar
@@ -564,9 +617,6 @@ export default function AsistenteChat({
             <span className="asis-history-label">Exportar toda la conversación:</span>
             <button type="button" className="asis-save" onClick={downloadHistoryPdf} disabled={exportingHistory}>
               {exportingHistory ? "Generando…" : "PDF"}
-            </button>
-            <button type="button" className="asis-save" onClick={downloadHistoryCsv}>
-              Excel
             </button>
           </div>
         )}
