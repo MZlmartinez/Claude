@@ -12,9 +12,12 @@ function getPool() {
       // El pooler de Supabase exige TLS; el certificado no valida contra
       // las CA por defecto de Node en algunos entornos serverless.
       ssl: { rejectUnauthorized: false },
-      // El plan de Supabase tiene un límite total de 15 conexiones en modo
-      // session — cada instancia de esta función se queda con pocas, para
-      // no agotarlo si corren varias invocaciones a la vez.
+      // SUPABASE_DB_URL apunta al pooler en modo Transaction (puerto 6543),
+      // que multiplexa muchas conexiones cortas sobre pocas conexiones
+      // reales a Postgres — a diferencia del modo Session (5432, límite
+      // global bajo en el plan Free) que usábamos antes. Se mantiene max
+      // bajo por instancia igual, por prolijidad, no porque haga falta
+      // para no agotar un límite global como pasaba con Session.
       max: 2,
     });
   }
