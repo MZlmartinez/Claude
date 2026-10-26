@@ -167,12 +167,25 @@
   position: relative;
   background: var(--asis-card);
   border: 1px solid var(--asis-line);
+  border-left: 3px solid var(--asis-line);
   border-radius: 10px;
   padding: 10px 12px;
   transition: border-color 0.15s;
 }
 .asis-sidebar-item:hover {
   border-color: var(--asis-accent);
+}
+/* Mismo criterio que las sugerencias (.asis-sugg-*): un color distinto
+   por ítem en vez de todos iguales — se asignan cíclicamente por
+   índice, ver AsistenteChat.tsx. */
+.asis-sidebar-item-k1 {
+  border-left-color: var(--asis-k1);
+}
+.asis-sidebar-item-k2 {
+  border-left-color: var(--asis-k2);
+}
+.asis-sidebar-item-k4 {
+  border-left-color: var(--asis-k4);
 }
 .asis-sidebar-item-link {
   display: flex;
@@ -219,51 +232,22 @@
 }
 
 .asis-head {
-  position: relative;
   flex-shrink: 0;
   /* Mismo ancho máximo y centrado que .asis-layout (las tarjetas de
-     abajo) — si no, el header ocupaba todo el ancho de .asis (más
-     ancho que las tarjetas) y el ícono terminaba en un punto sin
-     relación con el borde de ninguna tarjeta. */
+     abajo), para que el hero quede alineado con ellas. */
   max-width: 1040px;
   width: 100%;
   margin: 0 auto 20px;
-  display: flex;
-  /* flex-start (no center): así el kicker queda a la misma altura que
-     el toggle Oscura/Clara (arriba a la derecha, position:absolute) —
-     centrado, el bloque de texto completo (kicker+título+tagline) se
-     corría hacia abajo y desalineaba el kicker contra el toggle. */
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-}
-.asis-head-text {
-  min-width: 0;
-}
-.asis-head-art {
-  flex-shrink: 0;
-  width: 96px;
-  height: 80px;
-  /* El toggle Oscura/Clara está posicionado absoluto arriba a la derecha
-     de .asis-head (ver .asis-theme) — este margen asegura que el ícono
-     quede claramente debajo, nunca pisado ni pegado contra el toggle. */
-  margin-top: 40px;
-}
-@media (max-width: 560px) {
-  .asis-head-art {
-    display: none;
-  }
 }
 .asis-head-top {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 20px;
   margin-bottom: 14px;
 }
 .asis-theme {
-  position: absolute;
-  top: 0;
-  right: 0;
+  flex-shrink: 0;
   display: flex;
   border: 1px solid var(--asis-line);
   border-radius: 999px;
@@ -303,26 +287,99 @@
   background: var(--asis-accent);
   flex-shrink: 0;
 }
-.asis-head h1 {
+
+/* Hero: siempre oscuro, en los dos temas — igual que la tarjeta
+   "resumen" de growth/influencers, que tampoco cambia con el toggle.
+   Es lo que reemplaza el título/tagline planos de antes, para meter
+   los colores (azul/naranja/dorado/lima) también en el estado vacío,
+   no solo cuando hay una respuesta con gráfico. */
+.asis-hero {
+  position: relative;
+  overflow: hidden;
+  background: #1a1a1a;
+  border: 1px solid #2f2f2f;
+  border-radius: 16px;
+  padding: 24px 26px;
+}
+.asis-hero::after {
+  content: "";
+  position: absolute;
+  top: -40%;
+  right: -10%;
+  width: 60%;
+  height: 180%;
+  background: radial-gradient(circle, rgba(216, 252, 74, 0.28), transparent 70%);
+  pointer-events: none;
+}
+.asis-hero-top {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.asis-hero-badge {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: var(--asis-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.asis-hero-badge svg {
+  width: 28px;
+  height: 28px;
+}
+.asis-hero-top h1 {
   font-family: var(--font-mx-display), sans-serif;
   font-weight: 400;
-  font-size: 34px;
+  font-size: 30px;
   line-height: 1.05;
-  margin: 0 0 10px;
-  letter-spacing: 0.01em;
-  color: var(--asis-fg);
-}
-.asis-head p {
   margin: 0;
-  color: var(--asis-fg2);
-  font-size: 13px;
-  max-width: 48ch;
+  letter-spacing: 0.01em;
+  color: #f5f5f3;
 }
-.asis-head p.asis-tagline {
-  margin: 0 0 8px;
-  color: var(--asis-accent);
-  font-size: 16px;
-  font-weight: 600;
+.asis-hero-top p.asis-tagline {
+  margin: 2px 0 0;
+  color: #b5b5b2;
+  font-size: 13px;
+  font-weight: 400;
+}
+.asis-hero-stats {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(140px, 200px));
+  gap: 12px;
+  margin-top: 18px;
+}
+@media (max-width: 560px) {
+  .asis-hero-stats {
+    grid-template-columns: 1fr;
+  }
+}
+.asis-hero-stat {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.asis-hero-stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.asis-hero-stat-value {
+  font-family: var(--font-mx-display), sans-serif;
+  font-size: 22px;
+  color: #f5f5f3;
+}
+.asis-hero-stat-sub {
+  font-size: 10px;
+  color: #8a8a87;
 }
 
 .asis-hint {
@@ -356,14 +413,18 @@
   box-shadow: var(--asis-shadow);
   border-color: var(--asis-fg3);
 }
-.asis-sugg-k1 {
+/* .asis-suggestions button (más específico por combinar clase+elemento)
+   fija border-left-color: var(--asis-fg3) — hace falta igualar esa
+   especificidad acá, si no el gris de base siempre gana. */
+.asis-suggestions button.asis-sugg-k1 {
   border-left-color: var(--asis-k1);
 }
-.asis-sugg-k2 {
+.asis-suggestions button.asis-sugg-k2 {
   border-left-color: var(--asis-k2);
 }
-.asis-sugg-k3 {
-  border-left-color: var(--asis-k3);
+/* k4 (dorado), no k3 (verde) — k3 queda reservado para "Guardado". */
+.asis-suggestions button.asis-sugg-k4 {
+  border-left-color: var(--asis-k4);
 }
 
 .asis-thread {

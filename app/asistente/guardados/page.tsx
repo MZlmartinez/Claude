@@ -22,7 +22,7 @@ export default async function GuardadosPage({
   if (!userId) {
     return (
       <PageHeightReporter fontClassName={fontClassName}>
-        <AsistenteHeader />
+        <AsistenteHeader savedCount={0} />
         <div className="asis-layout">
           <div className="asis-wrap">
             <h2 className="asis-section-title">Mis reportes guardados</h2>
@@ -37,7 +37,7 @@ export default async function GuardadosPage({
 
   return (
     <PageHeightReporter fontClassName={fontClassName}>
-      <AsistenteHeader />
+      <AsistenteHeader savedCount={reports.length} />
       <div className="asis-layout">
         <div className="asis-wrap">
           <h2 className="asis-section-title">Mis reportes guardados</h2>

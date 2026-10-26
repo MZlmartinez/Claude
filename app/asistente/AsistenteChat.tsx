@@ -24,6 +24,10 @@ const FRAME_HEIGHT = 880;
 
 const sidebarFecha = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit" });
 
+// Mismo criterio que las sugerencias (.asis-sugg-*): un color de borde
+// distinto por ítem guardado, ciclando por índice, en vez de todos iguales.
+const SIDEBAR_COLORS = ["k1", "k2", "k4"] as const;
+
 function slugify(text: string): string {
   return (
     text
@@ -603,12 +607,12 @@ export default function AsistenteChat({
   const suggestions = [
     { text: "¿Cómo vienen las sesiones este mes contra el anterior?", k: "k1" },
     { text: "Facturación por canal del último trimestre", k: "k2" },
-    { text: "¿Cuántos influencers tengo activos?", k: "k3" },
+    { text: "¿Cuántos influencers tengo activos?", k: "k4" },
   ] as const;
 
   return (
     <div className={`asis ${fontClassName}`} ref={rootRef}>
-      <AsistenteHeader />
+      <AsistenteHeader savedCount={savedList.length} />
       <div className="asis-layout">
       <div className="asis-wrap">
         {assistantTurns.length > 0 && (
@@ -693,8 +697,8 @@ export default function AsistenteChat({
         <h2>Mis guardados</h2>
         {!userId && <p className="asis-empty">Entrá desde el portal para guardar reportes.</p>}
         {userId && savedList.length === 0 && <p className="asis-empty">Todavía no guardaste ningún reporte.</p>}
-        {savedList.map((r) => (
-          <div key={r.id} className="asis-sidebar-item">
+        {savedList.map((r, i) => (
+          <div key={r.id} className={`asis-sidebar-item asis-sidebar-item-${SIDEBAR_COLORS[i % SIDEBAR_COLORS.length]}`}>
             <a
               className="asis-sidebar-item-link"
               href={`/asistente/guardados/${r.id}?u=${encodeURIComponent(userId ?? "")}&t=${encodeURIComponent(token ?? "")}`}
