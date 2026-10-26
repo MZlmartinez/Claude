@@ -5,6 +5,7 @@ import { SCHEMA } from "@/lib/assistant/clients/deca/schema";
 import { CONVENTIONS } from "@/lib/assistant/clients/deca/conventions";
 import { runAssistantQuery } from "@/lib/supabase/readonlyPg";
 import { getClientSlugForEmail, verifyEmailToken } from "@/lib/assistant/clientAuth";
+import { anthropicApiKeyFor } from "@/lib/assistant/anthropicKey";
 
 export const dynamic = "force-dynamic";
 
@@ -93,7 +94,10 @@ function missingEnvResponse(name: string) {
 }
 
 export async function POST(request: Request) {
-  if (!process.env.ANTHROPIC_API_KEY) return missingEnvResponse("ANTHROPIC_API_KEY");
+  // ANTHROPIC_API_KEY ya no se chequea acá arriba: cada cliente puede
+  // tener su propia cuenta (ver anthropicApiKeyFor), así que hay que saber
+  // primero quién es el cliente — se valida más abajo, después de
+  // resolverlo.
   if (!process.env.SUPABASE_READONLY_DB_URL) return missingEnvResponse("SUPABASE_READONLY_DB_URL");
   if (!process.env.ASISTENTE_SIGNING_SECRET) return missingEnvResponse("ASISTENTE_SIGNING_SECRET");
 
@@ -132,7 +136,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const anthropicApiKey = anthropicApiKeyFor("deca");
+  if (!anthropicApiKey) return missingEnvResponse("ANTHROPIC_API_KEY");
+
+  const anthropic = new Anthropic({ apiKey: anthropicApiKey });
   const model = process.env.ANTHROPIC_CHAT_MODEL || DEFAULT_MODEL;
 
   const messages: MessageParam[] = history.map((m) => ({ role: m.role, content: m.content }));
