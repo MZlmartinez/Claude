@@ -26,32 +26,34 @@
   font-family: var(--font-mx-body), sans-serif;
   color: var(--asis-fg);
   background: var(--asis-bg);
-  /* Enmarcado: una tarjeta con borde redondeado flotando sobre el fondo
-     de la página (--background en globals.css, ya oscuro) en vez de
-     fondo plano pegado a los bordes del iframe — mismo lenguaje visual
-     que el bloque "resumen" de growth/influencers. El margen de 20px se
-     resta del alto fijo para no tener que tocar FRAME_HEIGHT ni el
-     ancho, que ya era 100% del contenedor. */
-  margin: 20px;
-  border: 1px solid var(--asis-line);
-  border-radius: 20px;
-  box-shadow: var(--asis-shadow);
+  padding: 20px;
   /* Alto FIJO desde el primer render, no crece con la conversación — el
      iframe en Softr se dimensiona una sola vez y nunca vuelve a cambiar.
      Dejarlo crecer con cada mensaje (lo que hacíamos antes) resultaba en
      que el sidebar sticky de Softr se rompía apenas el iframe cambiaba de
      alto, sin importar cuánto creciera. Con esto, todo lo que no entra
-     scrollea ADENTRO de .asis — el iframe mide FRAME_HEIGHT (880px en
-     AsistenteChat.tsx y PageHeightReporter.tsx); este alto es ese menos
-     los 2×20px de margen de arriba y abajo. */
-  height: 840px;
+     scrollea ADENTRO de .asis — mismo valor que FRAME_HEIGHT en
+     AsistenteChat.tsx y PageHeightReporter.tsx. */
+  height: 880px;
   overflow-y: auto;
   box-sizing: border-box;
   /* El scroll sigue andando (el contenido que no entra en el alto fijo
-     tiene que poder verse igual), pero sin la barra visible — quedaba
-     pegada al borde redondeado de la tarjeta y se veía como un recorte. */
+     tiene que poder verse igual), pero sin la barra visible. */
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+/* El header (kicker/título/toggle) queda AFUERA de la tarjeta, directo
+   sobre el fondo de página — .asis-frame envuelve todo lo demás (el
+   layout de dos columnas), mismo lenguaje visual que el bloque "resumen"
+   de growth/influencers: una tarjeta con borde redondeado flotando sobre
+   el fondo, no fondo plano pegado a los bordes del iframe. Usa --asis-bg
+   (no --asis-card) para que las burbujas de respuesta, que sí usan
+   --asis-card, se sigan distinguiendo del marco. */
+.asis-frame {
+  background: var(--asis-bg);
+  border: 1px solid var(--asis-line);
+  border-radius: 20px;
+  box-shadow: var(--asis-shadow);
 }
 /* Tema claro: mismos valores que usa mx.css (growth/influencers) para su
    versión clara — solo fondo/tarjetas/líneas/texto, el acento y el resto
@@ -185,8 +187,7 @@
 
 .asis-head {
   flex-shrink: 0;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--asis-line);
+  margin-bottom: 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;

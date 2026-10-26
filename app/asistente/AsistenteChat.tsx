@@ -608,10 +608,10 @@ export default function AsistenteChat({
 
   return (
     <div className={`asis ${fontClassName}`} ref={rootRef}>
+      <AsistenteHeader />
+      <div className="asis-frame">
       <div className="asis-layout">
       <div className="asis-wrap">
-        <AsistenteHeader />
-
         {assistantTurns.length > 0 && (
           <div className="asis-history-bar">
             <span className="asis-history-label">Exportar toda la conversación:</span>
@@ -725,6 +725,7 @@ export default function AsistenteChat({
           </a>
         )}
       </aside>
+      </div>
       </div>
     </div>
   );
