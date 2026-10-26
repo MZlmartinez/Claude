@@ -1,25 +1,27 @@
-/* Oscuro por default (coincide con el sidebar negro del portal). El toggle
-   Oscura/Clara (ver AsistenteHeader.tsx) sigue el mismo criterio que ya
-   usan los reportes (mx.css): el tema cambia SOLO los colores de fondo/
-   texto de abajo — nunca el acento lima, la tipografía ni el layout. */
+/* Oscuro por default, con los mismos colores de fondo que el resto de los
+   dashboards (mx.css, ver más abajo). El toggle Oscura/Clara (ver
+   AsistenteHeader.tsx) sigue el mismo criterio: el tema cambia SOLO los
+   colores de fondo/texto de abajo — nunca el acento lima, la tipografía
+   ni el layout. */
 .asis {
-  /* #1d1d1b es el negro real de fondo de la página en Softr (lo sacamos
-     inspeccionando el body publicado) — tiene que calzar exacto, si no el
-     recuadro se nota aunque los dos sean "oscuros". */
-  --asis-bg: #1d1d1b;
-  --asis-card: #27262a;
-  --asis-card2: #2e2d31;
-  --asis-soft: #232321;
-  --asis-line: #38373b;
+  /* Mismos valores de fondo que el tema oscuro de mx.css (growth/
+     influencers) — antes este oscuro era un negro distinto (#1d1d1b,
+     pensado para calzar con el sidebar de Softr), pero quedaba
+     inconsistente con el resto de los dashboards, que usan este gris. */
+  --asis-bg: #161616;
+  --asis-card: #1e1e1e;
+  --asis-card2: #252525;
+  --asis-soft: #252525;
+  --asis-line: #2f2f2f;
   --asis-fg: #f5f5f3;
   --asis-fg2: #b5b5b2;
-  --asis-fg3: #7a7a78;
+  --asis-fg3: #8a8a87;
   --asis-accent: #d8fc4a;
   --asis-accent-fg: #1d1d1b;
   --asis-k1: #6d9bff;
   --asis-k2: #ff8a5c;
   --asis-k3: #5fcf8f;
-  --asis-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  --asis-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 
   font-family: var(--font-mx-body), sans-serif;
   color: var(--asis-fg);
