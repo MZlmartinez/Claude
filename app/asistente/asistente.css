@@ -201,6 +201,10 @@
   flex-shrink: 0;
   width: 96px;
   height: 80px;
+  /* El toggle Oscura/Clara está posicionado absoluto arriba a la derecha
+     de .asis-head (ver .asis-theme) — este margen asegura que el ícono
+     quede claramente debajo, nunca pisado ni pegado contra el toggle. */
+  margin-top: 40px;
 }
 @media (max-width: 560px) {
   .asis-head-art {
@@ -237,35 +241,24 @@
   color: var(--asis-accent-fg);
   font-weight: 700;
 }
-.asis-spark {
-  display: inline-flex;
-  color: var(--asis-accent);
-  animation: asis-spark-pulse 2.4s ease-in-out infinite;
-}
-.asis-spark svg {
-  width: 18px;
-  height: 18px;
-}
-@keyframes asis-spark-pulse {
-  0%, 100% {
-    opacity: 0.6;
-    transform: scale(0.9) rotate(0deg);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.05) rotate(12deg);
-  }
-}
+/* Punto + texto en lima, sin fondo ni texto oscuro — mismo estilo que el
+   kicker de la página de Documentos ("● COOLMETRICS DOCUMENTS"). */
 .asis-kicker {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--asis-accent-fg);
+  color: var(--asis-accent);
+}
+.asis-kicker-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
   background: var(--asis-accent);
-  padding: 3px 9px;
-  border-radius: 999px;
+  flex-shrink: 0;
 }
 .asis-head h1 {
   font-family: var(--font-mx-display), sans-serif;

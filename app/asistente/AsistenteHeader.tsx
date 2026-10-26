@@ -32,12 +32,10 @@ export function AsistenteHeader() {
 
       <div className="asis-head-text">
         <div className="asis-head-top">
-          <span className="asis-spark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z" fill="currentColor" />
-            </svg>
+          <span className="asis-kicker">
+            <span className="asis-kicker-dot" aria-hidden="true" />
+            Coolmetrics · Asistente
           </span>
-          <span className="asis-kicker">Coolmetrics</span>
         </div>
         <h1>Asistente de datos</h1>
         <p className="asis-tagline">Tu negocio, a una pregunta de distancia.</p>
