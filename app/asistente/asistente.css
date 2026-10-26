@@ -83,10 +83,15 @@
   --asis-fg: #1d1d1b;
   --asis-fg2: #646363;
   --asis-fg3: #9a9998;
-  /* Lima oscurecido para texto (el kicker) — el lima puro (--asis-accent,
-     sin cambios, se sigue usando para rellenos) se pierde sobre un
-     fondo claro. */
-  --asis-accent-text: #5c7a00;
+  /* El lima puro (--asis-accent, sin cambios, se sigue usando para
+     rellenos) se pierde sobre un fondo claro — para texto (el kicker)
+     usa este naranja en vez de un lima oscurecido, que leía como
+     verde. Mismo --accent-orange de la marca Moscu (globals.css). */
+  --asis-accent-text: #ff502e;
+  /* k3 (verde) es el color de "Guardado" — en claro también se pasa a
+     este naranja, nunca verde en esta versión del tema. En oscuro
+     sigue siendo verde (--asis-k3 de la base no se toca). */
+  --asis-k3: #ff502e;
   --asis-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
 }
 .asis::-webkit-scrollbar {
