@@ -83,10 +83,14 @@
   --asis-fg: #1d1d1b;
   --asis-fg2: #646363;
   --asis-fg3: #9a9998;
-  /* El lima puro (--asis-accent, sin cambios, se sigue usando para
-     rellenos) se pierde sobre un fondo claro — para texto (el kicker)
-     usa este naranja en vez de un lima oscurecido, que leía como
-     verde. Mismo --accent-orange de la marca Moscu (globals.css). */
+  /* El lima se pierde/lee como verde apagado sobre fondo claro — en vez
+     de ir parchando cada uso suelto (toggle activo, burbuja del
+     usuario, botón Enviar...), el acento en sí pasa a naranja acá
+     (mismo --accent-orange de la marca Moscu, globals.css). En oscuro
+     --asis-accent sigue siendo lima, sin tocar. accent-fg pasa a
+     blanco para que el texto se siga leyendo bien arriba del naranja. */
+  --asis-accent: #ff502e;
+  --asis-accent-fg: #ffffff;
   --asis-accent-text: #ff502e;
   /* k3 (verde) es el color de "Guardado" — en claro también se pasa a
      este naranja, nunca verde en esta versión del tema. En oscuro
