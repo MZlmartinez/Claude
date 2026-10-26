@@ -190,7 +190,11 @@
   flex-shrink: 0;
   margin-bottom: 20px;
   display: flex;
-  align-items: center;
+  /* flex-start (no center): así el kicker queda a la misma altura que
+     el toggle Oscura/Clara (arriba a la derecha, position:absolute) —
+     centrado, el bloque de texto completo (kicker+título+tagline) se
+     corría hacia abajo y desalineaba el kicker contra el toggle. */
+  align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
 }
