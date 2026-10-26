@@ -34,6 +34,10 @@ jobs:
           AZURE_FABRIC_CAPACITY_NAME: ${{ secrets.AZURE_FABRIC_CAPACITY_NAME }}
           FABRIC_SQL_ENDPOINT: ${{ secrets.FABRIC_SQL_ENDPOINT }}
           FABRIC_DATABASE: ${{ secrets.FABRIC_DATABASE }}
+          # Vacíos hasta que se configuren como secrets del repo — el
+          # script los saltea sin fallar mientras tanto (ver scripts/sync-gold.ts).
+          FABRIC_SQL_ENDPOINT_ADECCO: ${{ secrets.FABRIC_SQL_ENDPOINT_ADECCO }}
+          FABRIC_DATABASE_ADECCO: ${{ secrets.FABRIC_DATABASE_ADECCO }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           # Conexión directa a Postgres (no la API REST) — la necesita

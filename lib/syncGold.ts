@@ -1,15 +1,22 @@
 import sql from "mssql";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { sourceSchema } from "@/lib/goldTables";
+import { sourceSchema, type ClientSlug } from "@/lib/goldTables";
 
 // Columnas que renombramos al pasar de Fabric a Supabase: por mayúsculas
-// mixtas (UltimoPeriodo) o por caracteres con tilde/ñ, para evitar líos de
-// encoding en nombres de columna de Postgres.
+// mixtas (UltimoPeriodo), por caracteres con tilde/ñ (líos de encoding en
+// nombres de columna de Postgres), o porque colisionan con una columna que
+// ya usamos para otra cosa (el "id" float de Fabric vs. el uuid primary key
+// que genera Postgres).
 const COLUMN_RENAMES: Record<string, Record<string, string>> = {
   gold_shopify_time: { UltimoPeriodo: "ultimo_periodo" },
   gold_influencers: {
     "campaña": "campana",
     "presupuesto_año_fiscal": "presupuesto_anio_fiscal",
+  },
+  gold_prensa: {
+    id: "fabric_id",
+    "campaña": "campana",
+    "mención_gestión": "mencion_gestion",
   },
 };
 
@@ -52,6 +59,7 @@ function chunk<T>(items: T[], size: number): T[][] {
 export async function syncGoldTable(
   pool: sql.ConnectionPool,
   supabase: SupabaseClient,
+  client: ClientSlug,
   table: string,
   range?: { from: string; to: string },
 ): Promise<SyncResult> {
@@ -59,7 +67,7 @@ export async function syncGoldTable(
     const cutoff = new Date().toISOString();
 
     const fabricRequest = pool.request();
-    let query = `SELECT * FROM ${sourceSchema(table)}.${table}`;
+    let query = `SELECT * FROM ${sourceSchema(client, table)}.${table}`;
 
     if (range) {
       fabricRequest.input("fromDate", sql.Date, range.from);
@@ -78,10 +86,10 @@ export async function syncGoldTable(
       }
     }
 
-    // Estas tablas son exclusivas de Decathlon (una tabla por cliente, sin
-    // columna de tenant), así que el borrado es de la tabla entera o del
-    // rango de fechas pedido, no de un profile_id puntual. El filtro por
-    // synced_at < cutoff deja afuera lo que acabamos de insertar.
+    // Cada tabla gold es exclusiva de un cliente (sin columna de tenant),
+    // así que el borrado es de la tabla entera o del rango de fechas
+    // pedido, no de un profile_id puntual. El filtro por synced_at < cutoff
+    // deja afuera lo que acabamos de insertar.
     const deleteBuilder = supabase.from(table).delete().lt("synced_at", cutoff);
     if (range) {
       await deleteBuilder.gte("day", range.from).lt("day", range.to);
@@ -98,11 +106,14 @@ export async function syncGoldTable(
 export async function syncGoldTables(
   pool: sql.ConnectionPool,
   supabase: SupabaseClient,
+  client: ClientSlug,
   tables: string[],
   range?: { from: string; to: string },
 ): Promise<Record<string, SyncResult>> {
   const entries = await Promise.all(
-    tables.map(async (table) => [table, await syncGoldTable(pool, supabase, table, range)] as const),
+    tables.map(
+      async (table) => [table, await syncGoldTable(pool, supabase, client, table, range)] as const,
+    ),
   );
   return Object.fromEntries(entries);
 }

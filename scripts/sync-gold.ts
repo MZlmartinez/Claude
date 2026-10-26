@@ -1,52 +1,90 @@
 // Sync diario de las tablas gold de Fabric a Supabase. Pensado para correr
 // en GitHub Actions (ver .github/workflows/sync-gold.yml), no en Vercel —
-// acá no hay límite de 60/300 segundos, así que las 16 tablas se
-// sincronizan todas juntas, sin partir el trabajo en grupos.
+// acá no hay límite de 60/300 segundos, así que las tablas de cada cliente
+// se sincronizan todas juntas, sin partir el trabajo en grupos.
 //
 // Variables de entorno necesarias (se configuran como Secrets del repo en
 // GitHub, no en Vercel — son dos almacenes separados, hay que cargarlas en
 // los dos lados): AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET,
 // AZURE_SUBSCRIPTION_ID, AZURE_FABRIC_RESOURCE_GROUP,
-// AZURE_FABRIC_CAPACITY_NAME, FABRIC_SQL_ENDPOINT, FABRIC_DATABASE,
-// NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_DB_URL
-// (esta última la usa refreshGrowthRollups() al final, conexión directa a
-// Postgres — no alcanza con la API REST).
+// AZURE_FABRIC_CAPACITY_NAME, NEXT_PUBLIC_SUPABASE_URL,
+// SUPABASE_SERVICE_ROLE_KEY, SUPABASE_DB_URL (esta última la usa
+// refreshGrowthRollups() al final, conexión directa a Postgres — no alcanza
+// con la API REST).
+//
+// Por cliente, el connection string de su Lakehouse en Fabric:
+// - Decathlon (deca): FABRIC_SQL_ENDPOINT, FABRIC_DATABASE (nombres
+//   históricos, sin sufijo — es el único cliente que syncea hoy).
+// - Adecco: FABRIC_SQL_ENDPOINT_ADECCO, FABRIC_DATABASE_ADECCO. Mientras
+//   no existan estos dos secrets, el sync salta a Adecco sin fallar — se
+//   suma solo apenas se configuren, sin tocar este archivo de nuevo.
 
 import { connectFabric } from "../lib/fabric";
 import { ensureFabricCapacityActive, pauseFabricCapacity } from "../lib/fabricCapacity";
 import { createAdminClient } from "../lib/supabase/admin";
-import { GOLD_TABLES } from "../lib/goldTables";
+import { goldTablesFor, type ClientSlug } from "../lib/goldTables";
 import { syncGoldTables, type SyncResult } from "../lib/syncGold";
 import { refreshGrowthRollups } from "../lib/reports/growth";
 
-const BIG_TABLES = [
-  "gold_shopify_sessions_by_referrer",
-  "gold_shopify_sessions_by_referrer_master",
-] as const;
-
-const SMALL_TABLES = GOLD_TABLES.filter(
-  (t) => !BIG_TABLES.includes(t as (typeof BIG_TABLES)[number]),
-);
-
-// Ventana de días hacia atrás para las tablas grandes: suficiente para
+// Tablas con columna `day`, que sincronizamos en una ventana de los
+// últimos LOOKBACK_DAYS en vez de la historia completa (suficiente para
 // pisar con datos actualizados cualquier sesión que haya llegado tarde,
-// sin tener que releer la historia completa cada día.
+// sin releer todo cada día). Hoy solo las tiene Decathlon.
+const BIG_TABLES_BY_CLIENT: Partial<Record<ClientSlug, readonly string[]>> = {
+  deca: ["gold_shopify_sessions_by_referrer", "gold_shopify_sessions_by_referrer_master"],
+};
+
 const LOOKBACK_DAYS = 3;
 
 function isoDate(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`Falta la env var ${name}`);
-  return value;
+type ClientFabricConfig = { slug: ClientSlug; sqlEndpoint?: string; database?: string };
+
+function clientConfigs(): ClientFabricConfig[] {
+  return [
+    { slug: "deca", sqlEndpoint: process.env.FABRIC_SQL_ENDPOINT, database: process.env.FABRIC_DATABASE },
+    {
+      slug: "adecco",
+      sqlEndpoint: process.env.FABRIC_SQL_ENDPOINT_ADECCO,
+      database: process.env.FABRIC_DATABASE_ADECCO,
+    },
+  ];
+}
+
+async function syncClient(
+  config: ClientFabricConfig,
+  supabase: ReturnType<typeof createAdminClient>,
+  from: string,
+  to: string,
+): Promise<Record<string, SyncResult>> {
+  if (!config.sqlEndpoint || !config.database) {
+    console.log(
+      `Salteando ${config.slug}: todavía no tiene connection string de Fabric configurado.`,
+    );
+    return {};
+  }
+
+  const allTables = goldTablesFor(config.slug);
+  const bigTables = BIG_TABLES_BY_CLIENT[config.slug] ?? [];
+  const smallTables = allTables.filter((t) => !bigTables.includes(t));
+
+  const pool = await connectFabric(config.sqlEndpoint, config.database);
+  try {
+    const [bigResults, smallResults] = await Promise.all([
+      bigTables.length
+        ? syncGoldTables(pool, supabase, config.slug, [...bigTables], { from, to })
+        : Promise.resolve({}),
+      syncGoldTables(pool, supabase, config.slug, [...smallTables]),
+    ]);
+    return { ...bigResults, ...smallResults };
+  } finally {
+    await pool.close();
+  }
 }
 
 async function main() {
-  const sqlEndpoint = requireEnv("FABRIC_SQL_ENDPOINT");
-  const database = requireEnv("FABRIC_DATABASE");
-
   const today = new Date();
   const from = isoDate(new Date(today.getTime() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000));
   const to = isoDate(today);
@@ -55,17 +93,11 @@ async function main() {
 
   const supabase = createAdminClient();
 
-  let results: Record<string, SyncResult>;
+  let results: Record<string, SyncResult> = {};
   try {
-    const pool = await connectFabric(sqlEndpoint, database);
-    try {
-      const [bigResults, smallResults] = await Promise.all([
-        syncGoldTables(pool, supabase, [...BIG_TABLES], { from, to }),
-        syncGoldTables(pool, supabase, [...SMALL_TABLES]),
-      ]);
-      results = { ...bigResults, ...smallResults };
-    } finally {
-      await pool.close();
+    for (const config of clientConfigs()) {
+      const clientResults = await syncClient(config, supabase, from, to);
+      results = { ...results, ...clientResults };
     }
   } finally {
     await pauseFabricCapacity();

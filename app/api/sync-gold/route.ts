@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { connectFabric } from "@/lib/fabric";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { GOLD_TABLES } from "@/lib/goldTables";
+import { goldTablesFor, type ClientSlug } from "@/lib/goldTables";
 import { syncGoldTables } from "@/lib/syncGold";
 
 export const maxDuration = 60;
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const CLIENT_SLUGS: ClientSlug[] = ["deca", "adecco"];
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -20,6 +21,8 @@ export async function GET(request: Request) {
   const tablesParam = searchParams.get("table");
   const from = searchParams.get("from");
   const to = searchParams.get("to");
+  // Default deca para no romper llamadas viejas que no mandan ?client=.
+  const client = (searchParams.get("client") ?? "deca") as ClientSlug;
 
   if (!sqlEndpoint || !database) {
     return NextResponse.json(
@@ -28,6 +31,15 @@ export async function GET(request: Request) {
     );
   }
 
+  if (!CLIENT_SLUGS.includes(client)) {
+    return NextResponse.json(
+      { error: `client desconocido: ${client} (esperaba ${CLIENT_SLUGS.join(" o ")})` },
+      { status: 400 },
+    );
+  }
+
+  const goldTables = goldTablesFor(client);
+
   // ?table= acepta una tabla sola o varias separadas por coma, para
   // sincronizar un grupo de una sola llamada (ej. ?table=a,b,c).
   const requestedTables = tablesParam
@@ -35,12 +47,10 @@ export async function GET(request: Request) {
     : null;
 
   if (requestedTables) {
-    const unknown = requestedTables.filter(
-      (t) => !GOLD_TABLES.includes(t as (typeof GOLD_TABLES)[number]),
-    );
+    const unknown = requestedTables.filter((t) => !goldTables.includes(t));
     if (unknown.length > 0) {
       return NextResponse.json(
-        { error: `tabla(s) desconocida(s): ${unknown.join(", ")}` },
+        { error: `tabla(s) desconocida(s) para ${client}: ${unknown.join(", ")}` },
         { status: 400 },
       );
     }
@@ -53,7 +63,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const tablesToSync = requestedTables ?? [...GOLD_TABLES];
+  const tablesToSync = requestedTables ?? [...goldTables];
 
   const supabase = createAdminClient();
   const pool = await connectFabric(sqlEndpoint, database);
@@ -63,6 +73,7 @@ export async function GET(request: Request) {
     results = await syncGoldTables(
       pool,
       supabase,
+      client,
       tablesToSync,
       from && to ? { from, to } : undefined,
     );

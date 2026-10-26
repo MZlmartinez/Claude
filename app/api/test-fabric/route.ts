@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { queryFabricRaw } from "@/lib/fabric";
-import { GOLD_TABLES, sourceSchema } from "@/lib/goldTables";
+import { goldTablesFor, sourceSchema, type ClientSlug } from "@/lib/goldTables";
 
 export const maxDuration = 60;
+
+const CLIENT_SLUGS: ClientSlug[] = ["deca", "adecco"];
 
 // Ruta temporal para probar la conexión real a Fabric desde Vercel (este
 // entorno de desarrollo no tiene salida de red a Fabric/Supabase). Protegida
@@ -16,6 +18,8 @@ export async function GET(request: Request) {
 
   const sqlEndpoint = searchParams.get("endpoint");
   const database = searchParams.get("database");
+  // Default deca para no romper llamadas viejas que no mandan ?client=.
+  const client = (searchParams.get("client") ?? "deca") as ClientSlug;
 
   if (!sqlEndpoint || !database) {
     return NextResponse.json(
@@ -24,12 +28,19 @@ export async function GET(request: Request) {
     );
   }
 
+  if (!CLIENT_SLUGS.includes(client)) {
+    return NextResponse.json(
+      { error: `client desconocido: ${client} (esperaba ${CLIENT_SLUGS.join(" o ")})` },
+      { status: 400 },
+    );
+  }
+
   // ?counts=1 → cuántas filas tiene cada tabla gold, sin traer los datos.
   if (searchParams.get("counts")) {
     try {
-      const unionQuery = GOLD_TABLES.map(
-        (t) => `SELECT '${t}' AS tbl, COUNT(*) AS total FROM ${sourceSchema(t)}.${t}`,
-      ).join(" UNION ALL ");
+      const unionQuery = goldTablesFor(client)
+        .map((t) => `SELECT '${t}' AS tbl, COUNT(*) AS total FROM ${sourceSchema(client, t)}.${t}`)
+        .join(" UNION ALL ");
       const counts = await queryFabricRaw(sqlEndpoint, database, unionQuery);
       return NextResponse.json({ ok: true, counts });
     } catch (error) {
@@ -66,7 +77,7 @@ export async function GET(request: Request) {
     const rows = await queryFabricRaw(
       sqlEndpoint,
       database,
-      `SELECT TOP 5 * FROM ${sourceSchema(table)}.${table}`,
+      `SELECT TOP 5 * FROM ${sourceSchema(client, table)}.${table}`,
     );
     return NextResponse.json({ ok: true, table, rows });
   } catch (error) {
