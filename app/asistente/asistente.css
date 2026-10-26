@@ -214,18 +214,20 @@
 .asis-head {
   position: relative;
   flex-shrink: 0;
-  margin-bottom: 20px;
+  /* Mismo ancho máximo y centrado que .asis-layout (las tarjetas de
+     abajo) — si no, el header ocupaba todo el ancho de .asis (más
+     ancho que las tarjetas) y el ícono terminaba en un punto sin
+     relación con el borde de ninguna tarjeta. */
+  max-width: 1040px;
+  width: 100%;
+  margin: 0 auto 20px;
   display: flex;
   /* flex-start (no center): así el kicker queda a la misma altura que
      el toggle Oscura/Clara (arriba a la derecha, position:absolute) —
      centrado, el bloque de texto completo (kicker+título+tagline) se
      corría hacia abajo y desalineaba el kicker contra el toggle. */
   align-items: flex-start;
-  /* flex-start (no space-between): el ícono decorativo va pegado al
-     texto (después del tagline), no estirado hasta el borde derecho —
-     el toggle Oscura/Clara ya ocupa esa esquina con position:absolute,
-     independiente de este flujo. */
-  justify-content: flex-start;
+  justify-content: space-between;
   gap: 24px;
 }
 .asis-head-text {
