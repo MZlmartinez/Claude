@@ -727,6 +727,11 @@ export default function AsistenteChat({
             Ver todos →
           </a>
         )}
+        {turns.length > 0 && (
+          <button type="button" className="asis-saved-link asis-saved-link-btn" onClick={() => setTurns([])}>
+            ← Volver al inicio
+          </button>
+        )}
       </aside>
       </div>
     </div>

@@ -731,6 +731,17 @@
   color: var(--asis-accent-text);
   border-color: var(--asis-accent-text);
 }
+/* "← Volver al inicio" es un <button> (resetea el chat en vez de
+   navegar), no un <a> — reset de los estilos de botón del navegador
+   para que se vea igual que .asis-saved-link. */
+.asis-saved-link-btn {
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--asis-line);
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
 
 .asis-thumb-grid {
   display: grid;
