@@ -27,7 +27,11 @@
 
   font-family: var(--font-mx-body), sans-serif;
   color: var(--asis-fg);
-  background: var(--asis-bg);
+  /* Sin fondo propio: antes .asis pintaba su propio #181818 encima del
+     fondo de la página (el mismo color, pero una capa aparte) y leía
+     como un "marco" negro separado alrededor del header y las tarjetas,
+     en vez de que header+tarjetas floten directo sobre el fondo real
+     de la página. */
   padding: 20px;
   /* Header fijo arriba + .asis-layout estirado para llenar el resto del
      alto fijo — si no, con poco contenido (ej. sin preguntas todavía)
@@ -213,8 +217,12 @@
      centrado, el bloque de texto completo (kicker+título+tagline) se
      corría hacia abajo y desalineaba el kicker contra el toggle. */
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
+  /* flex-start (no space-between): el ícono decorativo va pegado al
+     texto (después del tagline), no estirado hasta el borde derecho —
+     el toggle Oscura/Clara ya ocupa esa esquina con position:absolute,
+     independiente de este flujo. */
+  justify-content: flex-start;
+  gap: 24px;
 }
 .asis-head-text {
   min-width: 0;
