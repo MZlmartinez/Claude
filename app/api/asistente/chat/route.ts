@@ -1,8 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { MessageParam, Tool, ToolUseBlock } from "@anthropic-ai/sdk/resources/messages";
 import { NextResponse } from "next/server";
-import { SCHEMA } from "@/lib/assistant/clients/decathlon/schema";
-import { CONVENTIONS } from "@/lib/assistant/clients/decathlon/conventions";
+import { SCHEMA } from "@/lib/assistant/clients/deca/schema";
+import { CONVENTIONS } from "@/lib/assistant/clients/deca/conventions";
 import { runAssistantQuery } from "@/lib/supabase/readonlyPg";
 import { getClientSlugForEmail, verifyEmailToken } from "@/lib/assistant/clientAuth";
 
@@ -120,10 +120,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Este usuario no está habilitado para el asistente." }, { status: 403 });
   }
   // Todavía el único cliente con rol/base propia para el asistente es
-  // Decathlon — el resto queda preparado en client_users pero sin pool ni
-  // schema propios hasta que tengan datos reales (ver lib/supabase/readonlyPg.ts
-  // getClientPool). Mejor un error claro acá que servir el schema equivocado.
-  if (clientSlug !== "decathlon") {
+  // Decathlon (slug "deca", alineado con el nombre del Lakehouse en Fabric
+  // — LH_Deca_Negocio) — el resto queda preparado en client_users pero sin
+  // pool ni schema propios hasta que tengan datos reales (ver
+  // lib/supabase/readonlyPg.ts getClientPool). Mejor un error claro acá que
+  // servir el schema equivocado.
+  if (clientSlug !== "deca") {
     return NextResponse.json(
       { error: "El asistente de IA todavía no está habilitado para este cliente." },
       { status: 501 },
