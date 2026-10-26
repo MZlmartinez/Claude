@@ -19,7 +19,7 @@ const nf = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
 // Paleta cíclica para comparar categorías (canales, meses, etc.) — la misma
 // idea que ya usan los gráficos de Growth/Influencers, para que un gráfico
 // de barras no sea todo de un solo color.
-const CHART_COLORS = ["var(--asis-accent)", "var(--asis-k1)", "var(--asis-k2)", "var(--asis-k3)"];
+const CHART_COLORS = ["var(--asis-accent)", "var(--asis-k1)", "var(--asis-k2)", "var(--asis-k4)"];
 
 function fmtValue(v: unknown): string {
   if (v == null) return "—";

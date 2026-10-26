@@ -24,6 +24,10 @@
   --asis-k1: #6d9bff;
   --asis-k2: #ff8a5c;
   --asis-k3: #5fcf8f;
+  /* k4 (dorado) reemplaza a k3 (verde) en la paleta de gráficos — ver
+     ReportChart.tsx. k3 se deja como está porque también es el color
+     de "Guardado" (asis-save-done), sin relación con los gráficos. */
+  --asis-k4: #dda829;
   --asis-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 
   font-family: var(--font-mx-body), sans-serif;
@@ -412,6 +416,28 @@
   border-bottom-left-radius: 4px;
   display: flex;
   gap: 12px;
+}
+/* En claro, la respuesta se queda oscura (como la tarjeta "DECATHLON"
+   de la referencia de Growth/Influencers) — así los colores del
+   gráfico (k1/k2/k4/accent) destacan en vez de perderse contra un
+   fondo claro. Redefine las variables de texto/línea acá adentro con
+   los valores oscuros, así todo lo de abajo (texto, bordes, SVG del
+   gráfico) hereda el set correcto sin tocar cada elemento. */
+.asis[data-theme="light"] .asis-bubble-assistant {
+  background: #1d1d1b;
+  border-color: #38373b;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --asis-fg: #f5f5f3;
+  --asis-fg2: #b5b5b2;
+  --asis-fg3: #8a8a87;
+  --asis-line: #38373b;
+  --asis-card2: #252525;
+  --asis-soft: #252525;
+  /* Redeclarar color (no solo la variable): .asis-summary y otros
+     elementos de adentro no fijan su propio color, heredan el que
+     ya estaba calculado en .asis (el oscuro de tema claro) — sin
+     esto, el texto quedaba invisible (oscuro sobre oscuro). */
+  color: var(--asis-fg);
 }
 .asis-bubble-body {
   flex: 1;
