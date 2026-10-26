@@ -118,6 +118,12 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /* No se estira como .asis-wrap (que sí necesita el alto completo para
+     que .asis-thread tenga espacio adonde crecer) — con una conversación
+     larga, .asis-wrap se vuelve muy alto y "Mis guardados" quedaba
+     estirado a esa misma altura, una tarjeta enorme casi vacía. Con
+     flex-start, mide solo lo que necesita su propio contenido. */
+  align-self: flex-start;
 }
 @media (max-width: 980px) {
   .asis-sidebar {
