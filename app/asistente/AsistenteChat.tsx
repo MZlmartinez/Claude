@@ -609,7 +609,6 @@ export default function AsistenteChat({
   return (
     <div className={`asis ${fontClassName}`} ref={rootRef}>
       <AsistenteHeader />
-      <div className="asis-frame">
       <div className="asis-layout">
       <div className="asis-wrap">
         {assistantTurns.length > 0 && (
@@ -725,7 +724,6 @@ export default function AsistenteChat({
           </a>
         )}
       </aside>
-      </div>
       </div>
     </div>
   );

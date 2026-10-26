@@ -23,12 +23,10 @@ export default async function GuardadosPage({
     return (
       <PageHeightReporter fontClassName={fontClassName}>
         <AsistenteHeader />
-        <div className="asis-frame">
-          <div className="asis-layout">
-            <div className="asis-wrap">
-              <h2 className="asis-section-title">Mis reportes guardados</h2>
-              <p className="asis-empty">No pudimos identificar quién sos — entrá desde el portal.</p>
-            </div>
+        <div className="asis-layout">
+          <div className="asis-wrap">
+            <h2 className="asis-section-title">Mis reportes guardados</h2>
+            <p className="asis-empty">No pudimos identificar quién sos — entrá desde el portal.</p>
           </div>
         </div>
       </PageHeightReporter>
@@ -40,23 +38,21 @@ export default async function GuardadosPage({
   return (
     <PageHeightReporter fontClassName={fontClassName}>
       <AsistenteHeader />
-      <div className="asis-frame">
-        <div className="asis-layout">
-          <div className="asis-wrap">
-            <h2 className="asis-section-title">Mis reportes guardados</h2>
+      <div className="asis-layout">
+        <div className="asis-wrap">
+          <h2 className="asis-section-title">Mis reportes guardados</h2>
 
-            <div className="asis-thread">
-              <a className="asis-saved-link" href={`/asistente?u=${encodeURIComponent(userId)}&t=${encodeURIComponent(token ?? "")}`}>
-                ← Volver al asistente
-              </a>
+          <div className="asis-thread">
+            <a className="asis-saved-link" href={`/asistente?u=${encodeURIComponent(userId)}&t=${encodeURIComponent(token ?? "")}`}>
+              ← Volver al asistente
+            </a>
 
-              {reports.length === 0 && <p className="asis-empty">Todavía no guardaste ningún reporte.</p>}
+            {reports.length === 0 && <p className="asis-empty">Todavía no guardaste ningún reporte.</p>}
 
-              <div className="asis-thumb-grid">
-                {reports.map((r) => (
-                  <SavedReportThumb key={r.id} report={r} userId={userId} token={token} />
-                ))}
-              </div>
+            <div className="asis-thumb-grid">
+              {reports.map((r) => (
+                <SavedReportThumb key={r.id} report={r} userId={userId} token={token} />
+              ))}
             </div>
           </div>
         </div>

@@ -4,15 +4,17 @@
    colores de fondo/texto de abajo — nunca el acento lima, la tipografía
    ni el layout. */
 .asis {
-  /* Mismos valores de fondo que el tema oscuro de mx.css (growth/
-     influencers) — antes este oscuro era un negro distinto (#1d1d1b,
-     pensado para calzar con el sidebar de Softr), pero quedaba
-     inconsistente con el resto de los dashboards, que usan este gris. */
-  --asis-bg: #161616;
-  --asis-card: #1e1e1e;
-  --asis-card2: #252525;
-  --asis-soft: #252525;
-  --asis-line: #2f2f2f;
+  /* Mismo lenguaje visual que la Home (ver app/page.tsx/SidePanel):
+     fondo #181818 (igual que --background de globals.css) y tarjetas
+     como overlay blanco translúcido en vez de un gris sólido — así una
+     tarjeta adentro de otra (ej. una burbuja adentro de .asis-wrap)
+     se nota más clara sola por superposición, sin necesitar más
+     variables. */
+  --asis-bg: #181818;
+  --asis-card: rgba(255, 255, 255, 0.03);
+  --asis-card2: rgba(255, 255, 255, 0.05);
+  --asis-soft: rgba(255, 255, 255, 0.05);
+  --asis-line: rgba(255, 255, 255, 0.1);
   --asis-fg: #f5f5f3;
   --asis-fg2: #b5b5b2;
   --asis-fg3: #8a8a87;
@@ -42,28 +44,15 @@
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
-/* El header (kicker/título/toggle) queda AFUERA de la tarjeta, directo
-   sobre el fondo de página — .asis-frame envuelve todo lo demás (el
-   layout de dos columnas), mismo lenguaje visual que el bloque "resumen"
-   de growth/influencers: una tarjeta con borde redondeado flotando sobre
-   el fondo, no fondo plano pegado a los bordes del iframe. Usa --asis-bg
-   (no --asis-card) para que las burbujas de respuesta, que sí usan
-   --asis-card, se sigan distinguiendo del marco. */
-.asis-frame {
-  background: var(--asis-bg);
-  border: 1px solid var(--asis-line);
-  border-radius: 20px;
-  box-shadow: var(--asis-shadow);
-}
-/* Tema claro: mismos valores que usa mx.css (growth/influencers) para su
-   versión clara — solo fondo/tarjetas/líneas/texto, el acento y el resto
-   del diseño quedan igual que en oscuro. */
+/* Tema claro: mismo criterio (overlay translúcido, ahora negro en vez de
+   blanco, sobre un fondo claro) — el acento y el resto del diseño quedan
+   igual que en oscuro. */
 .asis[data-theme="light"] {
   --asis-bg: #f7f7f5;
-  --asis-card: #ffffff;
-  --asis-card2: #f2f2f0;
-  --asis-soft: #f2f2f0;
-  --asis-line: #e2e2e0;
+  --asis-card: rgba(0, 0, 0, 0.03);
+  --asis-card2: rgba(0, 0, 0, 0.05);
+  --asis-soft: rgba(0, 0, 0, 0.05);
+  --asis-line: rgba(0, 0, 0, 0.1);
   --asis-fg: #1d1d1b;
   --asis-fg2: #646363;
   --asis-fg3: #9a9998;
@@ -84,7 +73,7 @@
   margin: 0 auto;
   display: flex;
   align-items: flex-start;
-  gap: 0;
+  gap: 20px;
 }
 @media (max-width: 980px) {
   .asis-layout {
@@ -92,12 +81,18 @@
   }
 }
 
+/* Cada columna es su propia tarjeta suelta sobre el fondo de página
+   (mismo criterio que el bloque "resumen" de growth/influencers y los
+   SidePanel de la Home) — ya no hay un marco único envolviendo las dos. */
 .asis-wrap {
   max-width: 720px;
   min-width: 0;
   flex: 1;
   margin: 0;
-  padding: clamp(20px, 4vw, 40px) 20px 20px;
+  padding: 20px;
+  border: 1px solid var(--asis-line);
+  border-radius: 16px;
+  background: var(--asis-card);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -106,7 +101,10 @@
 .asis-sidebar {
   width: 300px;
   flex-shrink: 0;
-  padding: clamp(20px, 4vw, 40px) 20px 20px 0;
+  padding: 20px;
+  border: 1px solid var(--asis-line);
+  border-radius: 16px;
+  background: var(--asis-card);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -114,7 +112,6 @@
 @media (max-width: 980px) {
   .asis-sidebar {
     width: 100%;
-    padding: 0 20px 20px;
   }
 }
 .asis-sidebar h2,
