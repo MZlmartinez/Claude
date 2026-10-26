@@ -722,8 +722,10 @@
   border-bottom: 1px solid var(--asis-line);
 }
 .asis-saved-link:hover {
-  color: var(--asis-accent);
-  border-color: var(--asis-accent);
+  /* --asis-accent-text (no --asis-accent): en claro es el naranja
+     fuerte de la marca, no el lima que se veía verde/apagado. */
+  color: var(--asis-accent-text);
+  border-color: var(--asis-accent-text);
 }
 
 .asis-thumb-grid {
