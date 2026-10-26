@@ -9,6 +9,12 @@ export type ClientSlug = "deca" | "adecco";
 type ClientGoldConfig = {
   tables: readonly string[];
   schemaOverrides: Record<string, string>;
+  // Cuando está presente, el sync pide estas columnas en vez de "SELECT *".
+  // Hace falta cuando alguna columna no se puede traer tal cual (ver
+  // gold_prensa: su "id" float trae NaN/Infinity, que el SQL endpoint de
+  // Fabric no puede convertir — rompe el SELECT * entero, no solo esa
+  // fila). No la necesitamos igual: Postgres genera su propio uuid.
+  selectColumnsOverrides?: Record<string, readonly string[]>;
 };
 
 const GOLD_CONFIG: Record<ClientSlug, ClientGoldConfig> = {
@@ -38,6 +44,32 @@ const GOLD_CONFIG: Record<ClientSlug, ClientGoldConfig> = {
   adecco: {
     tables: ["gold_prensa"],
     schemaOverrides: { gold_prensa: "prensa" },
+    selectColumnsOverrides: {
+      gold_prensa: [
+        "cliente",
+        "marca",
+        "fecha",
+        "tier",
+        "medio",
+        "tipo_de_medio",
+        "periodista",
+        "vocero",
+        "formato_contenido",
+        "nacional_o_interior",
+        "provincia",
+        "industria",
+        "campaña",
+        "tema",
+        "tono",
+        "mención_gestión",
+        "pago_organico",
+        "inversion",
+        "reach",
+        "cpe_vap",
+        "link_a_nota",
+        "hipervinculo",
+      ],
+    },
   },
 };
 
@@ -51,4 +83,10 @@ export function isGoldTableFor(client: ClientSlug, table: string): boolean {
 
 export function sourceSchema(client: ClientSlug, table: string): string {
   return GOLD_CONFIG[client].schemaOverrides[table] ?? "dbo";
+}
+
+// null = "SELECT *" (default). Devuelve nombres de columna sin escapar —
+// quien arma la query es responsable de poner los corchetes de T-SQL.
+export function sourceSelectColumns(client: ClientSlug, table: string): readonly string[] | null {
+  return GOLD_CONFIG[client].selectColumnsOverrides?.[table] ?? null;
 }

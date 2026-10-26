@@ -3,13 +3,14 @@
 -- tabla propia sin columna de tenant.
 --
 -- "campana" y "mencion_gestion" vienen sin tilde/ñ a propósito (en Fabric
--- son "campaña" y "mención_gestión") y "fabric_id" es el "id" float que
--- trae Fabric (no es clave, Postgres genera su propio uuid) — el sync las
--- renombra al copiar, mismo patrón que gold_influencers.
+-- son "campaña" y "mención_gestión") — el sync las renombra al copiar,
+-- mismo patrón que gold_influencers. El "id" float que trae Fabric queda
+-- afuera del todo (ni se pide ni se guarda): tiene valores NaN/Infinity
+-- que el SQL endpoint de Fabric no puede convertir, y no lo necesitamos
+-- igual — Postgres genera su propio uuid.
 
 create table public.gold_prensa (
   id uuid primary key default gen_random_uuid(),
-  fabric_id double precision,
   cliente text,
   marca text,
   fecha timestamp,
