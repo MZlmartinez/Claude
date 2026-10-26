@@ -1,0 +1,24 @@
+name: Test pooler IPv4/IPv6 reachability (temporal, se borra después)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: DNS lookup (ver si resuelve a IPv4 y/o IPv6)
+        run: getent ahosts aws-1-ca-central-1.pooler.supabase.com || true
+
+      - name: TCP connect a puerto 6543 (transaction pooler)
+        run: |
+          timeout 10 bash -c 'cat < /dev/null > /dev/tcp/aws-1-ca-central-1.pooler.supabase.com/6543' \
+            && echo "OK: conecta a :6543" \
+            || echo "FALLO: no conecta a :6543"
+
+      - name: TCP connect a puerto 5432 (session pooler, control)
+        run: |
+          timeout 10 bash -c 'cat < /dev/null > /dev/tcp/aws-1-ca-central-1.pooler.supabase.com/5432' \
+            && echo "OK: conecta a :5432" \
+            || echo "FALLO: no conecta a :5432"
