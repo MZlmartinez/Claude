@@ -339,7 +339,11 @@
   flex-direction: column;
   gap: 14px;
   flex: 1;
-  min-height: 0;
+  /* OJO: sin min-height:0 a propósito. Con min-height:0, un hilo largo
+     (ej. una tabla grande) se podía apretar más chico que su contenido
+     dentro de .asis-wrap, y como acá no hay scroll propio (todo scrollea
+     junto en .asis), el contenido se desbordaba encima del form en vez
+     de empujarlo hacia abajo — quedaba flotando a mitad de la tabla. */
 }
 
 .asis-history-bar {
