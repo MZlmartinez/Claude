@@ -31,7 +31,7 @@ import { refreshGrowthRollups } from "../lib/reports/growth";
 // pisar con datos actualizados cualquier sesión que haya llegado tarde,
 // sin releer todo cada día). Hoy solo las tiene Decathlon.
 const BIG_TABLES_BY_CLIENT: Partial<Record<ClientSlug, readonly string[]>> = {
-  deca: ["gold_shopify_sessions_by_referrer", "gold_shopify_sessions_by_referrer_master"],
+  deca: ["gold_shopify_sessions_by_referrer_master"],
 };
 
 const LOOKBACK_DAYS = 3;

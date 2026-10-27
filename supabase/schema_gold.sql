@@ -3,7 +3,7 @@
 -- Copy Job de Fabric que escribe directo acá (conexión Postgres por
 -- pooler de Supabase) — ver conversación/README del proyecto.
 --
--- Estas 15 tablas son exclusivas de Decathlon: cada cliente nuevo tiene su
+-- Estas 14 tablas son exclusivas de Decathlon: cada cliente nuevo tiene su
 -- propio set de tablas gold, con nombres propios (no comparten tabla ni
 -- necesitan una columna de tenant como profile_id). Esto es más seguro que
 -- un esquema multi-tenant compartido: un error de RLS en la tabla de un
@@ -133,19 +133,12 @@ create table public.gold_shopify_orders_over_time (
   synced_at timestamptz not null default now()
 );
 
-create table public.gold_shopify_sessions_by_referrer (
-  id uuid primary key default gen_random_uuid(),
-  referrer_source text,
-  referrer_name text,
-  session_city text,
-  day date,
-  referring_channel text,
-  online_store_visitors integer,
-  sessions integer,
-  bounce_rate double precision,
-  bounces integer,
-  synced_at timestamptz not null default now()
-);
+-- gold_shopify_sessions_by_referrer (sin "master") se borró acá y del sync
+-- el 2026-10-27: pesaba 193 MB (43% de toda la base, pegada al límite de
+-- 0,5 GB del plan Free) y era subconjunto de gold_shopify_sessions_by_referrer_master
+-- (mismas columnas base, sin traffic_type/marketing_platform/session_device_type/
+-- sessions_that_completed_checkout) — ningún reporte fijo la usaba, y el
+-- asistente puede seguir preguntando lo mismo contra _master.
 
 create table public.gold_shopify_sessions_by_referrer_master (
   id uuid primary key default gen_random_uuid(),
@@ -295,7 +288,6 @@ begin
       'gold_shopify_new_vs_returning_customers',
       'gold_shopify_objetivos',
       'gold_shopify_orders_over_time',
-      'gold_shopify_sessions_by_referrer',
       'gold_shopify_sessions_by_referrer_master',
       'gold_shopify_sessions_by_session_device_type',
       'gold_shopify_time',

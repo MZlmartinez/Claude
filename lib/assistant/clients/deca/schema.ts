@@ -1,4 +1,4 @@
-// Descripción de las 16 tablas gold para el system prompt del asistente.
+// Descripción de las 15 tablas gold para el system prompt del asistente.
 // A diferencia de la primera versión (que solo listaba las columnas que
 // ya usan lib/reports/growth.ts e influencers.ts), esto sale de
 // information_schema.columns de verdad — varias tablas tienen muchas más
@@ -32,14 +32,6 @@ que usan los reportes para series de tiempo. Columnas:
 - sessions_that_completed_checkout (numeric)
 - referrer_source, referrer_name, session_city (text — detalle del origen y ciudad)
 Tabla grande (cientos de miles de filas) — agregá con group by, nunca traigas todo sin filtrar.
-
-## gold_shopify_sessions_by_referrer
-OJO: NO es la misma tabla que la de arriba (_master) — esta es más chica y
-sin \`traffic_type\`/\`session_device_type\`. Una fila por día y referrer:
-- day (date), referring_channel (text)
-- referrer_source, referrer_name (text — más granular que referring_channel)
-- session_city (text)
-- online_store_visitors, sessions, bounces, bounce_rate (numeric)
 
 ## gold_shopify_sessions_by_session_device_type
 Sesiones por tramo de tiempo y dispositivo, con más granularidad temporal

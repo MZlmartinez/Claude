@@ -30,7 +30,6 @@ const GOLD_CONFIG: Record<ClientSlug, ClientGoldConfig> = {
       "gold_shopify_new_vs_returning_customers",
       "gold_shopify_objetivos",
       "gold_shopify_orders_over_time",
-      "gold_shopify_sessions_by_referrer",
       "gold_shopify_sessions_by_referrer_master",
       "gold_shopify_sessions_by_session_device_type",
       "gold_shopify_time",
