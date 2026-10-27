@@ -3,10 +3,12 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // /api y /admin quedan afuera del chequeo de sesión: la autorización la
 // maneja cada ruta con su propio secret (ver app/api/test-fabric,
-// app/api/sync-gold, app/admin/backfill). /reportes y /asistente son
-// públicos a propósito: son las páginas que se embeben en Softr, igual
-// que antes se embebía Power BI — el acceso lo controla Softr, no esta app.
-const PUBLIC_PATHS = ["/login", "/auth", "/api", "/admin", "/reportes", "/asistente"];
+// app/api/sync-gold, app/admin/backfill). /reportes, /asistente y
+// /documentos son públicos a propósito: son las páginas que se embeben en
+// Softr, igual que antes se embebía Power BI — el acceso lo controla el
+// candado HMAC de cada una (ver lib/assistant/clientAuth.ts), no esta
+// sesión de Supabase Auth.
+const PUBLIC_PATHS = ["/login", "/auth", "/api", "/admin", "/reportes", "/asistente", "/documentos"];
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
