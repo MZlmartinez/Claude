@@ -134,7 +134,7 @@ período, o para filtrar por día de semana / fin de semana / trimestre:
 - nombre_mes_anio (text, ej. "Enero 2026")
 - ultimo_periodo (integer)
 
-## gold_influencers
+## gold_influencers_deca
 Una fila por PIEZA de contenido (no por contrato) — ver convenciones sobre
 \`presupuesto\`, que se repite por fila:
 - empresa, marca, campana (text), objetivo (text — objetivo de la campaña, no un número)

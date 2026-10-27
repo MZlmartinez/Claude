@@ -34,7 +34,7 @@ export type Kpis = {
 export async function getKpis(f: InfluencerFilters): Promise<Kpis | null> {
   const rows = await queryReport<Kpis>(
     `with f as (
-      select * from gold_influencers
+      select * from gold_influencers_deca
       where (CAST($1 AS TEXT) IS NULL OR campana = CAST($1 AS TEXT))
         and (CAST($2 AS TEXT) IS NULL OR territorio = CAST($2 AS TEXT))
         and (CAST($3 AS TEXT) IS NULL OR influencer = CAST($3 AS TEXT))
@@ -43,7 +43,7 @@ export async function getKpis(f: InfluencerFilters): Promise<Kpis | null> {
       select campana, influencer, max(presupuesto)::float8 fee from f group by 1,2
     )
     select
-      (select string_agg(distinct initcap(marca), ', ') from gold_influencers) marca,
+      (select string_agg(distinct initcap(marca), ', ') from gold_influencers_deca) marca,
       (select count(*) from k)::int contratos,
       count(distinct influencer)::int influencers,
       count(distinct territorio)::int territorios,
@@ -76,7 +76,7 @@ export type CampanaRow = {
 export async function getCampanas(f: InfluencerFilters): Promise<CampanaRow[]> {
   return queryReport<CampanaRow>(
     `with f as (
-      select * from gold_influencers
+      select * from gold_influencers_deca
       where (CAST($2 AS TEXT) IS NULL OR territorio = CAST($2 AS TEXT))
         and (CAST($3 AS TEXT) IS NULL OR influencer = CAST($3 AS TEXT))
         and (CAST($4 AS TEXT) IS NULL OR scope_recibido_tipo = CAST($4 AS TEXT))
@@ -116,7 +116,7 @@ export type FormatoRow = {
 export async function getFormatos(f: InfluencerFilters): Promise<FormatoRow[]> {
   return queryReport<FormatoRow>(
     `with f as (
-      select * from gold_influencers
+      select * from gold_influencers_deca
       where (CAST($1 AS TEXT) IS NULL OR campana = CAST($1 AS TEXT))
         and (CAST($2 AS TEXT) IS NULL OR territorio = CAST($2 AS TEXT))
         and (CAST($3 AS TEXT) IS NULL OR influencer = CAST($3 AS TEXT))
@@ -163,7 +163,7 @@ export type InfluencerRow = {
 export async function getInfluencers(f: InfluencerFilters): Promise<InfluencerRow[]> {
   return queryReport<InfluencerRow>(
     `with f as (
-      select * from gold_influencers
+      select * from gold_influencers_deca
       where (CAST($1 AS TEXT) IS NULL OR campana = CAST($1 AS TEXT))
         and (CAST($2 AS TEXT) IS NULL OR territorio = CAST($2 AS TEXT))
         and (CAST($4 AS TEXT) IS NULL OR scope_recibido_tipo = CAST($4 AS TEXT))
@@ -214,7 +214,7 @@ export type TerritorioRow = {
 export async function getTerritorios(f: InfluencerFilters): Promise<TerritorioRow[]> {
   return queryReport<TerritorioRow>(
     `with f as (
-      select * from gold_influencers
+      select * from gold_influencers_deca
       where (CAST($1 AS TEXT) IS NULL OR campana = CAST($1 AS TEXT))
         and (CAST($3 AS TEXT) IS NULL OR influencer = CAST($3 AS TEXT))
         and (CAST($4 AS TEXT) IS NULL OR scope_recibido_tipo = CAST($4 AS TEXT))
@@ -235,7 +235,7 @@ export type InteraccionRow = { orden: number; tipo: string; valor: number };
 export async function getInteracciones(f: InfluencerFilters): Promise<InteraccionRow[]> {
   return queryReport<InteraccionRow>(
     `with f as (
-      select * from gold_influencers
+      select * from gold_influencers_deca
       where (CAST($1 AS TEXT) IS NULL OR campana = CAST($1 AS TEXT))
         and (CAST($2 AS TEXT) IS NULL OR territorio = CAST($2 AS TEXT))
         and (CAST($3 AS TEXT) IS NULL OR influencer = CAST($3 AS TEXT))
@@ -277,7 +277,7 @@ export type PiezaRow = {
 export async function getPiezas(f: InfluencerFilters): Promise<PiezaRow[]> {
   return queryReport<PiezaRow>(
     `with f as (
-      select * from gold_influencers
+      select * from gold_influencers_deca
       where (CAST($1 AS TEXT) IS NULL OR campana = CAST($1 AS TEXT))
         and (CAST($2 AS TEXT) IS NULL OR territorio = CAST($2 AS TEXT))
         and (CAST($3 AS TEXT) IS NULL OR influencer = CAST($3 AS TEXT))
@@ -312,7 +312,7 @@ export type ContratoRow = {
 export async function getContratos(f: InfluencerFilters): Promise<ContratoRow[]> {
   return queryReport<ContratoRow>(
     `with f as (
-      select * from gold_influencers
+      select * from gold_influencers_deca
       where (CAST($1 AS TEXT) IS NULL OR campana = CAST($1 AS TEXT))
         and (CAST($2 AS TEXT) IS NULL OR territorio = CAST($2 AS TEXT))
         and (CAST($3 AS TEXT) IS NULL OR influencer = CAST($3 AS TEXT))
@@ -351,11 +351,11 @@ export type FiltroOpcion = { dimension: "campana" | "territorio" | "influencer";
 
 export async function getOpciones(): Promise<FiltroOpcion[]> {
   return queryReport<FiltroOpcion>(
-    `select 'campana' dimension, campana valor from gold_influencers where campana is not null group by 2
+    `select 'campana' dimension, campana valor from gold_influencers_deca where campana is not null group by 2
     union all
-    select 'territorio', territorio from gold_influencers where territorio is not null group by 2
+    select 'territorio', territorio from gold_influencers_deca where territorio is not null group by 2
     union all
-    select 'influencer', influencer from gold_influencers where influencer is not null group by 2
+    select 'influencer', influencer from gold_influencers_deca where influencer is not null group by 2
     order by 1, 2`,
   );
 }

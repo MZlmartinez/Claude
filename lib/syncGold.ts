@@ -1,17 +1,26 @@
 import sql from "mssql";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { sourceSchema, sourceSelectColumns, type ClientSlug } from "@/lib/goldTables";
+import { sourceSchema, sourceSelectColumns, sourceTableName, type ClientSlug } from "@/lib/goldTables";
 
 // Columnas que renombramos al pasar de Fabric a Supabase: por mayúsculas
 // mixtas (UltimoPeriodo) o por caracteres con tilde/ñ, para evitar líos de
-// encoding en nombres de columna de Postgres.
+// encoding en nombres de columna de Postgres. Clave = nombre DESTINO en
+// Supabase (el que incluye el sufijo de cliente), no el nombre en Fabric.
 const COLUMN_RENAMES: Record<string, Record<string, string>> = {
   gold_shopify_time: { UltimoPeriodo: "ultimo_periodo" },
-  gold_influencers: {
+  gold_influencers_deca: {
     "campaña": "campana",
     "presupuesto_año_fiscal": "presupuesto_anio_fiscal",
   },
-  gold_prensa: {
+  gold_influencers_adecco: {
+    "campaña": "campana",
+    "presupuesto_año_fiscal": "presupuesto_anio_fiscal",
+  },
+  gold_prensa_deca: {
+    "campaña": "campana",
+    "mención_gestión": "mencion_gestion",
+  },
+  gold_prensa_adecco: {
     "campaña": "campana",
     "mención_gestión": "mencion_gestion",
   },
@@ -66,7 +75,8 @@ export async function syncGoldTable(
     const fabricRequest = pool.request();
     const columns = sourceSelectColumns(client, table);
     const select = columns ? columns.map((c) => `[${c}]`).join(", ") : "*";
-    let query = `SELECT ${select} FROM ${sourceSchema(client, table)}.${table}`;
+    const fabricTable = sourceTableName(client, table);
+    let query = `SELECT ${select} FROM ${sourceSchema(client, table)}.${fabricTable}`;
 
     if (range) {
       fabricRequest.input("fromDate", sql.Date, range.from);

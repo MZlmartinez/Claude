@@ -37,8 +37,10 @@ export default async function SecureInfluencersReportPage({
     return <Unauthorized reason="No se pudo verificar el usuario." />;
   }
   const clientSlug = await getClientSlugForEmail(email);
-  // gold_influencers (y lib/reports/influencers.ts) son exclusivos de
-  // Decathlon — ningún otro cliente tiene hoy esa tabla ni esos datos.
+  // lib/reports/influencers.ts todavía lee fijo gold_influencers_deca —
+  // generalizarlo para que Adecco también pueda usar esta página (ya
+  // tiene su propia gold_influencers_adecco sincronizando) es trabajo
+  // aparte, no hecho todavía.
   if (clientSlug !== "deca") {
     return <Unauthorized reason="Este reporte no está disponible para tu cuenta." />;
   }

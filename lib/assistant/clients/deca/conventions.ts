@@ -72,7 +72,7 @@ cliente (Decathlon) — no hay columna de tenant, no filtres por cliente.
   inversión total — son dos fuentes distintas, no las sumes sin aclarar
   cuál es cuál.
 
-## Influencers (gold_influencers)
+## Influencers (gold_influencers_deca)
 - \`presupuesto\` es el fee ACORDADO del CONTRATO completo (campaña +
   influencer), y se REPITE en cada fila/pieza de ese contrato. Nunca lo
   sumes directo: primero \`max(presupuesto)\` agrupando por
