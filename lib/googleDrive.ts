@@ -112,7 +112,16 @@ const EXPORT_MIME_TYPES: Record<string, { mimeType: string; extension: string }>
   },
 };
 
-export type DownloadedFile = { buffer: Buffer; mimeType: string; filename: string };
+export type DownloadedFile = { buffer: Buffer; mimeType: string; filename: string; inline: boolean };
+
+// Tipos que el navegador puede mostrar solo (PDF, imágenes, video, texto) —
+// para esos mandamos Content-Disposition: inline, así "Abrir" lo muestra en
+// la pestaña nueva en vez de forzar la descarga a disco. xlsx/pptx no
+// tienen visor nativo en el navegador, así que igual terminan
+// descargándose pase lo que pase en ese header.
+function isInlineViewable(mimeType: string): boolean {
+  return mimeType === "application/pdf" || mimeType.startsWith("image/") || mimeType.startsWith("video/") || mimeType.startsWith("text/");
+}
 
 // Descarga el contenido real a través del servidor (nunca linkeamos a
 // webViewLink de Drive: el usuario final no tiene cuenta de Google con
@@ -135,7 +144,12 @@ export async function downloadFile(fileId: string): Promise<DownloadedFile> {
       { fileId, mimeType: exportAs.mimeType },
       { responseType: "arraybuffer" },
     );
-    return { buffer: Buffer.from(res.data as ArrayBuffer), mimeType: exportAs.mimeType, filename: `${name}.${exportAs.extension}` };
+    return {
+      buffer: Buffer.from(res.data as ArrayBuffer),
+      mimeType: exportAs.mimeType,
+      filename: `${name}.${exportAs.extension}`,
+      inline: isInlineViewable(exportAs.mimeType),
+    };
   }
   if (mimeType.startsWith("application/vnd.google-apps.")) {
     throw new Error(`No se puede descargar este tipo de archivo de Google (${mimeType}).`);
@@ -145,5 +159,5 @@ export async function downloadFile(fileId: string): Promise<DownloadedFile> {
     { fileId, alt: "media", supportsAllDrives: true },
     { responseType: "arraybuffer" },
   );
-  return { buffer: Buffer.from(res.data as ArrayBuffer), mimeType, filename: name };
+  return { buffer: Buffer.from(res.data as ArrayBuffer), mimeType, filename: name, inline: isInlineViewable(mimeType) };
 }

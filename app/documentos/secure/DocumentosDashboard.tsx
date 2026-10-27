@@ -130,7 +130,7 @@ export default function DocumentosDashboard({ email, token, fontClassName }: Pro
             <span>Nombre</span>
             <span>Tamaño</span>
             <span className="doc-col-date">Modificado</span>
-            <span>Acción</span>
+            <span></span>
           </div>
 
           {loading && <div className="doc-loading">Cargando…</div>}
@@ -161,7 +161,7 @@ export default function DocumentosDashboard({ email, token, fontClassName }: Pro
                     ) : shortcut ? (
                       <span className="muted">No disponible</span>
                     ) : (
-                      <a href={downloadHref(f.id)}>Descargar</a>
+                      <a href={downloadHref(f.id)} target="_blank" rel="noopener noreferrer">Abrir</a>
                     )}
                   </span>
                 </div>

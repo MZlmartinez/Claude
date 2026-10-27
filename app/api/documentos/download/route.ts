@@ -42,11 +42,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Ese archivo no pertenece a tu cuenta." }, { status: 403 });
     }
 
-    const { buffer, mimeType, filename } = await downloadFile(fileId);
+    const { buffer, mimeType, filename, inline } = await downloadFile(fileId);
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": mimeType,
-        "Content-Disposition": `attachment; filename="${encodeURIComponent(filename)}"`,
+        "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="${encodeURIComponent(filename)}"`,
         "Content-Length": String(buffer.length),
       },
     });
