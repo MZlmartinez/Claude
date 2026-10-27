@@ -1,0 +1,212 @@
+/*
+ * Misma cáscara visual que Documentos (ver app/documentos/secure/
+ * documentos.css) — mismas variables/clases, archivo separado porque cada
+ * ruta tiene el suyo (mismo criterio que mx.css duplicado en
+ * growth/influencers). Todavía sin filas de datos — eso se agrega cuando
+ * se conecte la agenda real.
+ */
+.doc {
+  --doc-bg: #1d1d1b;
+  --doc-card: rgba(255, 255, 255, 0.03);
+  --doc-card2: rgba(255, 255, 255, 0.05);
+  --doc-line: rgba(255, 255, 255, 0.1);
+  --doc-fg: #f5f5f3;
+  --doc-fg2: #b5b5b2;
+  --doc-fg3: #8a8a87;
+  --doc-accent: #d8fc4a;
+  --doc-accent-fg: #1d1d1b;
+  --doc-accent-text: var(--doc-accent);
+  --doc-k1: #6d9bff;
+  --doc-k2: #ff8a5c;
+  --doc-k4: #dda829;
+  --doc-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+
+  font-family: var(--font-mx-body), sans-serif;
+  color: var(--doc-fg);
+  background: var(--doc-bg);
+  padding: 20px;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+.doc[data-theme="light"] {
+  --doc-bg: #f7f7f5;
+  --doc-card: #ffffff;
+  --doc-card2: #f2f2f0;
+  --doc-line: #e2e2e0;
+  --doc-fg: #1d1d1b;
+  --doc-fg2: #646363;
+  --doc-fg3: #9a9998;
+  --doc-accent: #ff502e;
+  --doc-accent-fg: #ffffff;
+  --doc-accent-text: #ff502e;
+  --doc-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+}
+.doc * {
+  box-sizing: border-box;
+}
+
+.doc-layout {
+  max-width: 1040px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.doc-head {
+  max-width: 1040px;
+  width: 100%;
+  margin: 0 auto 20px;
+}
+.doc-head-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 14px;
+}
+.doc-theme {
+  flex-shrink: 0;
+  display: flex;
+  border: 1px solid var(--doc-line);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--doc-card);
+}
+.doc-theme button {
+  padding: 5px 12px;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  color: var(--doc-fg2);
+}
+.doc-theme button[aria-pressed="true"] {
+  background: var(--doc-accent);
+  color: var(--doc-accent-fg);
+  font-weight: 700;
+}
+.doc-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--doc-accent-text);
+}
+.doc-kicker-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--doc-accent);
+  flex-shrink: 0;
+}
+
+.doc-hero {
+  position: relative;
+  overflow: hidden;
+  background: #1a1a1a;
+  border: 1px solid #2f2f2f;
+  border-radius: 16px;
+  padding: 24px 26px;
+}
+.doc-hero::after {
+  content: "";
+  position: absolute;
+  top: -40%;
+  right: -10%;
+  width: 60%;
+  height: 180%;
+  background: radial-gradient(circle, rgba(216, 252, 74, 0.28), transparent 70%);
+  pointer-events: none;
+}
+.doc-hero-top {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.doc-hero-badge {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: var(--doc-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.doc-hero-badge svg {
+  width: 26px;
+  height: 26px;
+}
+.doc-hero-top h1 {
+  font-family: var(--font-mx-display), sans-serif;
+  font-weight: 400;
+  font-size: 30px;
+  line-height: 1.05;
+  margin: 0;
+  letter-spacing: 0.01em;
+  color: #f5f5f3;
+}
+.doc-hero-top p.doc-tagline {
+  margin: 2px 0 0;
+  color: #b5b5b2;
+  font-size: 13px;
+}
+.doc-hero-stats {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(140px, 200px));
+  gap: 12px;
+  margin-top: 18px;
+}
+@media (max-width: 560px) {
+  .doc-hero-stats {
+    grid-template-columns: 1fr;
+  }
+}
+.doc-hero-stat {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.doc-hero-stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.doc-hero-stat-value {
+  font-family: var(--font-mx-display), sans-serif;
+  font-size: 22px;
+  color: #f5f5f3;
+}
+
+.doc-wrap {
+  max-width: 1040px;
+  margin: 20px auto 0;
+  padding: 20px;
+  border: 1px solid var(--doc-line);
+  border-radius: 16px;
+  background: var(--doc-card);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.doc-empty,
+.doc-error,
+.doc-loading {
+  padding: 30px 10px;
+  text-align: center;
+  color: var(--doc-fg2);
+  font-size: 13px;
+}
+.doc-error {
+  color: var(--doc-accent-text);
+}

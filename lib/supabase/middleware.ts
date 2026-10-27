@@ -8,7 +8,12 @@ import { NextResponse, type NextRequest } from "next/server";
 // Softr, igual que antes se embebía Power BI — el acceso lo controla el
 // candado HMAC de cada una (ver lib/assistant/clientAuth.ts), no esta
 // sesión de Supabase Auth.
-const PUBLIC_PATHS = ["/login", "/auth", "/api", "/admin", "/reportes", "/asistente", "/documentos"];
+//
+// "/agenda/secure" (no "/agenda" a secas): ya existe app/agenda/page.tsx,
+// la página vieja con sesión de Supabase Auth (getProfile) — eximir
+// "/agenda" entero también la dejaría pública sin querer. La ruta nueva
+// usa un path distinto justamente para no pisarla.
+const PUBLIC_PATHS = ["/login", "/auth", "/api", "/admin", "/reportes", "/asistente", "/documentos", "/agenda/secure"];
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
