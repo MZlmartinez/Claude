@@ -51,9 +51,15 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: `Error descargando el archivo: ${error instanceof Error ? error.message : String(error)}` },
-      { status: 502 },
-    );
+    // Las respuestas de error de la API de Drive traen el motivo real en
+    // response.data.error.message (p.ej. "downloadRestricted") — el
+    // .message genérico de GaxiosError solo dice "Request failed with
+    // status code 403" y no alcanza para diagnosticar.
+    const detail =
+      error && typeof error === "object" && "response" in error
+        ? (error as { response?: { data?: { error?: { message?: string } } } }).response?.data?.error?.message
+        : undefined;
+    const message = detail ?? (error instanceof Error ? error.message : String(error));
+    return NextResponse.json({ error: `Error descargando el archivo: ${message}` }, { status: 502 });
   }
 }
