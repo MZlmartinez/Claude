@@ -80,9 +80,21 @@ export default async function SecureInfluencersReportPage({
   );
 }
 
+// Fondo y color propios, no heredados: si esto se embebe en un iframe con
+// mx.css de fondo oscuro (como Softr), un texto gris sin fondo propio
+// puede quedar invisible en vez de mostrar el motivo del error.
 function Unauthorized({ reason }: { reason: string }) {
   return (
-    <div style={{ padding: 40, fontFamily: "sans-serif", color: "#646363" }}>
+    <div
+      style={{
+        padding: 40,
+        fontFamily: "sans-serif",
+        color: "#1d1d1b",
+        background: "#ffffff",
+        minHeight: "100vh",
+        boxSizing: "border-box",
+      }}
+    >
       <p>{reason}</p>
     </div>
   );
