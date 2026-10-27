@@ -13,8 +13,11 @@ import {
 import InfluencersDashboard from "../InfluencersDashboard";
 import { mxBody, mxDisplay } from "../fonts";
 import { getClientSlugForEmail, verifyEmailToken } from "@/lib/assistant/clientAuth";
+import type { ClientSlug } from "@/lib/goldTables";
 
 export const dynamic = "force-dynamic";
+
+const ALLOWED_CLIENTS: ClientSlug[] = ["deca", "adecco"];
 
 // Versión con candado de identidad de /reportes/influencers, en paralelo
 // sin tocar esa ruta (que Softr sigue embebiendo hoy via el link estático
@@ -37,13 +40,10 @@ export default async function SecureInfluencersReportPage({
     return <Unauthorized reason="No se pudo verificar el usuario." />;
   }
   const clientSlug = await getClientSlugForEmail(email);
-  // lib/reports/influencers.ts todavía lee fijo gold_influencers_deca —
-  // generalizarlo para que Adecco también pueda usar esta página (ya
-  // tiene su propia gold_influencers_adecco sincronizando) es trabajo
-  // aparte, no hecho todavía.
-  if (clientSlug !== "deca") {
+  if (!clientSlug || !ALLOWED_CLIENTS.includes(clientSlug as ClientSlug)) {
     return <Unauthorized reason="Este reporte no está disponible para tu cuenta." />;
   }
+  const client = clientSlug as ClientSlug;
 
   const filters: InfluencerFilters = {
     campana: one(params.campana),
@@ -54,15 +54,15 @@ export default async function SecureInfluencersReportPage({
 
   const [kpis, campanas, formatos, influencers, territorios, interacciones, piezas, contratos, opciones] =
     await Promise.all([
-      getKpis(filters),
-      getCampanas(filters),
-      getFormatos(filters),
-      getInfluencers(filters),
-      getTerritorios(filters),
-      getInteracciones(filters),
-      getPiezas(filters),
-      getContratos(filters),
-      getOpciones(),
+      getKpis(client, filters),
+      getCampanas(client, filters),
+      getFormatos(client, filters),
+      getInfluencers(client, filters),
+      getTerritorios(client, filters),
+      getInteracciones(client, filters),
+      getPiezas(client, filters),
+      getContratos(client, filters),
+      getOpciones(client),
     ]);
 
   return (

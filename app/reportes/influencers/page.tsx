@@ -30,17 +30,20 @@ export default async function InfluencersReportPage({
     formato: one(params.formato),
   };
 
+  // Ruta vieja, sin candado de identidad — se mantiene fija a Decathlon,
+  // como siempre fue (ver app/reportes/influencers/secure/page.tsx para
+  // la versión nueva, multi-cliente).
   const [kpis, campanas, formatos, influencers, territorios, interacciones, piezas, contratos, opciones] =
     await Promise.all([
-      getKpis(filters),
-      getCampanas(filters),
-      getFormatos(filters),
-      getInfluencers(filters),
-      getTerritorios(filters),
-      getInteracciones(filters),
-      getPiezas(filters),
-      getContratos(filters),
-      getOpciones(),
+      getKpis("deca", filters),
+      getCampanas("deca", filters),
+      getFormatos("deca", filters),
+      getInfluencers("deca", filters),
+      getTerritorios("deca", filters),
+      getInteracciones("deca", filters),
+      getPiezas("deca", filters),
+      getContratos("deca", filters),
+      getOpciones("deca"),
     ]);
 
   return (
