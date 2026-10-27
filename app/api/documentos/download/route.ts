@@ -60,6 +60,15 @@ export async function GET(request: Request) {
         ? (error as { response?: { data?: { error?: { message?: string } } } }).response?.data?.error?.message
         : undefined;
     const message = detail ?? (error instanceof Error ? error.message : String(error));
+    // Límite real de la API de Drive (no algo que podamos evitar): los
+    // Docs/Sheets/Slides de Google exportados a pdf/xlsx/pptx no pueden
+    // superar ~10MB de salida.
+    if (message.includes("too large to be exported")) {
+      return NextResponse.json(
+        { error: "Este archivo es demasiado grande para convertir automáticamente (límite de Google de ~10MB). Pedile al equipo que lo achique o lo divida en Drive." },
+        { status: 413 },
+      );
+    }
     return NextResponse.json({ error: `Error descargando el archivo: ${message}` }, { status: 502 });
   }
 }
