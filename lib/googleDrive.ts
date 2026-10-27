@@ -106,9 +106,12 @@ const EXPORT_MIME_TYPES: Record<string, { mimeType: string; extension: string }>
     mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     extension: "xlsx",
   },
+  // PDF en vez de pptx: estas son presentaciones para que el cliente las
+  // mire, no para editarlas — pptx no tiene visor nativo en el navegador
+  // (se descarga siempre), PDF sí (abre en pestaña nueva).
   "application/vnd.google-apps.presentation": {
-    mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    extension: "pptx",
+    mimeType: "application/pdf",
+    extension: "pdf",
   },
 };
 
