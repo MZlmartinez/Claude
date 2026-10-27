@@ -1,0 +1,228 @@
+/*
+ * Mismos tokens que app/reportes/influencers/mx.css (identidad visual
+ * COOLmetrics / "MOSCÚ · Framework desk") — subset reducido, solo lo que
+ * necesita una lista de archivos en vez de un dashboard con gráficos.
+ */
+.mx {
+  --bg: #f7f7f5;
+  --card: #ffffff;
+  --soft: #f2f2f0;
+  --line: #e2e2e0;
+  --line2: #efefed;
+  --fg: #1d1d1b;
+  --fg2: #646363;
+  --fg3: #9a9998;
+  --accent: #ff502e;
+  --accent-fg: #ffffff;
+  --display: var(--font-mx-display), Impact, "Arial Narrow", sans-serif;
+  --body: var(--font-mx-body), "Helvetica Neue", sans-serif;
+  --r: 14px;
+}
+.mx[data-theme="dark"] {
+  --bg: #161616;
+  --card: #1e1e1e;
+  --soft: #252525;
+  --line: #2f2f2f;
+  --line2: #262626;
+  --fg: #f5f5f3;
+  --fg2: #b5b5b2;
+  --fg3: #8a8a87;
+}
+.mx {
+  font-family: var(--body);
+  color: var(--fg);
+  background: var(--bg);
+  font-size: 13px;
+  line-height: 1.5;
+  transition: background 0.2s, color 0.2s;
+  padding: 28px clamp(14px, 4vw, 40px) 40px;
+  min-height: 100%;
+}
+.mx * {
+  box-sizing: border-box;
+}
+.mx button {
+  font: inherit;
+  color: inherit;
+}
+.mx-wrap {
+  max-width: 1100px;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mx-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.mx-kicker {
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.mx-title {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(32px, 5vw, 48px);
+  line-height: 0.95;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin: 6px 0 0;
+  color: var(--fg);
+}
+.mx-theme {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--card);
+}
+.mx-theme button {
+  padding: 7px 14px;
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  background: transparent;
+  color: var(--fg2);
+}
+.mx-theme button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 700;
+}
+.mx-sub {
+  color: var(--fg2);
+  font-size: 13px;
+  margin: 2px 0 0;
+}
+
+.doc-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+}
+.doc-breadcrumb button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--fg2);
+  padding: 4px 2px;
+}
+.doc-breadcrumb button:hover {
+  color: var(--accent);
+}
+.doc-breadcrumb span.sep {
+  color: var(--fg3);
+}
+.doc-breadcrumb span.current {
+  color: var(--fg);
+  font-weight: 700;
+  padding: 4px 2px;
+}
+
+.doc-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.doc-row {
+  display: grid;
+  grid-template-columns: 28px 1fr 90px 90px 70px;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--line2);
+  font-size: 13px;
+}
+.doc-row:last-child {
+  border-bottom: none;
+}
+.doc-row.is-head {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg3);
+  background: var(--soft);
+}
+.doc-icon {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-align: center;
+  color: var(--fg3);
+  background: var(--soft);
+  border-radius: 4px;
+  padding: 3px 0;
+}
+.doc-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fg);
+}
+button.doc-name-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+  font: inherit;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+button.doc-name-btn:hover {
+  color: var(--accent);
+}
+.doc-meta {
+  color: var(--fg2);
+  font-size: 12px;
+}
+.doc-action a,
+.doc-action span {
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+}
+.doc-action a:hover {
+  text-decoration: underline;
+}
+.doc-action .muted {
+  color: var(--fg3);
+}
+
+.doc-empty,
+.doc-error,
+.doc-loading {
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--fg2);
+  font-size: 13px;
+}
+.doc-error {
+  color: var(--accent);
+}
+
+@media (max-width: 560px) {
+  .doc-row {
+    grid-template-columns: 24px 1fr 64px;
+  }
+  .doc-row .doc-col-date,
+  .doc-row.is-head .doc-col-date {
+    display: none;
+  }
+}
