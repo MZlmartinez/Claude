@@ -44,6 +44,13 @@ export async function listFilesInFolder(folderId: string): Promise<DriveFile[]> 
     fields: "files(id, name, mimeType, modifiedTime, size, webViewLink)",
     orderBy: "folder,name",
     pageSize: 200,
+    // Las carpetas de cliente viven dentro de la Shared Drive "Archivo
+    // Moscú" (no en Mi unidad, como se asumió al principio) — sin estos
+    // dos parámetros, la API v3 de Drive directamente ignora todo lo que
+    // esté dentro de una Shared Drive, sea cual sea el permiso que tenga
+    // el Service Account (da 404/vacío igual, no es un tema de permisos).
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
   });
   return (res.data.files ?? []).map((f) => ({
     id: f.id ?? "",
@@ -67,7 +74,7 @@ export async function getFolderName(
   const serviceAccountEmail = credentials().client_email;
   try {
     const drive = driveClient();
-    const res = await drive.files.get({ fileId: folderId, fields: "id, name, mimeType" });
+    const res = await drive.files.get({ fileId: folderId, fields: "id, name, mimeType", supportsAllDrives: true });
     return { id: res.data.id ?? "", name: res.data.name ?? "", serviceAccountEmail };
   } catch (error) {
     return { error: error instanceof Error ? error.message : String(error), serviceAccountEmail };
