@@ -62,25 +62,6 @@ export async function listFilesInFolder(folderId: string): Promise<DriveFile[]> 
   }));
 }
 
-// Diagnóstico temporal (ver app/api/documentos/list): distingue "el ID de
-// carpeta está mal o no se compartió" de "se compartió bien pero está
-// vacía" — drive.files.get falla distinto (404/403) que una lista vacía.
-// Incluye qué email de Service Account está usando el servidor ahora mismo,
-// para confirmar que es el mismo que se compartió (y no uno viejo). Sacar
-// todo esto una vez confirmada la conexión real.
-export async function getFolderName(
-  folderId: string,
-): Promise<{ id: string; name: string; serviceAccountEmail: string } | { error: string; serviceAccountEmail: string }> {
-  const serviceAccountEmail = credentials().client_email;
-  try {
-    const drive = driveClient();
-    const res = await drive.files.get({ fileId: folderId, fields: "id, name, mimeType", supportsAllDrives: true });
-    return { id: res.data.id ?? "", name: res.data.name ?? "", serviceAccountEmail };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : String(error), serviceAccountEmail };
-  }
-}
-
 // client_drive_folders: una fila por cliente (no por usuario), ver
 // supabase/schema_client_drive_folders.sql.
 export async function getDriveFolderIdForClient(clientSlug: string): Promise<string | null> {
