@@ -30,13 +30,10 @@ function getPool() {
   return pool;
 }
 
-// Pools por cliente, para cuando el asistente deje de ser exclusivo de
-// Decathlon: cada cliente tiene su propio rol de Postgres de solo lectura
-// (mismo patrón que decathlon_readonly), así que necesita su propio Pool
-// y su propia env var de connection string. Todavía no se usa desde
-// route.ts — runAssistantQuery/getPool arriba siguen siendo el único
-// camino en producción hasta que se resuelva el cliente del lado del
-// servidor contra client_users.
+// Pools por cliente, para cualquiera que no sea Decathlon: cada cliente
+// nuevo tiene su propio rol de Postgres de solo lectura (mismo patrón que
+// decathlon_readonly), así que necesita su propio Pool y su propia env
+// var de connection string.
 const clientPools = new Map<string, Pool>();
 
 function clientDbUrlEnvVar(slug: string): string {
@@ -145,7 +142,10 @@ export async function runAssistantQuery(sql: string, client: ClientSlug): Promis
   }
 
   try {
-    const result = await getPool().query(sql);
+    // Decathlon sigue usando el pool histórico (SUPABASE_READONLY_DB_URL,
+    // sin sufijo); cualquier otro cliente usa su propio pool por slug.
+    const pool = client === "deca" ? getPool() : getClientPool(client);
+    const result = await pool.query(sql);
     const rows = result.rows as Record<string, unknown>[];
     return { rows: rows.slice(0, MAX_ROWS) };
   } catch (error) {

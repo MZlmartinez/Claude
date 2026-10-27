@@ -1,11 +1,14 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { MessageParam, Tool, ToolUseBlock } from "@anthropic-ai/sdk/resources/messages";
 import { NextResponse } from "next/server";
-import { SCHEMA } from "@/lib/assistant/clients/deca/schema";
-import { CONVENTIONS } from "@/lib/assistant/clients/deca/conventions";
+import { SCHEMA as DECA_SCHEMA } from "@/lib/assistant/clients/deca/schema";
+import { CONVENTIONS as DECA_CONVENTIONS } from "@/lib/assistant/clients/deca/conventions";
+import { SCHEMA as ADECCO_SCHEMA } from "@/lib/assistant/clients/adecco/schema";
+import { CONVENTIONS as ADECCO_CONVENTIONS } from "@/lib/assistant/clients/adecco/conventions";
 import { runAssistantQuery } from "@/lib/supabase/readonlyPg";
 import { getClientSlugForEmail, verifyEmailToken } from "@/lib/assistant/clientAuth";
 import { anthropicApiKeyFor } from "@/lib/assistant/anthropicKey";
+import type { ClientSlug } from "@/lib/goldTables";
 
 export const dynamic = "force-dynamic";
 
@@ -30,12 +33,23 @@ export type ChartSpec = {
 
 export type AssistantReport = { summary: string; sql: string; chart: ChartSpec | null };
 
-const SYSTEM_PROMPT = `Sos el asistente de datos de Decathlon dentro de Coolmetrics (el portal de reportes de la agencia MOSCU). Tu trabajo es responder preguntas armando gráficos/reportes nuevos al vuelo, leyendo directo de la base con SQL de solo lectura.
+// Un cliente por slug: nombre para el prompt + su schema/conventions
+// documentados (ver lib/assistant/clients/<slug>/). Agregar un cliente
+// nuevo acá es la única pieza específica de este archivo — el resto (SQL,
+// pool, allowlist) ya resuelve por clientSlug en otros módulos.
+const CLIENT_PROMPT_CONFIG: Record<ClientSlug, { brand: string; schema: string; conventions: string }> = {
+  deca: { brand: "Decathlon", schema: DECA_SCHEMA, conventions: DECA_CONVENTIONS },
+  adecco: { brand: "Adecco", schema: ADECCO_SCHEMA, conventions: ADECCO_CONVENTIONS },
+};
+
+function systemPromptFor(client: ClientSlug): string {
+  const { brand, schema, conventions } = CLIENT_PROMPT_CONFIG[client];
+  return `Sos el asistente de datos de ${brand} dentro de Coolmetrics (el portal de reportes de la agencia MOSCU). Tu trabajo es responder preguntas armando gráficos/reportes nuevos al vuelo, leyendo directo de la base con SQL de solo lectura.
 
 Reglas:
-- Es un solo cliente (Decathlon) — no hay riesgo de mezclar datos de otro cliente porque no existen en esta base.
+- Es un solo cliente (${brand}) — no hay riesgo de mezclar datos de otro cliente porque no existen en esta base.
 - Solo podés leer datos con la tool run_sql (SELECT o WITH). Nunca inventes un número: si una consulta no trae filas, o trae NULL, decilo tal cual en tu respuesta — no lo reemplaces por una estimación ni por cero sin aclararlo.
-- El schema de abajo ya tiene las columnas reales de las 15 tablas — no deberías necesitar "select * ... limit 3" para descubrir qué columnas existen. Usalo solo si una columna puntual tiene un formato dudoso (está marcado en el schema cuándo conviene revisarlo así).
+- El schema de abajo ya tiene las columnas reales de las tablas disponibles — no deberías necesitar "select * ... limit 3" para descubrir qué columnas existen. Usalo solo si una columna puntual tiene un formato dudoso (está marcado en el schema cuándo conviene revisarlo así).
 - Preguntas complejas (ej. relacionar una campaña puntual con su efecto en ventas) necesitan varios pasos — está bien, tenés margen. Pero no repitas una exploración que ya hiciste: si ya viste la forma de una tabla, usá ese conocimiento en el resto de la conversación.
 - Cuando tengas la respuesta, llamá a la tool present_report UNA sola vez, con el SQL FINAL que de verdad respalda la respuesta (el que trajo los datos que mostrás, no uno intermedio de exploración) — ese SQL se le muestra al usuario para que lo pueda verificar, así que tiene que ser exacto.
 - Preferí el gráfico más simple que represente bien la pregunta: "kpi" para un solo número, "table" para un desglose con varias columnas, "bar" para comparar categorías, "line" para una evolución en el tiempo. Si hay más de un dato para comparar, siempre va en un gráfico — nunca listes esos valores solo en el texto.
@@ -44,9 +58,10 @@ Reglas:
 - Si te cuesta bajar el resumen a 2 oraciones, es señal de que te falta un gráfico (o te sobra un dato): resolvelo agregando/ajustando el gráfico, no estirando el texto.
 - Respondé siempre en español, tono directo. El texto es apoyo del gráfico, no al revés — el gráfico es la respuesta.
 
-${SCHEMA}
+${schema}
 
-${CONVENTIONS}`;
+${conventions}`;
+}
 
 const TOOLS: Tool[] = [
   {
@@ -119,25 +134,25 @@ export async function POST(request: Request) {
   if (!body.email || !verifyEmailToken(body.email, body.token)) {
     return NextResponse.json({ error: "No se pudo verificar el usuario." }, { status: 401 });
   }
-  const clientSlug = await getClientSlugForEmail(body.email);
-  if (!clientSlug) {
+  const clientSlugRaw = await getClientSlugForEmail(body.email);
+  if (!clientSlugRaw) {
     return NextResponse.json({ error: "Este usuario no está habilitado para el asistente." }, { status: 403 });
   }
-  // Todavía el único cliente con rol/base propia para el asistente es
-  // Decathlon (slug "deca", alineado con el nombre del Lakehouse en Fabric
-  // — LH_Deca_Negocio) — el resto queda preparado en client_users pero sin
-  // pool ni schema propios hasta que tengan datos reales (ver
-  // lib/supabase/readonlyPg.ts getClientPool). Mejor un error claro acá que
-  // servir el schema equivocado.
-  if (clientSlug !== "deca") {
+  // Solo los clientes con su propio pool/schema documentados (ver
+  // CLIENT_PROMPT_CONFIG arriba) pueden usar el asistente — cualquier
+  // otro slug que exista en client_users pero no esté acá todavía no
+  // tiene datos reales conectados. Mejor un error claro que servir el
+  // schema equivocado.
+  if (!(clientSlugRaw in CLIENT_PROMPT_CONFIG)) {
     return NextResponse.json(
       { error: "El asistente de IA todavía no está habilitado para este cliente." },
       { status: 501 },
     );
   }
+  const clientSlug = clientSlugRaw as ClientSlug;
 
-  const anthropicApiKey = anthropicApiKeyFor("deca");
-  if (!anthropicApiKey) return missingEnvResponse("ANTHROPIC_API_KEY");
+  const anthropicApiKey = anthropicApiKeyFor(clientSlug);
+  if (!anthropicApiKey) return missingEnvResponse(`ANTHROPIC_API_KEY (cliente ${clientSlug})`);
 
   const anthropic = new Anthropic({ apiKey: anthropicApiKey });
   const model = process.env.ANTHROPIC_CHAT_MODEL || DEFAULT_MODEL;
@@ -151,7 +166,7 @@ export async function POST(request: Request) {
       response = await anthropic.messages.create({
         model,
         max_tokens: 8192,
-        system: SYSTEM_PROMPT,
+        system: systemPromptFor(clientSlug),
         tools: TOOLS,
         messages,
       });
@@ -201,10 +216,7 @@ export async function POST(request: Request) {
     const toolResults = await Promise.all(
       sqlCalls_.map(async (block) => {
         const { sql } = block.input as { sql: string };
-        // clientSlug ya está confirmado "deca" más arriba (único cliente
-        // habilitado hoy) — se pasa el literal para que el chequeo de
-        // tablas permitidas en runAssistantQuery use la lista correcta.
-        const result = await runAssistantQuery(sql, "deca");
+        const result = await runAssistantQuery(sql, clientSlug);
         const content = "error" in result ? `Error: ${result.error}` : JSON.stringify(result.rows);
         return { type: "tool_result" as const, tool_use_id: block.id, content };
       }),

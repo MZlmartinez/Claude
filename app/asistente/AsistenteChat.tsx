@@ -303,12 +303,16 @@ function AssistantBubble({
   saveState,
   onSave,
   onUnsave,
+  userId,
+  token,
 }: {
   question: string;
   report: AssistantReport;
   saveState: SaveState;
   onSave: () => void;
   onUnsave: () => void;
+  userId: string | null;
+  token: string | null;
 }) {
   const [chart, setChart] = useState(report.chart);
   const [rerunning, setRerunning] = useState(false);
@@ -341,7 +345,7 @@ function AssistantBubble({
       const res = await fetch("/api/asistente/rerun", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sql: report.sql }),
+        body: JSON.stringify({ sql: report.sql, email: userId, token }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -650,6 +654,8 @@ export default function AsistenteChat({
                 saveState={t.saveState}
                 onSave={() => saveTurn(i)}
                 onUnsave={() => unsaveTurn(i)}
+                userId={userId}
+                token={token}
               />
             ) : (
               <div key={i} className="asis-bubble asis-bubble-error">
