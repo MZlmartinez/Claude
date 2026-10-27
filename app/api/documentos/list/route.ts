@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getClientSlugForEmail, verifyEmailToken } from "@/lib/assistant/clientAuth";
-import { getDriveFolderIdForClient, listFilesInFolder } from "@/lib/googleDrive";
+import { getDriveFolderIdForClient, getFolderName, listFilesInFolder } from "@/lib/googleDrive";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +38,10 @@ export async function GET(request: Request) {
 
   try {
     const files = await listFilesInFolder(folderId);
-    return NextResponse.json({ files });
+    // _debug: diagnóstico temporal para distinguir "ID de carpeta mal o sin
+    // compartir" de "compartida bien pero vacía". Sacar una vez validado.
+    const _debug = await getFolderName(folderId);
+    return NextResponse.json({ files, _debug });
   } catch (error) {
     return NextResponse.json(
       { error: `Error leyendo Google Drive: ${error instanceof Error ? error.message : String(error)}` },
