@@ -22,7 +22,7 @@ type Props = {
 };
 
 export default function DocumentosDashboard({ email, token, fontClassName }: Props) {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [crumbs, setCrumbs] = useState<Crumb[]>([{ id: "", name: "Documentos" }]);
   const [files, setFiles] = useState<DriveFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,17 +53,16 @@ export default function DocumentosDashboard({ email, token, fontClassName }: Pro
   );
 
   useEffect(() => {
-    // La navegación entre carpetas es interactiva (no se sabe de antemano
-    // qué subcarpeta va a abrir el usuario) — no hay forma de precargar
-    // esto server-side como en Influencers/Growth, así que el fetch tiene
-    // que vivir acá.
+    // Igual que en Growth/Influencers: la navegación entre carpetas es
+    // interactiva, no hay forma de precargar esto server-side.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load(currentFolderId);
   }, [currentFolderId, load]);
 
-  // Mismo patrón que los demás reportes embebidos en Softr (ver
-  // app/reportes/influencers/InfluencersDashboard.tsx): le avisa al padre
-  // cuánto mide el contenido, y reenvía el scroll de la rueda del mouse.
+  // Mismo patrón que Growth/Influencers (postMessage con la altura real):
+  // a diferencia de /asistente (alto de iframe fijo, reportado una sola
+  // vez), acá el contenido puede ser una sola fila o veinte, así que
+  // conviene que el iframe se ajuste cada vez que cambia.
   useEffect(() => {
     const el = rootRef.current;
     if (!el || typeof window === "undefined" || window.parent === window) return;
@@ -94,79 +93,102 @@ export default function DocumentosDashboard({ email, token, fontClassName }: Pro
     return a.name.localeCompare(b.name, "es");
   });
 
+  const folderCount = files.filter((f) => isFolder(f.mimeType)).length;
+  const fileCount = files.length - folderCount;
+
   return (
-    <div ref={rootRef} className={`mx ${fontClassName}`} data-theme={theme}>
-      <div className="mx-wrap">
-        <header>
-          <div className="mx-top">
-            <div>
-              <div className="mx-kicker">MOSCÚ · Framework desk</div>
-              <h1 className="mx-title">Documentos</h1>
-            </div>
-            <div className="mx-theme" role="group" aria-label="Tema">
+    <div ref={rootRef} className={`doc ${fontClassName}`} data-theme={theme}>
+      <div className="doc-layout">
+        <header className="doc-head">
+          <div className="doc-head-top">
+            <span className="doc-kicker">
+              <span className="doc-kicker-dot" aria-hidden="true" />
+              Coolmetrics · Documentos
+            </span>
+            <div className="doc-theme" role="group" aria-label="Tema">
               <button type="button" aria-pressed={theme === "dark"} onClick={() => setTheme("dark")}>Oscura</button>
               <button type="button" aria-pressed={theme === "light"} onClick={() => setTheme("light")}>Clara</button>
             </div>
           </div>
-          <p className="mx-sub">Carpetas y archivos compartidos con tu cuenta.</p>
+
+          <div className="doc-hero">
+            <div className="doc-hero-top">
+              <span className="doc-hero-badge" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M4 6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6z"
+                    fill="#1d1d1b"
+                  />
+                </svg>
+              </span>
+              <div>
+                <h1>Documentos</h1>
+                <p className="doc-tagline">Carpetas y archivos compartidos con tu cuenta.</p>
+              </div>
+            </div>
+            <div className="doc-hero-stats">
+              <div className="doc-hero-stat">
+                <div className="doc-hero-stat-label" style={{ color: "var(--doc-k4)" }}>Carpetas</div>
+                <div className="doc-hero-stat-value">{folderCount}</div>
+              </div>
+              <div className="doc-hero-stat">
+                <div className="doc-hero-stat-label" style={{ color: "var(--doc-k1)" }}>Archivos</div>
+                <div className="doc-hero-stat-value">{fileCount}</div>
+              </div>
+            </div>
+          </div>
         </header>
 
-        <nav className="doc-breadcrumb" aria-label="Ruta">
-          {crumbs.map((c, i) =>
-            i === crumbs.length - 1 ? (
-              <span key={c.id || "root"} className="current">{c.name}</span>
-            ) : (
-              <span key={c.id || "root"}>
-                <button type="button" onClick={() => goToCrumb(i)}>{c.name}</button>
-                <span className="sep"> / </span>
-              </span>
-            ),
-          )}
-        </nav>
-
-        <div className="doc-card">
-          <div className="doc-row is-head">
-            <span />
-            <span>Nombre</span>
-            <span>Tamaño</span>
-            <span className="doc-col-date">Modificado</span>
-            <span></span>
-          </div>
+        <div className="doc-wrap">
+          <nav className="doc-breadcrumb" aria-label="Ruta">
+            {crumbs.map((c, i) =>
+              i === crumbs.length - 1 ? (
+                <span key={c.id || "root"} className="current">{c.name}</span>
+              ) : (
+                <span key={c.id || "root"}>
+                  <button type="button" onClick={() => goToCrumb(i)}>{c.name}</button>
+                  <span className="sep"> / </span>
+                </span>
+              ),
+            )}
+          </nav>
 
           {loading && <div className="doc-loading">Cargando…</div>}
           {!loading && error && <div className="doc-error">{error}</div>}
           {!loading && !error && sorted.length === 0 && <div className="doc-empty">Esta carpeta está vacía.</div>}
-          {!loading &&
-            !error &&
-            sorted.map((f) => {
-              const folder = isFolder(f.mimeType);
-              const shortcut = isShortcut(f.mimeType);
-              return (
-                <div key={f.id} className="doc-row">
-                  <span className="doc-icon">{kindLabel(f.mimeType).slice(0, 3).toUpperCase()}</span>
-                  <span className="doc-name">
-                    {folder ? (
-                      <button type="button" className="doc-name-btn" onClick={() => openFolder(f)}>
-                        {f.name}
-                      </button>
-                    ) : (
-                      f.name
-                    )}
-                  </span>
-                  <span className="doc-meta">{folder ? "—" : formatSize(f.size)}</span>
-                  <span className="doc-meta doc-col-date">{formatDate(f.modifiedTime)}</span>
-                  <span className="doc-action">
-                    {folder ? (
-                      <button type="button" className="doc-name-btn" onClick={() => openFolder(f)}>Abrir</button>
-                    ) : shortcut ? (
-                      <span className="muted">No disponible</span>
-                    ) : (
-                      <a href={downloadHref(f.id)} target="_blank" rel="noopener noreferrer">Abrir</a>
-                    )}
-                  </span>
-                </div>
-              );
-            })}
+
+          {!loading && !error && sorted.length > 0 && (
+            <div className="doc-list">
+              {sorted.map((f) => {
+                const folder = isFolder(f.mimeType);
+                const shortcut = isShortcut(f.mimeType);
+                return (
+                  <div key={f.id} className={`doc-row ${folder ? "doc-row-folder" : "doc-row-file"}`}>
+                    <span className="doc-row-kind">{kindLabel(f.mimeType).slice(0, 4)}</span>
+                    <span className="doc-row-name">
+                      {folder ? (
+                        <button type="button" className="doc-row-name-btn" onClick={() => openFolder(f)}>
+                          {f.name}
+                        </button>
+                      ) : (
+                        <span className="doc-row-name-text">{f.name}</span>
+                      )}
+                    </span>
+                    {!folder && <span className="doc-row-meta">{formatSize(f.size)} · {formatDate(f.modifiedTime)}</span>}
+                    <span className="doc-row-action">
+                      {folder ? (
+                        <button type="button" className="doc-row-name-btn" onClick={() => openFolder(f)}>Abrir</button>
+                      ) : shortcut ? (
+                        <span className="muted">No disponible</span>
+                      ) : (
+                        <a href={downloadHref(f.id)} target="_blank" rel="noopener noreferrer">Abrir</a>
+                      )}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>
