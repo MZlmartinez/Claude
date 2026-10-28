@@ -93,18 +93,27 @@ export async function isWithinRoot(itemId: string, rootId: string): Promise<bool
   if (itemId === rootId) return true;
   const drive = driveClient();
   let currentId = itemId;
-  for (let depth = 0; depth < 25; depth++) {
-    const res = await drive.files.get({
-      fileId: currentId,
-      fields: "id, parents",
-      supportsAllDrives: true,
-    });
-    const parentId = res.data.parents?.[0];
-    if (!parentId) return false;
-    if (parentId === rootId) return true;
-    currentId = parentId;
+  try {
+    for (let depth = 0; depth < 25; depth++) {
+      const res = await drive.files.get({
+        fileId: currentId,
+        fields: "id, parents",
+        supportsAllDrives: true,
+      });
+      const parentId = res.data.parents?.[0];
+      if (!parentId) return false;
+      if (parentId === rootId) return true;
+      currentId = parentId;
+    }
+    return false;
+  } catch {
+    // El Service Account no puede ni siquiera leer este id (no compartido
+    // con él, p.ej. el destino de un acceso directo que nunca se compartió
+    // aparte) — eso significa "no está en tu árbol", no un error de Drive
+    // para mostrarle crudo al usuario. Mismo resultado (false) que si
+    // hubiera llegado hasta la raíz del Drive sin encontrar rootId.
+    return false;
   }
-  return false;
 }
 
 const EXPORT_MIME_TYPES: Record<string, { mimeType: string; extension: string }> = {
