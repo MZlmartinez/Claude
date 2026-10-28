@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import "./documentos.css";
-import { formatDate, formatSize, isFolder, isShortcut, kindLabel } from "./format";
+import { FOLDER_MIME, formatDate, formatSize, isFolder, isShortcut, kindLabel } from "./format";
 
 type DriveFile = {
   id: string;
@@ -11,7 +11,28 @@ type DriveFile = {
   modifiedTime: string | null;
   size: string | null;
   webViewLink: string | null;
+  shortcutTargetId: string | null;
+  shortcutTargetMimeType: string | null;
 };
+
+// Un acceso directo "cuenta" como carpeta o como archivo según a qué
+// apunte — nunca se sigue a ciegas: el id al que termina navegando o
+// descargando pasa igual por isWithinRoot en el servidor (ver
+// lib/googleDrive.ts), así que aunque el atajo apunte afuera del árbol
+// del cliente, el peor caso es un error claro, no una fuga de datos.
+function isEffectiveFolder(f: DriveFile): boolean {
+  return isFolder(f.mimeType) || (isShortcut(f.mimeType) && f.shortcutTargetMimeType === FOLDER_MIME);
+}
+function openTargetId(f: DriveFile): string | null {
+  if (isFolder(f.mimeType)) return f.id;
+  if (isShortcut(f.mimeType) && f.shortcutTargetMimeType === FOLDER_MIME) return f.shortcutTargetId;
+  return null;
+}
+function downloadTargetId(f: DriveFile): string | null {
+  if (isFolder(f.mimeType)) return null;
+  if (isShortcut(f.mimeType)) return f.shortcutTargetMimeType && f.shortcutTargetMimeType !== FOLDER_MIME ? f.shortcutTargetId : null;
+  return f.id;
+}
 
 type Crumb = { id: string; name: string };
 
@@ -80,20 +101,24 @@ export default function DocumentosDashboard({ email, token, fontClassName }: Pro
     return () => window.removeEventListener("wheel", onWheel);
   }, []);
 
-  const openFolder = (f: DriveFile) => setCrumbs((c) => [...c, { id: f.id, name: f.name }]);
+  const openFolder = (f: DriveFile) => {
+    const targetId = openTargetId(f);
+    if (!targetId) return;
+    setCrumbs((c) => [...c, { id: targetId, name: f.name }]);
+  };
   const goToCrumb = (index: number) => setCrumbs((c) => c.slice(0, index + 1));
 
   const downloadHref = (fileId: string) =>
     `/api/documentos/download?${new URLSearchParams({ u: email, t: token, fileId }).toString()}`;
 
   const sorted = [...files].sort((a, b) => {
-    const af = isFolder(a.mimeType) ? 0 : 1;
-    const bf = isFolder(b.mimeType) ? 0 : 1;
+    const af = isEffectiveFolder(a) ? 0 : 1;
+    const bf = isEffectiveFolder(b) ? 0 : 1;
     if (af !== bf) return af - bf;
     return a.name.localeCompare(b.name, "es");
   });
 
-  const folderCount = files.filter((f) => isFolder(f.mimeType)).length;
+  const folderCount = files.filter(isEffectiveFolder).length;
   const fileCount = files.length - folderCount;
 
   return (
@@ -160,8 +185,8 @@ export default function DocumentosDashboard({ email, token, fontClassName }: Pro
           {!loading && !error && sorted.length > 0 && (
             <div className="doc-list">
               {sorted.map((f) => {
-                const folder = isFolder(f.mimeType);
-                const shortcut = isShortcut(f.mimeType);
+                const folder = isEffectiveFolder(f);
+                const downloadId = downloadTargetId(f);
                 return (
                   <div key={f.id} className={`doc-row ${folder ? "doc-row-folder" : "doc-row-file"}`}>
                     <span className="doc-row-kind">{kindLabel(f.mimeType).slice(0, 4)}</span>
@@ -178,10 +203,10 @@ export default function DocumentosDashboard({ email, token, fontClassName }: Pro
                     <span className="doc-row-action">
                       {folder ? (
                         <button type="button" className="doc-row-name-btn" onClick={() => openFolder(f)}>Abrir</button>
-                      ) : shortcut ? (
-                        <span className="muted">No disponible</span>
+                      ) : downloadId ? (
+                        <a href={downloadHref(downloadId)} target="_blank" rel="noopener noreferrer">Abrir</a>
                       ) : (
-                        <a href={downloadHref(f.id)} target="_blank" rel="noopener noreferrer">Abrir</a>
+                        <span className="muted">No disponible</span>
                       )}
                     </span>
                   </div>

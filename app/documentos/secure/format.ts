@@ -16,7 +16,7 @@ export function formatDate(iso: string | null): string {
   return d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-const FOLDER_MIME = "application/vnd.google-apps.folder";
+export const FOLDER_MIME = "application/vnd.google-apps.folder";
 const SHORTCUT_MIME = "application/vnd.google-apps.shortcut";
 
 export function isFolder(mimeType: string): boolean {

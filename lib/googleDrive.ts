@@ -33,6 +33,14 @@ export type DriveFile = {
   modifiedTime: string | null;
   size: string | null;
   webViewLink: string | null;
+  // Solo presente si mimeType es un acceso directo — a qué apunta
+  // realmente. El target puede estar fuera del árbol del cliente (un
+  // atajo puede apuntar a cualquier lado al que el Service Account
+  // compartido tenga acceso); por eso nunca se sigue a ciegas acá, solo
+  // se expone el dato — quien lo usa (isWithinRoot, al navegar o
+  // descargar) es quien de verdad valida que esté permitido.
+  shortcutTargetId: string | null;
+  shortcutTargetMimeType: string | null;
 };
 
 // folderId siempre sale de client_drive_folders (nunca de un parámetro del
@@ -41,7 +49,7 @@ export async function listFilesInFolder(folderId: string): Promise<DriveFile[]> 
   const drive = driveClient();
   const res = await drive.files.list({
     q: `'${folderId}' in parents and trashed = false`,
-    fields: "files(id, name, mimeType, modifiedTime, size, webViewLink)",
+    fields: "files(id, name, mimeType, modifiedTime, size, webViewLink, shortcutDetails)",
     orderBy: "folder,name",
     pageSize: 200,
     // Las carpetas de cliente viven dentro de la Shared Drive "Archivo
@@ -59,6 +67,8 @@ export async function listFilesInFolder(folderId: string): Promise<DriveFile[]> 
     modifiedTime: f.modifiedTime ?? null,
     size: f.size ?? null,
     webViewLink: f.webViewLink ?? null,
+    shortcutTargetId: f.shortcutDetails?.targetId ?? null,
+    shortcutTargetMimeType: f.shortcutDetails?.targetMimeType ?? null,
   }));
 }
 
