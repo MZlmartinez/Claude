@@ -1,0 +1,38 @@
+name: Unshare calendar (Agenda)
+
+on:
+  # Saca el acceso de alguien a un calendario de Agenda que ya existe —
+  # ver scripts/unshare-calendar.ts.
+  workflow_dispatch:
+    inputs:
+      client_slug:
+        description: "client_slug del cliente (ver lib/goldTables.ts)"
+        required: true
+        type: choice
+        options:
+          - deca
+          - adecco
+      team_emails:
+        description: "Emails a sacar, separados por espacio"
+        required: true
+        type: string
+
+jobs:
+  unshare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - run: npm ci
+
+      - run: npx tsx scripts/unshare-calendar.ts "$CLIENT_SLUG" $TEAM_EMAILS
+        env:
+          CLIENT_SLUG: ${{ inputs.client_slug }}
+          TEAM_EMAILS: ${{ inputs.team_emails }}
+          GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}

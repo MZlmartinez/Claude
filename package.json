@@ -9,7 +9,8 @@
     "lint": "eslint",
     "sync-gold": "tsx scripts/sync-gold.ts",
     "onboard-calendar": "tsx scripts/onboard-calendar.ts",
-    "share-calendar": "tsx scripts/share-calendar.ts"
+    "share-calendar": "tsx scripts/share-calendar.ts",
+    "unshare-calendar": "tsx scripts/unshare-calendar.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.137.0",
