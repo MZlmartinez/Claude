@@ -75,6 +75,8 @@ export default async function SecureInfluencersReportPageV2({
       contratos={contratos}
       opciones={opciones}
       fontClassName={`${infDisplay.variable} ${infBody.variable} ${infMono.variable}`}
+      email={email}
+      token={token}
     />
   );
 }

@@ -36,12 +36,24 @@ const PAGES = [
 ] as const;
 type PageId = (typeof PAGES)[number]["id"];
 
-// Piezas con material — todavía no hay de dónde resolver el video/miniatura
-// real (pendiente definir dónde viven esos archivos), así que estos campos
-// quedan opcionales y en la práctica siempre llegan undefined desde
-// lib/reports/influencers. El layout ya está listo: en cuanto exista el
-// dato, esto pinta la miniatura real y el modal de video sin tocar nada más.
-type PiezaConMedia = PiezaRow & { thumbnailUrl?: string | null; videoUrl?: string | null };
+// Material (clips) por pieza — ver lib/googleInfluencerMedia.ts. No hay
+// forma confiable de atar un archivo a una pieza por formato/número, así
+// que se resuelve por RANKING: la pieza con más visualizaciones de ese
+// influencer en esa campaña = clip 1, la segunda = clip 2, etc. (confirmado
+// con el equipo, es como están ordenados los archivos en Drive).
+type Clip = { id: string; name: string };
+
+function viewRank(piezas: PiezaRow[], piece: PiezaRow): number {
+  const siblings = piezas
+    .filter((p) => p.campana === piece.campana && p.influencer === piece.influencer)
+    .sort((a, b) => (b.visualizaciones ?? 0) - (a.visualizaciones ?? 0) || a.id.localeCompare(b.id));
+  return siblings.findIndex((p) => p.id === piece.id) + 1;
+}
+
+function mediaFileUrl(email: string, token: string, campana: string, fileId: string): string {
+  const p = new URLSearchParams({ u: email, t: token, campana, fileId });
+  return `/api/influencers/media/file?${p.toString()}`;
+}
 
 function qs(filters: InfluencerFilters): string {
   const p = new URLSearchParams();
@@ -89,6 +101,11 @@ type Props = {
   contratos: ContratoRow[];
   opciones: FiltroOpcion[];
   fontClassName: string;
+  // Solo la versión /secure los tiene (candado de identidad) — sin esto, la
+  // galería de material no tiene cómo autenticar su propio fetch y
+  // directamente no se ofrece (ver Destacadas más abajo).
+  email?: string | null;
+  token?: string | null;
 };
 
 export default function InfluencersDashboard({
@@ -103,12 +120,14 @@ export default function InfluencersDashboard({
   contratos,
   opciones,
   fontClassName,
+  email,
+  token,
 }: Props) {
   const router = useRouter();
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [page, setPage] = useState<PageId>("resumen");
   const [campMetric, setCampMetric] = useState<"inversion" | "visualizaciones" | "interacciones">("inversion");
-  const [lightbox, setLightbox] = useState<PiezaConMedia | null>(null);
+  const [lightbox, setLightbox] = useState<{ piece: PiezaRow; clip: Clip } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   const go = (href: string) => router.push(href, { scroll: false });
@@ -245,7 +264,9 @@ export default function InfluencersDashboard({
             setCampMetric={setCampMetric}
             campMetricInfo={campMetricInfo}
             go={go}
-            onOpenMedia={setLightbox}
+            onOpenMedia={(piece, clip) => setLightbox({ piece, clip })}
+            email={email}
+            token={token}
           />
         )}
         {page === "influencers" && <PageInfluencers filters={filters} influencers={influencers} go={go} />}
@@ -256,7 +277,7 @@ export default function InfluencersDashboard({
         {page === "detalle" && <PageDetalle piezas={piezas} />}
       </div>
 
-      <Lightbox pieza={lightbox} onClose={() => setLightbox(null)} />
+      <Lightbox lightbox={lightbox} email={email} token={token} onClose={() => setLightbox(null)} />
     </div>
   );
 }
@@ -271,24 +292,28 @@ function Kpi({ label, value, sub }: { label: string; value: string; sub: React.R
   );
 }
 
-function Lightbox({ pieza, onClose }: { pieza: PiezaConMedia | null; onClose: () => void }) {
-  if (!pieza) return null;
+function Lightbox({
+  lightbox,
+  email,
+  token,
+  onClose,
+}: {
+  lightbox: { piece: PiezaRow; clip: Clip } | null;
+  email?: string | null;
+  token?: string | null;
+  onClose: () => void;
+}) {
+  if (!lightbox || !email || !token) return null;
+  const { piece, clip } = lightbox;
   return (
     <div className="inf-lb" role="presentation" onClick={onClose}>
       <div className="inf-lbp" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-        {pieza.videoUrl ? (
-          <video src={pieza.videoUrl} controls playsInline autoPlay />
-        ) : (
-          <div className="inf-th inf-th--ph" style={{ aspectRatio: "9/16" }}>
-            <span>Sin video cargado para esta pieza</span>
-          </div>
-        )}
+        <video src={mediaFileUrl(email, token, piece.campana, clip.id)} controls playsInline autoPlay />
         <div className="inf-lbc">
           <div>
-            <b>{pieza.influencer}</b>
+            <b>{piece.influencer}</b>
             <div className="inf-sub2">
-              {FMT[pieza.formato ?? ""] ?? pieza.formato}
-              {pieza.numero != null ? ` ${pieza.numero}` : ""} · {pieza.campana}
+              {piece.campana} · {F.compact(piece.visualizaciones)} vistas
             </div>
           </div>
           <button className="inf-lbx" type="button" onClick={onClose}>Cerrar</button>
@@ -406,37 +431,97 @@ function Donut({ rows, filters, go }: { rows: FormatoRow[]; filters: InfluencerF
   );
 }
 
-// Piezas destacadas: miniatura 9:16 cuando hay video/thumbnail cargado,
-// placeholder punteado cuando no (hoy siempre, ver PiezaConMedia arriba).
-function Destacadas({ piezas, onOpenMedia }: { piezas: PiezaConMedia[]; onOpenMedia: (p: PiezaConMedia) => void }) {
-  const top = piezas.filter((r) => (r.visualizaciones ?? 0) > 0).sort((a, b) => (b.visualizaciones ?? 0) - (a.visualizaciones ?? 0)).slice(0, 4);
+// Piezas destacadas: miniatura 9:16 con el clip que le toca por ranking de
+// visualizaciones (ver viewRank arriba) — placeholder punteado mientras
+// carga o cuando esa pieza todavía no tiene clip subido.
+function Destacadas({
+  allPiezas,
+  top,
+  onOpenMedia,
+  email,
+  token,
+}: {
+  allPiezas: PiezaRow[];
+  top: PiezaRow[];
+  onOpenMedia: (piece: PiezaRow, clip: Clip) => void;
+  email?: string | null;
+  token?: string | null;
+}) {
   if (!top.length) return <div className="inf-empty">Ninguna pieza filtrada tiene visualizaciones.</div>;
   return (
     <div className="inf-feat">
-      {top.map((r) => {
-        const hasMedia = !!(r.thumbnailUrl || r.videoUrl);
-        return (
-          <div key={r.id} className={`inf-fi${hasMedia ? " is-click" : ""}`} onClick={hasMedia ? () => onOpenMedia(r) : undefined}>
-            {hasMedia ? (
-              <div className="inf-th">
-                {r.thumbnailUrl && <img src={r.thumbnailUrl} alt="" />}
-                {r.videoUrl && <span className="inf-play" aria-hidden="true" />}
-              </div>
-            ) : (
-              <div className="inf-th inf-th--ph">
-                <span>Sin material cargado</span>
-              </div>
-            )}
-            <div>
-              <span className="inf-tag">{(FMT[r.formato ?? ""] ?? r.formato) + (r.numero != null ? ` ${r.numero}` : "")}</span>
-              <span className="inf-fi-meta">{r.campana}</span>
-            </div>
-            <div className="inf-fi-name">{r.influencer}</div>
-            <div className="inf-fi-big">{F.compact(r.visualizaciones)}</div>
-            <div className="inf-fi-sub">vistas · {F.compact(r.interacciones)} interacciones · tasa {F.pct(r.tasa)}</div>
-          </div>
-        );
-      })}
+      {top.map((r) => (
+        <PieceCard
+          key={r.id}
+          piece={r}
+          rank={viewRank(allPiezas, r)}
+          onOpenMedia={onOpenMedia}
+          email={email}
+          token={token}
+        />
+      ))}
+    </div>
+  );
+}
+
+function PieceCard({
+  piece,
+  rank,
+  onOpenMedia,
+  email,
+  token,
+}: {
+  piece: PiezaRow;
+  rank: number;
+  onOpenMedia: (piece: PiezaRow, clip: Clip) => void;
+  email?: string | null;
+  token?: string | null;
+}) {
+  // undefined = cargando. Sin identidad (ruta vieja sin candado) arranca
+  // directo en "sin material": no hay con qué autenticar el fetch, así que
+  // nunca va a resolver nada distinto.
+  const [clip, setClip] = useState<Clip | null | undefined>(() => (email && token ? undefined : null));
+
+  useEffect(() => {
+    if (!email || !token) return;
+    let cancelled = false;
+    // No hay alternativa idiomática a setState en un efecto para este fetch
+    // interactivo (depende de props que cambian por navegación) — mismo
+    // caso ya resuelto así en DocumentosDashboard.tsx.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setClip(undefined);
+    const p = new URLSearchParams({ u: email, t: token, campana: piece.campana, influencer: piece.influencer, rank: String(rank) });
+    fetch(`/api/influencers/media?${p.toString()}`)
+      .then((res) => (res.ok ? res.json() : { clip: null }))
+      .then((json) => {
+        if (!cancelled) setClip(json?.clip ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setClip(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [piece.id, email, token, rank]);
+
+  const ready = clip !== undefined && clip !== null;
+  return (
+    <div className={`inf-fi${ready ? " is-click" : ""}`} onClick={ready ? () => onOpenMedia(piece, clip) : undefined}>
+      <div className={`inf-th${ready ? "" : " inf-th--ph"}`}>
+        {ready ? (
+          <span className="inf-play" aria-hidden="true" />
+        ) : (
+          <span>{clip === undefined ? "Cargando material…" : "Sin material cargado"}</span>
+        )}
+      </div>
+      <div>
+        <span className="inf-tag">{(FMT[piece.formato ?? ""] ?? piece.formato) + (piece.numero != null ? ` ${piece.numero}` : "")}</span>
+        <span className="inf-fi-meta">{piece.campana}</span>
+      </div>
+      <div className="inf-fi-name">{piece.influencer}</div>
+      <div className="inf-fi-big">{F.compact(piece.visualizaciones)}</div>
+      <div className="inf-fi-sub">vistas · {F.compact(piece.interacciones)} interacciones · tasa {F.pct(piece.tasa)}</div>
     </div>
   );
 }
@@ -712,6 +797,8 @@ function PageResumen({
   campMetricInfo,
   go,
   onOpenMedia,
+  email,
+  token,
 }: {
   filters: InfluencerFilters;
   campanas: CampanaRow[];
@@ -724,9 +811,12 @@ function PageResumen({
   setCampMetric: (m: "inversion" | "visualizaciones" | "interacciones") => void;
   campMetricInfo: Record<"inversion" | "visualizaciones" | "interacciones", { fmt: (v: number | null | undefined) => string; unit: string; note: string }>;
   go: (href: string) => void;
-  onOpenMedia: (p: PiezaConMedia) => void;
+  onOpenMedia: (piece: PiezaRow, clip: Clip) => void;
+  email?: string | null;
+  token?: string | null;
 }) {
   const campanasSorted = campanas.slice().sort((a, b) => (b[campMetric] ?? 0) - (a[campMetric] ?? 0));
+  const destacadas = piezas.filter((r) => (r.visualizaciones ?? 0) > 0).sort((a, b) => (b.visualizaciones ?? 0) - (a.visualizaciones ?? 0)).slice(0, 4);
   const topVistas = influencers.filter((r) => r.visualizaciones > 0).sort((a, b) => b.visualizaciones - a.visualizaciones).slice(0, 5);
   const topCosto = influencers.filter((r) => isNum(r.costo_mil_vistas)).sort((a, b) => (a.costo_mil_vistas ?? 0) - (b.costo_mil_vistas ?? 0)).slice(0, 5);
   return (
@@ -769,7 +859,7 @@ function PageResumen({
       <div className="inf-card">
         <h2>Piezas destacadas</h2>
         <p className="inf-note">Las cuatro con más visualizaciones dentro de los filtros.</p>
-        <Destacadas piezas={piezas} onOpenMedia={onOpenMedia} />
+        <Destacadas allPiezas={piezas} top={destacadas} onOpenMedia={onOpenMedia} email={email} token={token} />
       </div>
 
       <div className="inf-grid">
