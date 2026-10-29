@@ -108,21 +108,10 @@
 
 .doc-hero {
   position: relative;
-  overflow: hidden;
   background: #1a1a1a;
   border: 1px solid #2f2f2f;
   border-radius: 16px;
   padding: 24px 26px;
-}
-.doc-hero::after {
-  content: "";
-  position: absolute;
-  top: -40%;
-  right: -10%;
-  width: 60%;
-  height: 180%;
-  background: radial-gradient(circle, rgba(216, 252, 74, 0.28), transparent 70%);
-  pointer-events: none;
 }
 .doc-hero-top {
   position: relative;
@@ -188,6 +177,46 @@
   font-family: var(--font-mx-display), sans-serif;
   font-size: 22px;
   color: #f5f5f3;
+}
+
+/* Variante compacta: todo en una sola fila (título a la izquierda, los
+   contadores a la derecha) en vez de apilado — mismo bloque .doc-hero,
+   solo más bajo. Igual a la de Agenda (app/agenda/secure/agenda.css) a
+   propósito: tiene que ser el mismo diseño en las dos páginas. */
+.doc-hero-compact {
+  padding: 16px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.doc-hero-compact .doc-hero-top h1 {
+  font-size: 22px;
+}
+.doc-hero-compact .doc-hero-badge {
+  width: 40px;
+  height: 40px;
+}
+.doc-hero-compact .doc-hero-badge svg {
+  width: 20px;
+  height: 20px;
+}
+.doc-hero-compact .doc-hero-stats {
+  margin-top: 0;
+  display: flex;
+  gap: 10px;
+}
+.doc-hero-compact .doc-hero-stat {
+  padding: 6px 12px;
+}
+.doc-hero-compact .doc-hero-stat-value {
+  font-size: 18px;
+}
+@media (max-width: 560px) {
+  .doc-hero-compact .doc-hero-stats {
+    width: 100%;
+  }
 }
 
 .doc-wrap {

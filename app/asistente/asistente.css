@@ -314,21 +314,10 @@
    no solo cuando hay una respuesta con gráfico. */
 .asis-hero {
   position: relative;
-  overflow: hidden;
   background: #1a1a1a;
   border: 1px solid #2f2f2f;
   border-radius: 16px;
   padding: 24px 26px;
-}
-.asis-hero::after {
-  content: "";
-  position: absolute;
-  top: -40%;
-  right: -10%;
-  width: 60%;
-  height: 180%;
-  background: radial-gradient(circle, rgba(216, 252, 74, 0.28), transparent 70%);
-  pointer-events: none;
 }
 .asis-hero-top {
   position: relative;
@@ -399,6 +388,51 @@
 .asis-hero-stat-sub {
   font-size: 10px;
   color: #8a8a87;
+}
+
+/* Variante compacta: todo en una sola fila (título a la izquierda, los
+   contadores a la derecha) en vez de apilado — mismo diseño que
+   Documentos/Agenda (ver .doc-hero-compact) a propósito, para que las
+   tres páginas se sientan el mismo lugar. Sin el "-sub" (reportes/para
+   probar): ahí no entra con los tiles más chicos y las otras dos páginas
+   tampoco lo tienen. */
+.asis-hero-compact {
+  padding: 16px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.asis-hero-compact .asis-hero-top h1 {
+  font-size: 22px;
+}
+.asis-hero-compact .asis-hero-badge {
+  width: 40px;
+  height: 40px;
+}
+.asis-hero-compact .asis-hero-badge svg {
+  width: 20px;
+  height: 20px;
+}
+.asis-hero-compact .asis-hero-stats {
+  margin-top: 0;
+  display: flex;
+  gap: 10px;
+}
+.asis-hero-compact .asis-hero-stat {
+  padding: 6px 12px;
+}
+.asis-hero-compact .asis-hero-stat-value {
+  font-size: 18px;
+}
+.asis-hero-compact .asis-hero-stat-sub {
+  display: none;
+}
+@media (max-width: 560px) {
+  .asis-hero-compact .asis-hero-stats {
+    width: 100%;
+  }
 }
 
 .asis-hint {

@@ -37,8 +37,10 @@ export function AsistenteHeader({ savedCount }: { savedCount: number }) {
       </div>
 
       {/* Siempre oscuro (ver asistente.css) — como la tarjeta "resumen" de
-          growth/influencers, que tampoco cambia con el toggle. */}
-      <div className="asis-hero">
+          growth/influencers, que tampoco cambia con el toggle. Mismo
+          diseño compacto (una sola fila) que Documentos/Agenda — a
+          propósito, tiene que sentirse la misma identidad en las tres. */}
+      <div className="asis-hero asis-hero-compact">
         <div className="asis-hero-top">
           <span className="asis-hero-badge" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none">
