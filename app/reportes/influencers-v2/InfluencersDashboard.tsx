@@ -492,11 +492,19 @@ function PieceCard({
     setClip(undefined);
     const p = new URLSearchParams({ u: email, t: token, campana: piece.campana, influencer: piece.influencer, rank: String(rank) });
     fetch(`/api/influencers/media?${p.toString()}`)
-      .then((res) => (res.ok ? res.json() : { clip: null }))
+      .then(async (res) => {
+        const json = await res.json().catch(() => null);
+        if (!res.ok) {
+          console.error(`[influencers-v2] /api/influencers/media ${res.status} para ${piece.influencer} / ${piece.campana}:`, json);
+          return { clip: null };
+        }
+        return json;
+      })
       .then((json) => {
         if (!cancelled) setClip(json?.clip ?? null);
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error(`[influencers-v2] fetch de media falló para ${piece.influencer} / ${piece.campana}:`, err);
         if (!cancelled) setClip(null);
       });
     return () => {
