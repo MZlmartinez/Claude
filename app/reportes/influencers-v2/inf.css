@@ -390,9 +390,9 @@
 .inf-bl {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
   flex: 1;
-  justify-content: space-between;
+  justify-content: center;
 }
 .inf-bl-row {
   display: grid;
