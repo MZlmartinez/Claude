@@ -1,0 +1,39 @@
+name: Share calendar (Agenda)
+
+on:
+  # Suma gente a un calendario de Agenda que ya existe — ver
+  # scripts/share-calendar.ts. Para dar de alta un cliente nuevo desde
+  # cero, usar el workflow "Onboard calendar (Agenda)" en su lugar.
+  workflow_dispatch:
+    inputs:
+      client_slug:
+        description: "client_slug del cliente (ver lib/goldTables.ts)"
+        required: true
+        type: choice
+        options:
+          - deca
+          - adecco
+      team_emails:
+        description: "Emails a sumar, separados por espacio"
+        required: true
+        type: string
+
+jobs:
+  share:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - run: npm ci
+
+      - run: npx tsx scripts/share-calendar.ts "$CLIENT_SLUG" $TEAM_EMAILS
+        env:
+          CLIENT_SLUG: ${{ inputs.client_slug }}
+          TEAM_EMAILS: ${{ inputs.team_emails }}
+          GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
