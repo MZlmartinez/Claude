@@ -274,7 +274,7 @@ export default function InfluencersDashboard({
           <PageContenido filters={filters} formatosSinTotal={formatosSinTotal} formatos={formatos} piezas={piezas} go={go} />
         )}
         {page === "campanas" && <PageCampanas filters={filters} campanas={campanas} contratos={contratos} go={go} />}
-        {page === "detalle" && <PageDetalle piezas={piezas} />}
+        {page === "detalle" && <PageDetalle piezas={piezas} email={email} token={token} onOpenMedia={(piece, clip) => setLightbox({ piece, clip })} />}
       </div>
 
       <Lightbox lightbox={lightbox} email={email} token={token} onClose={() => setLightbox(null)} />
@@ -1313,17 +1313,114 @@ function PageCampanas({
 }
 
 // ---------- página Detalle ----------
-function PageDetalle({ piezas }: { piezas: PiezaRow[] }) {
+// Clip (si existe) para una pieza puntual, por ranking de visualizaciones
+// dentro de su influencer+campaña — mismo mecanismo que PieceCard en
+// Piezas destacadas, reusado acá para las columnas Material/Video de
+// Detalle. undefined = cargando, null = sin identidad o sin clip.
+function useClipForPiece(piece: PiezaRow, allPiezas: PiezaRow[], email?: string | null, token?: string | null): Clip | null | undefined {
+  const [clip, setClip] = useState<Clip | null | undefined>(() => (email && token ? undefined : null));
+
+  useEffect(() => {
+    if (!email || !token) return;
+    let cancelled = false;
+    const rank = viewRank(allPiezas, piece);
+    const p = new URLSearchParams({ u: email, t: token, campana: piece.campana, influencer: piece.influencer, rank: String(rank) });
+    fetch(`/api/influencers/media?${p.toString()}`)
+      .then((res) => (res.ok ? res.json() : { clip: null }))
+      .then((json) => {
+        if (!cancelled) setClip(json?.clip ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setClip(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [piece, allPiezas, email, token]);
+
+  return clip;
+}
+
+function MaterialCell({ piece, allPiezas, email, token }: { piece: PiezaRow; allPiezas: PiezaRow[]; email?: string | null; token?: string | null }) {
+  const clip = useClipForPiece(piece, allPiezas, email, token);
+  if (clip === undefined) {
+    return (
+      <div className="inf-th inf-th--cell inf-th--ph">
+        <span>…</span>
+      </div>
+    );
+  }
+  if (!clip) {
+    return (
+      <div className="inf-th inf-th--cell inf-th--ph">
+        <span>—</span>
+      </div>
+    );
+  }
+  return (
+    <div className="inf-th inf-th--cell">
+      <span className="inf-play" aria-hidden="true" />
+    </div>
+  );
+}
+
+function VideoCell({
+  piece,
+  allPiezas,
+  email,
+  token,
+  onOpenMedia,
+}: {
+  piece: PiezaRow;
+  allPiezas: PiezaRow[];
+  email?: string | null;
+  token?: string | null;
+  onOpenMedia: (piece: PiezaRow, clip: Clip) => void;
+}) {
+  const clip = useClipForPiece(piece, allPiezas, email, token);
+  if (!clip) return <span className="inf-fi-meta">—</span>;
+  return (
+    <button type="button" className="inf-vbtn" onClick={() => onOpenMedia(piece, clip)}>
+      ▶ Ver video
+    </button>
+  );
+}
+
+function PageDetalle({
+  piezas,
+  email,
+  token,
+  onOpenMedia,
+}: {
+  piezas: PiezaRow[];
+  email?: string | null;
+  token?: string | null;
+  onOpenMedia: (piece: PiezaRow, clip: Clip) => void;
+}) {
   const [q, setQ] = useState("");
   const [metric, setMetric] = useState<"" | "con" | "sin">("");
+  const [shown, setShown] = useState(50);
   const filtered = piezas.filter((r) => {
     const qok = !q || `${r.influencer} ${r.campana}`.toLowerCase().includes(q.trim().toLowerCase());
     const mok = !metric || (metric === "con" ? (r.visualizaciones ?? 0) > 0 : !((r.visualizaciones ?? 0) > 0));
     return qok && mok;
   });
+  const visible = filtered.slice(0, shown);
+  const remaining = filtered.length - visible.length;
   const columns: Column<PiezaRow>[] = [
-    { key: "influencer", label: "Influencer", sortable: true, sortValue: (r) => r.influencer, render: (r) => r.influencer },
-    { key: "campana", label: "Campaña", sec: true, sortable: true, sortValue: (r) => r.campana, render: (r) => r.campana },
+    { key: "material", label: "Material", render: (r) => <MaterialCell piece={r} allPiezas={piezas} email={email} token={token} /> },
+    {
+      key: "influencer",
+      label: "Influencer",
+      sortable: true,
+      sortValue: (r) => r.influencer,
+      render: (r) => (
+        <>
+          {r.influencer}
+          <span className="inf-sub2">{r.campana}</span>
+        </>
+      ),
+    },
     {
       key: "formato",
       label: "Formato",
@@ -1340,29 +1437,45 @@ function PageDetalle({ piezas }: { piezas: PiezaRow[] }) {
     { key: "clics", label: "Clics a @", num: true, sec: true, sortable: true, sortValue: (r) => r.clics, render: (r) => F.int(r.clics) },
     { key: "tasa", label: "Tasa", num: true, sortable: true, sortValue: (r) => r.tasa, render: (r) => F.pct(r.tasa) },
     {
-      key: "clipping",
-      label: "Clipping",
-      render: (r) =>
-        typeof r.clipping === "string" && /^https:\/\//.test(r.clipping) ? (
-          <a href={r.clipping} target="_blank" rel="noopener noreferrer">Ver</a>
-        ) : (
-          "—"
-        ),
+      key: "video",
+      label: "Video",
+      render: (r) => <VideoCell piece={r} allPiezas={piezas} email={email} token={token} onOpenMedia={onOpenMedia} />,
     },
   ];
   return (
     <section className="inf-page">
       <div className="inf-card">
         <div className="inf-tools">
-          <input type="search" placeholder="Buscar por influencer o campaña" aria-label="Buscar" value={q} onChange={(e) => setQ(e.target.value)} />
-          <select aria-label="Métricas" value={metric} onChange={(e) => setMetric(e.target.value as "" | "con" | "sin")}>
+          <input
+            type="search"
+            placeholder="Buscar por influencer o campaña"
+            aria-label="Buscar"
+            value={q}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setShown(50);
+            }}
+          />
+          <select
+            aria-label="Métricas"
+            value={metric}
+            onChange={(e) => {
+              setMetric(e.target.value as "" | "con" | "sin");
+              setShown(50);
+            }}
+          >
             <option value="">Con y sin vistas</option>
             <option value="con">Con vistas</option>
             <option value="sin">Sin vistas</option>
           </select>
         </div>
-        <div className="inf-count">Mostrando {F.int(filtered.length)} de {F.int(piezas.length)} piezas</div>
-        <TableShell columns={columns} rows={filtered} rowKey={(r) => r.id} initialSort={{ key: "visualizaciones", dir: -1 }} />
+        <div className="inf-count">Mostrando {F.int(visible.length)} de {F.int(filtered.length)} piezas</div>
+        <TableShell columns={columns} rows={visible} rowKey={(r) => r.id} initialSort={{ key: "visualizaciones", dir: -1 }} />
+        {remaining > 0 && (
+          <button type="button" className="inf-more" onClick={() => setShown((s) => s + 50)}>
+            Mostrar 50 más ({remaining} restantes)
+          </button>
+        )}
       </div>
     </section>
   );
