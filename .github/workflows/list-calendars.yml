@@ -1,0 +1,30 @@
+name: Onboarding · Agenda · Ver asignaciones
+
+on:
+  # Solo lectura — ver scripts/list-calendars.ts. El resultado queda en
+  # los logs de esta misma corrida (pestaña "onboard" del run).
+  workflow_dispatch:
+    inputs:
+      client_slug:
+        description: "Dejar vacío para ver todos los clientes"
+        required: false
+        type: string
+
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - run: npm ci
+
+      - run: npx tsx scripts/list-calendars.ts "$CLIENT_SLUG"
+        env:
+          CLIENT_SLUG: ${{ inputs.client_slug }}
+          GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
