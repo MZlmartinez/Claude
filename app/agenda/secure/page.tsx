@@ -1,4 +1,5 @@
 import { getClientSlugForEmail, verifyEmailToken } from "@/lib/assistant/clientAuth";
+import { getCalendarIdForClient, listPastEvents, listUpcomingEvents } from "@/lib/googleCalendar";
 import type { ClientSlug } from "@/lib/goldTables";
 import AgendaDashboard from "./AgendaDashboard";
 import { mxBody, mxDisplay } from "./fonts";
@@ -6,7 +7,9 @@ import { mxBody, mxDisplay } from "./fonts";
 export const dynamic = "force-dynamic";
 
 // Mismo esquema que /documentos/secure: candado de identidad server-side
-// antes de mostrar nada. Cáscara nomás por ahora — ver AgendaDashboard.tsx.
+// antes de mostrar nada. A diferencia de Documentos (necesita navegación
+// interactiva de subcarpetas), acá no hace falta ningún fetch del lado
+// del cliente — se resuelve todo acá, como Growth/Influencers.
 const ALLOWED_CLIENTS: ClientSlug[] = ["deca", "adecco"];
 
 export default async function SecureAgendaPage({
@@ -28,7 +31,27 @@ export default async function SecureAgendaPage({
     return <Unauthorized reason="Este reporte no está disponible para tu cuenta." />;
   }
 
-  return <AgendaDashboard fontClassName={`${mxDisplay.variable} ${mxBody.variable}`} />;
+  const calendarId = await getCalendarIdForClient(clientSlug);
+  let upcoming: Awaited<ReturnType<typeof listUpcomingEvents>> = [];
+  let past: Awaited<ReturnType<typeof listPastEvents>> = [];
+  let error: string | null = null;
+  if (calendarId) {
+    try {
+      [upcoming, past] = await Promise.all([listUpcomingEvents(calendarId), listPastEvents(calendarId)]);
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e);
+    }
+  }
+
+  return (
+    <AgendaDashboard
+      fontClassName={`${mxDisplay.variable} ${mxBody.variable}`}
+      upcoming={upcoming}
+      past={past}
+      calendarConfigured={!!calendarId}
+      error={error}
+    />
+  );
 }
 
 // Fondo y color propios, no heredados — mismo motivo que en

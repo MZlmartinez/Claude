@@ -3,36 +3,47 @@
 import { useEffect, useRef, useState } from "react";
 import "./agenda.css";
 
-type Props = {
-  fontClassName: string;
-};
-
-type MeetingEvent = {
+type CalendarEvent = {
   id: string;
   title: string;
-  date: string; // "05 NOV"
-  time: string; // "10:00"
-  platform: string; // "Google Meet"
+  start: string | null;
+  end: string | null;
+  meetLink: string | null;
+  location: string | null;
 };
 
-// Datos de ejemplo nomás — para validar el diseño antes de conectar el
-// calendario real (ver la charla pendiente sobre un calendario de Google
-// por cliente en vez de uno compartido con todos). Mismo shape que
-// tendría un evento real, para que enchufar datos de verdad después sea
-// solo reemplazar estos arrays por el fetch correspondiente.
-const MOCK_EVENTS: MeetingEvent[] = [
-  { id: "1", title: "Revisión mensual de resultados", date: "05 NOV", time: "10:00", platform: "Google Meet" },
-  { id: "2", title: "Seguimiento de estrategia", date: "19 NOV", time: "15:30", platform: "Google Meet" },
-];
-const MOCK_PAST: MeetingEvent[] = [
-  { id: "p1", title: "Presentación resultados Q3", date: "24 OCT", time: "10:00", platform: "Google Meet" },
-];
-// Solo para que el navegador de mes no se vea muerto — los eventos de
-// arriba no cambian todavía, es la misma lista fija sea cual sea el mes.
-const MONTHS = ["Octubre 2026", "Noviembre 2026", "Diciembre 2026"];
+type Props = {
+  fontClassName: string;
+  upcoming: CalendarEvent[];
+  past: CalendarEvent[];
+  calendarConfigured: boolean;
+  error: string | null;
+};
 
-function MeetingRow({ ev, action }: { ev: MeetingEvent; action: React.ReactNode }) {
-  const [day, month] = ev.date.split(" ");
+const MONTH_LABELS = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
+
+function dateParts(iso: string | null): { day: string; month: string } {
+  if (!iso) return { day: "—", month: "" };
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return { day: "—", month: "" };
+  return { day: String(d.getDate()).padStart(2, "0"), month: MONTH_LABELS[d.getMonth()] };
+}
+function timeOf(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
+}
+function isThisMonth(iso: string | null): boolean {
+  if (!iso) return false;
+  const d = new Date(iso);
+  const now = new Date();
+  return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+}
+
+function MeetingRow({ ev, action }: { ev: CalendarEvent; action: React.ReactNode }) {
+  const { day, month } = dateParts(ev.start);
+  const platform = ev.meetLink ? "Google Meet" : ev.location || "—";
   return (
     <div className="doc-agenda-row">
       <div className="doc-agenda-date">
@@ -41,16 +52,15 @@ function MeetingRow({ ev, action }: { ev: MeetingEvent; action: React.ReactNode 
       </div>
       <div className="doc-agenda-info">
         <div className="doc-agenda-title">{ev.title}</div>
-        <div className="doc-agenda-meta">{ev.time} · {ev.platform}</div>
+        <div className="doc-agenda-meta">{timeOf(ev.start)} · {platform}</div>
       </div>
       {action}
     </div>
   );
 }
 
-export default function AgendaDashboard({ fontClassName }: Props) {
+export default function AgendaDashboard({ fontClassName, upcoming, past, calendarConfigured, error }: Props) {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
-  const [monthIndex, setMonthIndex] = useState(1);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -61,7 +71,7 @@ export default function AgendaDashboard({ fontClassName }: Props) {
     const observer = new ResizeObserver(post);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [theme, monthIndex]);
+  }, [theme, upcoming, past]);
 
   useEffect(() => {
     if (typeof window === "undefined" || window.parent === window) return;
@@ -70,28 +80,21 @@ export default function AgendaDashboard({ fontClassName }: Props) {
     return () => window.removeEventListener("wheel", onWheel);
   }, []);
 
-  const events = MOCK_EVENTS;
-  const past = MOCK_PAST;
+  const thisMonthCount = upcoming.filter((ev) => isThisMonth(ev.start)).length;
 
-  const joinAction = (
-    <a className="doc-agenda-icon" href="#" target="_blank" rel="noopener noreferrer" aria-label="Unirse a la videollamada">
-      <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
-        <path
-          d="M15 8l5-3v14l-5-3M4 6h9a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"
-          stroke="currentColor"
-          strokeWidth={1.6}
-          fill="none"
-        />
-      </svg>
-    </a>
-  );
-  const recordingAction = (
-    <a className="doc-agenda-icon" href="#" target="_blank" rel="noopener noreferrer" aria-label="Ver grabación">
-      <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
-        <path d="M8 5v14l11-7-11-7z" stroke="currentColor" strokeWidth={1.6} fill="none" />
-      </svg>
-    </a>
-  );
+  const joinAction = (ev: CalendarEvent) =>
+    ev.meetLink ? (
+      <a className="doc-agenda-icon" href={ev.meetLink} target="_blank" rel="noopener noreferrer" aria-label="Unirse a la videollamada">
+        <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+          <path
+            d="M15 8l5-3v14l-5-3M4 6h9a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"
+            stroke="currentColor"
+            strokeWidth={1.6}
+            fill="none"
+          />
+        </svg>
+      </a>
+    ) : null;
 
   return (
     <div ref={rootRef} className={`doc ${fontClassName}`} data-theme={theme}>
@@ -128,56 +131,63 @@ export default function AgendaDashboard({ fontClassName }: Props) {
             <div className="doc-hero-stats">
               <div className="doc-hero-stat">
                 <div className="doc-hero-stat-label" style={{ color: "var(--doc-k1)" }}>Próximas</div>
-                <div className="doc-hero-stat-value">{events.length}</div>
+                <div className="doc-hero-stat-value">{upcoming.length}</div>
               </div>
               <div className="doc-hero-stat">
                 <div className="doc-hero-stat-label" style={{ color: "var(--doc-k4)" }}>Este mes</div>
-                <div className="doc-hero-stat-value">{events.length}</div>
+                <div className="doc-hero-stat-value">{thisMonthCount}</div>
               </div>
             </div>
           </div>
         </header>
 
-        <div className="doc-wrap">
-          <div className="doc-section-head">
-            <h2 className="doc-section-title">Próximos encuentros</h2>
-            <div className="doc-section-tools">
-              <a className="doc-cal-link" href="#" target="_blank" rel="noopener noreferrer">Ver mi calendario ↗</a>
-              <div className="doc-month-nav">
-                <button type="button" aria-label="Mes anterior" onClick={() => setMonthIndex((i) => Math.max(0, i - 1))}>‹</button>
-                <span>{MONTHS[monthIndex]}</span>
-                <button type="button" aria-label="Mes siguiente" onClick={() => setMonthIndex((i) => Math.min(MONTHS.length - 1, i + 1))}>›</button>
+        {!calendarConfigured && (
+          <div className="doc-wrap">
+            <div className="doc-empty">Este cliente todavía no tiene un calendario de Agenda configurado.</div>
+          </div>
+        )}
+
+        {calendarConfigured && error && (
+          <div className="doc-wrap">
+            <div className="doc-error">No pudimos leer el calendario: {error}</div>
+          </div>
+        )}
+
+        {calendarConfigured && !error && (
+          <>
+            <div className="doc-wrap">
+              <div className="doc-section-head">
+                <h2 className="doc-section-title">Próximos encuentros</h2>
               </div>
-            </div>
-          </div>
 
-          {events.length === 0 ? (
-            <div className="doc-empty">No tenés reuniones próximas agendadas.</div>
-          ) : (
-            <div className="doc-agenda-list">
-              {events.map((ev) => (
-                <MeetingRow key={ev.id} ev={ev} action={joinAction} />
-              ))}
+              {upcoming.length === 0 ? (
+                <div className="doc-empty">No tenés reuniones próximas agendadas.</div>
+              ) : (
+                <div className="doc-agenda-list">
+                  {upcoming.map((ev) => (
+                    <MeetingRow key={ev.id} ev={ev} action={joinAction(ev)} />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        <div className="doc-wrap">
-          <div className="doc-section-head">
-            <h2 className="doc-section-title">Reuniones anteriores</h2>
-            <a className="doc-cal-link" href="#">Ver todas →</a>
-          </div>
+            <div className="doc-wrap">
+              <div className="doc-section-head">
+                <h2 className="doc-section-title">Reuniones anteriores</h2>
+              </div>
 
-          {past.length === 0 ? (
-            <div className="doc-empty">Todavía no hubo reuniones.</div>
-          ) : (
-            <div className="doc-agenda-list">
-              {past.map((ev) => (
-                <MeetingRow key={ev.id} ev={ev} action={recordingAction} />
-              ))}
+              {past.length === 0 ? (
+                <div className="doc-empty">Todavía no hubo reuniones.</div>
+              ) : (
+                <div className="doc-agenda-list">
+                  {past.map((ev) => (
+                    <MeetingRow key={ev.id} ev={ev} action={null} />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
