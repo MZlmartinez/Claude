@@ -208,10 +208,54 @@
   font-size: 13px;
 }
 
+.doc-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
 .doc-section-title {
   margin: 0;
   font-size: 16px;
   font-weight: 700;
+  color: var(--doc-fg);
+}
+.doc-section-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.doc-cal-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--doc-accent-text);
+  text-decoration: none;
+}
+.doc-cal-link:hover {
+  text-decoration: underline;
+}
+.doc-month-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--doc-fg2);
+}
+.doc-month-nav button {
+  background: var(--doc-card2);
+  border: 1px solid var(--doc-line);
+  border-radius: 6px;
+  color: var(--doc-fg2);
+  width: 22px;
+  height: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.doc-month-nav button:hover {
+  border-color: var(--doc-accent);
   color: var(--doc-fg);
 }
 

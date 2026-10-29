@@ -13,21 +13,44 @@ type MeetingEvent = {
   date: string; // "05 NOV"
   time: string; // "10:00"
   platform: string; // "Google Meet"
-  meetLink: string | null;
 };
 
 // Datos de ejemplo nomás — para validar el diseño antes de conectar el
 // calendario real (ver la charla pendiente sobre un calendario de Google
 // por cliente en vez de uno compartido con todos). Mismo shape que
 // tendría un evento real, para que enchufar datos de verdad después sea
-// solo reemplazar este array por el fetch correspondiente.
+// solo reemplazar estos arrays por el fetch correspondiente.
 const MOCK_EVENTS: MeetingEvent[] = [
-  { id: "1", title: "Revisión mensual de resultados", date: "05 NOV", time: "10:00", platform: "Google Meet", meetLink: "#" },
-  { id: "2", title: "Seguimiento de estrategia", date: "19 NOV", time: "15:30", platform: "Google Meet", meetLink: "#" },
+  { id: "1", title: "Revisión mensual de resultados", date: "05 NOV", time: "10:00", platform: "Google Meet" },
+  { id: "2", title: "Seguimiento de estrategia", date: "19 NOV", time: "15:30", platform: "Google Meet" },
 ];
+const MOCK_PAST: MeetingEvent[] = [
+  { id: "p1", title: "Presentación resultados Q3", date: "24 OCT", time: "10:00", platform: "Google Meet" },
+];
+// Solo para que el navegador de mes no se vea muerto — los eventos de
+// arriba no cambian todavía, es la misma lista fija sea cual sea el mes.
+const MONTHS = ["Octubre 2026", "Noviembre 2026", "Diciembre 2026"];
+
+function MeetingRow({ ev, action }: { ev: MeetingEvent; action: React.ReactNode }) {
+  const [day, month] = ev.date.split(" ");
+  return (
+    <div className="doc-agenda-row">
+      <div className="doc-agenda-date">
+        <span className="doc-agenda-date-month">{month}</span>
+        <span className="doc-agenda-date-day">{day}</span>
+      </div>
+      <div className="doc-agenda-info">
+        <div className="doc-agenda-title">{ev.title}</div>
+        <div className="doc-agenda-meta">{ev.time} · {ev.platform}</div>
+      </div>
+      {action}
+    </div>
+  );
+}
 
 export default function AgendaDashboard({ fontClassName }: Props) {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [monthIndex, setMonthIndex] = useState(1);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,7 +61,7 @@ export default function AgendaDashboard({ fontClassName }: Props) {
     const observer = new ResizeObserver(post);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [theme]);
+  }, [theme, monthIndex]);
 
   useEffect(() => {
     if (typeof window === "undefined" || window.parent === window) return;
@@ -48,7 +71,27 @@ export default function AgendaDashboard({ fontClassName }: Props) {
   }, []);
 
   const events = MOCK_EVENTS;
-  const splitDate = (s: string) => s.split(" ");
+  const past = MOCK_PAST;
+
+  const joinAction = (
+    <a className="doc-agenda-icon" href="#" target="_blank" rel="noopener noreferrer" aria-label="Unirse a la videollamada">
+      <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+        <path
+          d="M15 8l5-3v14l-5-3M4 6h9a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"
+          stroke="currentColor"
+          strokeWidth={1.6}
+          fill="none"
+        />
+      </svg>
+    </a>
+  );
+  const recordingAction = (
+    <a className="doc-agenda-icon" href="#" target="_blank" rel="noopener noreferrer" aria-label="Ver grabación">
+      <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+        <path d="M8 5v14l11-7-11-7z" stroke="currentColor" strokeWidth={1.6} fill="none" />
+      </svg>
+    </a>
+  );
 
   return (
     <div ref={rootRef} className={`doc ${fontClassName}`} data-theme={theme}>
@@ -96,45 +139,42 @@ export default function AgendaDashboard({ fontClassName }: Props) {
         </header>
 
         <div className="doc-wrap">
-          <h2 className="doc-section-title">Próximos encuentros</h2>
+          <div className="doc-section-head">
+            <h2 className="doc-section-title">Próximos encuentros</h2>
+            <div className="doc-section-tools">
+              <a className="doc-cal-link" href="#" target="_blank" rel="noopener noreferrer">Ver mi calendario ↗</a>
+              <div className="doc-month-nav">
+                <button type="button" aria-label="Mes anterior" onClick={() => setMonthIndex((i) => Math.max(0, i - 1))}>‹</button>
+                <span>{MONTHS[monthIndex]}</span>
+                <button type="button" aria-label="Mes siguiente" onClick={() => setMonthIndex((i) => Math.min(MONTHS.length - 1, i + 1))}>›</button>
+              </div>
+            </div>
+          </div>
 
           {events.length === 0 ? (
             <div className="doc-empty">No tenés reuniones próximas agendadas.</div>
           ) : (
             <div className="doc-agenda-list">
-              {events.map((ev) => {
-                const [day, month] = splitDate(ev.date);
-                return (
-                  <div key={ev.id} className="doc-agenda-row">
-                    <div className="doc-agenda-date">
-                      <span className="doc-agenda-date-month">{month}</span>
-                      <span className="doc-agenda-date-day">{day}</span>
-                    </div>
-                    <div className="doc-agenda-info">
-                      <div className="doc-agenda-title">{ev.title}</div>
-                      <div className="doc-agenda-meta">{ev.time} · {ev.platform}</div>
-                    </div>
-                    {ev.meetLink && (
-                      <a
-                        className="doc-agenda-icon"
-                        href={ev.meetLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="Unirse a la videollamada"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
-                          <path
-                            d="M15 8l5-3v14l-5-3M4 6h9a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"
-                            stroke="currentColor"
-                            strokeWidth={1.6}
-                            fill="none"
-                          />
-                        </svg>
-                      </a>
-                    )}
-                  </div>
-                );
-              })}
+              {events.map((ev) => (
+                <MeetingRow key={ev.id} ev={ev} action={joinAction} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="doc-wrap">
+          <div className="doc-section-head">
+            <h2 className="doc-section-title">Reuniones anteriores</h2>
+            <a className="doc-cal-link" href="#">Ver todas →</a>
+          </div>
+
+          {past.length === 0 ? (
+            <div className="doc-empty">Todavía no hubo reuniones.</div>
+          ) : (
+            <div className="doc-agenda-list">
+              {past.map((ev) => (
+                <MeetingRow key={ev.id} ev={ev} action={recordingAction} />
+              ))}
             </div>
           )}
         </div>
