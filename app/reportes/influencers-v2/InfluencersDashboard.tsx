@@ -398,7 +398,7 @@ function Donut({ rows, filters, go }: { rows: FormatoRow[]; filters: InfluencerF
   const sel = filters.formato;
   return (
     <div>
-      <svg width="100%" viewBox="0 0 200 200" style={{ display: "block" }}>
+      <svg width="100%" viewBox="0 0 200 200" style={{ display: "block", maxWidth: 200, margin: "0 auto" }}>
         {arcs.map((a) => (
           <path
             key={a.formato}
