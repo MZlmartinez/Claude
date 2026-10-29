@@ -62,3 +62,31 @@ export async function getClipForRank(
   const clips = await listClipsRanked(folderId);
   return clips[rank - 1] ?? null;
 }
+
+// Resumen para la columna "Contenido" de la tabla Influencers: cuántas
+// piezas tiene ese influencer en total (todas sus campañas) contra cuántos
+// clips reales hay cargados para él. Un influencer puede tener varias
+// campañas, cada una con su propia carpeta de clipping — se suman todas.
+export type MediaSummary = { totalPieces: number; availableClips: number };
+
+export async function getInfluencerMediaSummary(client: string, influencer: string): Promise<MediaSummary> {
+  const table = tableFor(client);
+  const rows = await queryReport<{ campana: string; piezas: string; clipping: string | null }>(
+    `select campana, count(*)::int piezas, max(clipping) clipping from ${table} where influencer = $1 group by campana`,
+    [influencer],
+  );
+  const totalPieces = rows.reduce((sum, r) => sum + Number(r.piezas), 0);
+  let availableClips = 0;
+  for (const r of rows) {
+    const folderId = r.clipping ? extractFolderId(r.clipping) : null;
+    if (!folderId) continue;
+    try {
+      const clips = await listClipsRanked(folderId);
+      availableClips += clips.length;
+    } catch {
+      // Carpeta no legible para el Service Account — no suma, no revienta
+      // el resto del resumen.
+    }
+  }
+  return { totalPieces, availableClips };
+}

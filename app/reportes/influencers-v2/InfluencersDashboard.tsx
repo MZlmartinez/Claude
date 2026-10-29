@@ -269,7 +269,7 @@ export default function InfluencersDashboard({
             token={token}
           />
         )}
-        {page === "influencers" && <PageInfluencers filters={filters} influencers={influencers} go={go} />}
+        {page === "influencers" && <PageInfluencers filters={filters} influencers={influencers} go={go} email={email} token={token} />}
         {page === "contenido" && (
           <PageContenido filters={filters} formatosSinTotal={formatosSinTotal} formatos={formatos} piezas={piezas} go={go} />
         )}
@@ -530,6 +530,52 @@ function PieceCard({
       <div className="inf-fi-name">{piece.influencer}</div>
       <div className="inf-fi-big">{F.compact(piece.visualizaciones)}</div>
       <div className="inf-fi-sub">vistas · {F.compact(piece.interacciones)} interacciones · tasa {F.pct(piece.tasa)}</div>
+    </div>
+  );
+}
+
+// Columna "Contenido" de la tabla Influencers: cuántos clips reales hay
+// cargados contra el total de piezas de ese influencer (sumando todas sus
+// campañas) — ver getInfluencerMediaSummary. Solo cuenta, todavía no abre
+// nada al hacer clic (eso depende de que el matching de Piezas destacadas
+// esté confirmado funcionando).
+function ContenidoCell({ influencer, email, token }: { influencer: string; email?: string | null; token?: string | null }) {
+  const [summary, setSummary] = useState<{ totalPieces: number; availableClips: number } | null | undefined>(() =>
+    email && token ? undefined : null,
+  );
+
+  useEffect(() => {
+    if (!email || !token) return;
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSummary(undefined);
+    const p = new URLSearchParams({ u: email, t: token, influencer });
+    fetch(`/api/influencers/media/summary?${p.toString()}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (!cancelled) setSummary(json ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setSummary(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [influencer, email, token]);
+
+  if (summary === undefined) return <span className="inf-fi-meta">Cargando…</span>;
+  if (!summary || summary.availableClips === 0) return <span className="inf-fi-meta">—</span>;
+  const shown = Math.min(3, summary.availableClips);
+  return (
+    <div className="inf-strip">
+      {Array.from({ length: shown }).map((_, i) => (
+        <span key={i} className="inf-th inf-th--sm">
+          <span className="inf-play" aria-hidden="true" />
+        </span>
+      ))}
+      <span className="inf-fi-meta">
+        {summary.availableClips} de {summary.totalPieces}
+      </span>
     </div>
   );
 }
@@ -937,7 +983,19 @@ function PageResumen({
 }
 
 // ---------- página Influencers ----------
-function PageInfluencers({ filters, influencers, go }: { filters: InfluencerFilters; influencers: InfluencerRow[]; go: (href: string) => void }) {
+function PageInfluencers({
+  filters,
+  influencers,
+  go,
+  email,
+  token,
+}: {
+  filters: InfluencerFilters;
+  influencers: InfluencerRow[];
+  go: (href: string) => void;
+  email?: string | null;
+  token?: string | null;
+}) {
   const costo12 = influencers.filter((r) => isNum(r.costo_mil_vistas)).sort((a, b) => (a.costo_mil_vistas ?? 0) - (b.costo_mil_vistas ?? 0)).slice(0, 12);
   const top5 = influencers
     .filter((r) => isNum(r.ranking_promedio))
@@ -956,6 +1014,7 @@ function PageInfluencers({ filters, influencers, go }: { filters: InfluencerFilt
   ];
   const infColumns: Column<InfluencerRow>[] = [
     { key: "influencer", label: "Influencer", sortable: true, sortValue: (r) => r.influencer, render: (r) => r.influencer },
+    { key: "contenido", label: "Contenido", render: (r) => <ContenidoCell influencer={r.influencer} email={email} token={token} /> },
     { key: "territorio", label: "Territorio", sec: true, sortable: true, sortValue: (r) => r.territorio, render: (r) => r.territorio ?? "—" },
     { key: "seguidores_ig", label: "Seguidores IG", num: true, sortable: true, sortValue: (r) => r.seguidores_ig, render: (r) => F.int(r.seguidores_ig) },
     { key: "seguidores_tiktok", label: "Seguidores TikTok", num: true, sec: true, sortable: true, sortValue: (r) => r.seguidores_tiktok, render: (r) => F.int(r.seguidores_tiktok) },
