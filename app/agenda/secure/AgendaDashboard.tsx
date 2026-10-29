@@ -7,13 +7,25 @@ type Props = {
   fontClassName: string;
 };
 
-// Cáscara nomás, todavía sin datos: mismo patrón de Documentos
-// (app/documentos/secure/DocumentosDashboard.tsx) — header + hero +
-// tarjeta, candado de identidad ya resuelto en page.tsx, postMessage con
-// la altura real. Falta conectar la fuente de datos real de la agenda
-// (ver ds.agenda en el bloque de Home de Softr, que ya referencia una
-// tabla "agenda" en Airtable) y reemplazar el estado vacío de abajo por
-// la lista de reuniones.
+type MeetingEvent = {
+  id: string;
+  title: string;
+  date: string; // "05 NOV"
+  time: string; // "10:00"
+  platform: string; // "Google Meet"
+  meetLink: string | null;
+};
+
+// Datos de ejemplo nomás — para validar el diseño antes de conectar el
+// calendario real (ver la charla pendiente sobre un calendario de Google
+// por cliente en vez de uno compartido con todos). Mismo shape que
+// tendría un evento real, para que enchufar datos de verdad después sea
+// solo reemplazar este array por el fetch correspondiente.
+const MOCK_EVENTS: MeetingEvent[] = [
+  { id: "1", title: "Revisión mensual de resultados", date: "05 NOV", time: "10:00", platform: "Google Meet", meetLink: "#" },
+  { id: "2", title: "Seguimiento de estrategia", date: "19 NOV", time: "15:30", platform: "Google Meet", meetLink: "#" },
+];
+
 export default function AgendaDashboard({ fontClassName }: Props) {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const rootRef = useRef<HTMLDivElement>(null);
@@ -34,6 +46,9 @@ export default function AgendaDashboard({ fontClassName }: Props) {
     window.addEventListener("wheel", onWheel, { passive: true });
     return () => window.removeEventListener("wheel", onWheel);
   }, []);
+
+  const events = MOCK_EVENTS;
+  const splitDate = (s: string) => s.split(" ");
 
   return (
     <div ref={rootRef} className={`doc ${fontClassName}`} data-theme={theme}>
@@ -64,24 +79,64 @@ export default function AgendaDashboard({ fontClassName }: Props) {
               </span>
               <div>
                 <h1>Agenda</h1>
-                <p className="doc-tagline">Próximas reuniones con tu equipo.</p>
+                <p className="doc-tagline">Tus próximos encuentros con Moscú.</p>
               </div>
             </div>
             <div className="doc-hero-stats">
               <div className="doc-hero-stat">
                 <div className="doc-hero-stat-label" style={{ color: "var(--doc-k1)" }}>Próximas</div>
-                <div className="doc-hero-stat-value">—</div>
+                <div className="doc-hero-stat-value">{events.length}</div>
               </div>
               <div className="doc-hero-stat">
                 <div className="doc-hero-stat-label" style={{ color: "var(--doc-k4)" }}>Este mes</div>
-                <div className="doc-hero-stat-value">—</div>
+                <div className="doc-hero-stat-value">{events.length}</div>
               </div>
             </div>
           </div>
         </header>
 
         <div className="doc-wrap">
-          <div className="doc-empty">Todavía no conectamos las reuniones reales acá.</div>
+          <h2 className="doc-section-title">Próximos encuentros</h2>
+
+          {events.length === 0 ? (
+            <div className="doc-empty">No tenés reuniones próximas agendadas.</div>
+          ) : (
+            <div className="doc-agenda-list">
+              {events.map((ev) => {
+                const [day, month] = splitDate(ev.date);
+                return (
+                  <div key={ev.id} className="doc-agenda-row">
+                    <div className="doc-agenda-date">
+                      <span className="doc-agenda-date-month">{month}</span>
+                      <span className="doc-agenda-date-day">{day}</span>
+                    </div>
+                    <div className="doc-agenda-info">
+                      <div className="doc-agenda-title">{ev.title}</div>
+                      <div className="doc-agenda-meta">{ev.time} · {ev.platform}</div>
+                    </div>
+                    {ev.meetLink && (
+                      <a
+                        className="doc-agenda-icon"
+                        href={ev.meetLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Unirse a la videollamada"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+                          <path
+                            d="M15 8l5-3v14l-5-3M4 6h9a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"
+                            stroke="currentColor"
+                            strokeWidth={1.6}
+                            fill="none"
+                          />
+                        </svg>
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>
