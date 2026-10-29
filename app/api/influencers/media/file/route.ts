@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
 import { getClientSlugForEmail, verifyEmailToken } from "@/lib/assistant/clientAuth";
 import { downloadFile, isWithinRoot } from "@/lib/googleDrive";
-import { getMediaFolderForCampaign } from "@/lib/googleInfluencerMedia";
+import { getClippingFolderId } from "@/lib/googleInfluencerMedia";
 
 export const dynamic = "force-dynamic";
 
 // Streamea el clip real — nunca un link directo a Drive (mismo motivo que
 // /api/documentos/download: el usuario final no tiene cuenta de Google con
-// acceso). "fileId" viene del browser pero se valida con isWithinRoot
-// contra la carpeta de ESA campaña de ESE cliente antes de leer nada.
+// acceso). "campana"/"influencer"/"fileId" vienen del browser, pero la
+// carpeta contra la que se valida (isWithinRoot) sale siempre de la
+// columna "clipping" de la propia tabla de métricas del cliente ya
+// resuelto server-side — nunca de un folderId mandado por el browser.
 export async function GET(request: Request) {
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
     return NextResponse.json({ error: "Falta configurar GOOGLE_SERVICE_ACCOUNT_KEY." }, { status: 500 });
@@ -18,10 +20,11 @@ export async function GET(request: Request) {
   const email = searchParams.get("u");
   const token = searchParams.get("t");
   const campana = searchParams.get("campana");
+  const influencer = searchParams.get("influencer");
   const fileId = searchParams.get("fileId");
 
-  if (!campana || !fileId) {
-    return NextResponse.json({ error: "Faltan parámetros (campana, fileId)." }, { status: 400 });
+  if (!campana || !influencer || !fileId) {
+    return NextResponse.json({ error: "Faltan parámetros (campana, influencer, fileId)." }, { status: 400 });
   }
   if (!email || !verifyEmailToken(email, token)) {
     return NextResponse.json({ error: "No se pudo verificar el usuario." }, { status: 401 });
@@ -32,9 +35,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Este usuario no está habilitado." }, { status: 403 });
   }
 
-  const folderId = await getMediaFolderForCampaign(clientSlug, campana);
+  const folderId = await getClippingFolderId(clientSlug, campana, influencer);
   if (!folderId) {
-    return NextResponse.json({ error: "Esta campaña todavía no tiene material configurado." }, { status: 404 });
+    return NextResponse.json({ error: "No hay carpeta de material para esta pieza." }, { status: 404 });
   }
 
   try {

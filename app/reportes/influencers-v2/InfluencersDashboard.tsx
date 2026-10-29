@@ -50,8 +50,8 @@ function viewRank(piezas: PiezaRow[], piece: PiezaRow): number {
   return siblings.findIndex((p) => p.id === piece.id) + 1;
 }
 
-function mediaFileUrl(email: string, token: string, campana: string, fileId: string): string {
-  const p = new URLSearchParams({ u: email, t: token, campana, fileId });
+function mediaFileUrl(email: string, token: string, campana: string, influencer: string, fileId: string): string {
+  const p = new URLSearchParams({ u: email, t: token, campana, influencer, fileId });
   return `/api/influencers/media/file?${p.toString()}`;
 }
 
@@ -308,7 +308,7 @@ function Lightbox({
   return (
     <div className="inf-lb" role="presentation" onClick={onClose}>
       <div className="inf-lbp" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-        <video src={mediaFileUrl(email, token, piece.campana, clip.id)} controls playsInline autoPlay />
+        <video src={mediaFileUrl(email, token, piece.campana, piece.influencer, clip.id)} controls playsInline autoPlay />
         <div className="inf-lbc">
           <div>
             <b>{piece.influencer}</b>

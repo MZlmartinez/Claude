@@ -11,8 +11,7 @@
     "onboard-calendar": "tsx scripts/onboard-calendar.ts",
     "share-calendar": "tsx scripts/share-calendar.ts",
     "unshare-calendar": "tsx scripts/unshare-calendar.ts",
-    "list-calendars": "tsx scripts/list-calendars.ts",
-    "onboard-influencer-media": "tsx scripts/onboard-influencer-media.ts"
+    "list-calendars": "tsx scripts/list-calendars.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.137.0",
