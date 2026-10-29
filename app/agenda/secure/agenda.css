@@ -105,21 +105,10 @@
 
 .doc-hero {
   position: relative;
-  overflow: hidden;
   background: #1a1a1a;
   border: 1px solid #2f2f2f;
   border-radius: 16px;
   padding: 24px 26px;
-}
-.doc-hero::after {
-  content: "";
-  position: absolute;
-  top: -40%;
-  right: -10%;
-  width: 60%;
-  height: 180%;
-  background: radial-gradient(circle, rgba(216, 252, 74, 0.28), transparent 70%);
-  pointer-events: none;
 }
 .doc-hero-top {
   position: relative;
