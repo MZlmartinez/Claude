@@ -166,9 +166,9 @@ export default function InfluencersDashboard({
   const hasFilters = !!(filters.campana || filters.territorio || filters.influencer || filters.formato);
 
   const campMetricInfo = {
-    inversion: { fmt: F.moneyc, unit: "inversión total", note: "Presupuesto por contrato, contado una vez. Hacé clic en una barra para filtrar." },
-    visualizaciones: { fmt: F.compact, unit: "visualizaciones", note: "Suma de visualizaciones de las piezas. Hacé clic en una barra para filtrar." },
-    interacciones: { fmt: F.compact, unit: "interacciones", note: "Likes, comentarios, shares y guardados. Hacé clic en una barra para filtrar." },
+    inversion: { title: "Inversión por campaña", fmt: F.moneyc, unit: "inversión total", note: "Presupuesto por contrato, contado una vez. Hacé clic en una barra para filtrar." },
+    visualizaciones: { title: "Visualizaciones por campaña", fmt: F.compact, unit: "visualizaciones", note: "Suma de visualizaciones de las piezas. Hacé clic en una barra para filtrar." },
+    interacciones: { title: "Interacciones por campaña", fmt: F.compact, unit: "interacciones", note: "Likes, comentarios, shares y guardados. Hacé clic en una barra para filtrar." },
   } as const;
 
   return (
@@ -809,7 +809,7 @@ function PageResumen({
   piezas: PiezaRow[];
   campMetric: "inversion" | "visualizaciones" | "interacciones";
   setCampMetric: (m: "inversion" | "visualizaciones" | "interacciones") => void;
-  campMetricInfo: Record<"inversion" | "visualizaciones" | "interacciones", { fmt: (v: number | null | undefined) => string; unit: string; note: string }>;
+  campMetricInfo: Record<"inversion" | "visualizaciones" | "interacciones", { title: string; fmt: (v: number | null | undefined) => string; unit: string; note: string }>;
   go: (href: string) => void;
   onOpenMedia: (piece: PiezaRow, clip: Clip) => void;
   email?: string | null;
@@ -824,7 +824,7 @@ function PageResumen({
       <div className="inf-grid">
         <div className="inf-card">
           <div className="inf-card-head">
-            <h2>Inversión por campaña</h2>
+            <h2>{campMetricInfo[campMetric].title}</h2>
             <div className="inf-seg" role="group" aria-label="Métrica">
               {(["inversion", "visualizaciones", "interacciones"] as const).map((m) => (
                 <button key={m} type="button" aria-pressed={campMetric === m} onClick={() => setCampMetric(m)}>
@@ -834,7 +834,7 @@ function PageResumen({
             </div>
           </div>
           <p className="inf-note">{campMetricInfo[campMetric].note}</p>
-          <div className="inf-box">
+          <div className="inf-box" style={{ minHeight: 240 }}>
             <BarList
               rows={campanasSorted}
               labelOf={(r) => r.campana}
@@ -850,7 +850,7 @@ function PageResumen({
         <div className="inf-card">
           <h2>Mix de contenido</h2>
           <p className="inf-note">Piezas recibidas por formato.</p>
-          <div className="inf-box" style={{ minHeight: 220 }}>
+          <div className="inf-box" style={{ minHeight: 240 }}>
             <Donut rows={formatos} filters={filters} go={go} />
           </div>
         </div>
@@ -917,7 +917,7 @@ function PageResumen({
               keyOf={(r) => r.influencer}
               href={(r) => toggleHref(filters, "influencer", r.influencer)}
               isSelected={(r) => filters.influencer === r.influencer}
-              colorOf={() => "var(--s3)"}
+              colorOf={() => "var(--acc)"}
               empty="Ningún contrato filtrado tiene presupuesto y vistas."
               go={go}
             />
@@ -981,7 +981,7 @@ function PageInfluencers({ filters, influencers, go }: { filters: InfluencerFilt
               keyOf={(r) => r.influencer}
               href={(r) => toggleHref(filters, "influencer", r.influencer)}
               isSelected={(r) => filters.influencer === r.influencer}
-              colorOf={() => "var(--s3)"}
+              colorOf={() => "var(--acc)"}
               empty="Ningún contrato filtrado tiene presupuesto y vistas."
               go={go}
             />

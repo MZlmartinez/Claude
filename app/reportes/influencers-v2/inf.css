@@ -285,13 +285,14 @@
   color-scheme: dark;
 }
 .inf-clear {
-  font: 500 13px var(--body);
-  background: transparent;
-  color: var(--ink2);
-  border: 0;
-  padding: 8px 6px;
+  font: 600 13px var(--body);
+  background: var(--card2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 16px;
   cursor: pointer;
-  text-decoration: underline;
+  text-decoration: none;
   min-height: 36px;
   white-space: nowrap;
 }
