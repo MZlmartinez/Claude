@@ -718,33 +718,61 @@ function Stacks({ piezas, filters, go }: { piezas: PiezaRow[]; filters: Influenc
       .sort((a, b) => b.total - a.total)
       .slice(0, 12);
   }, [piezas]);
+  const [hover, setHover] = useState<string | null>(null);
   if (!rows.length) return <div className="inf-empty">Sin piezas para estos filtros.</div>;
   const max = Math.max(1, ...rows.map((r) => r.total));
+  const xt = ticks(max, 6);
   const sel = filters.influencer;
+  const hoverRow = rows.find((r) => r.influencer === hover);
   return (
     <div>
-      <div className="inf-bl">
+      <div className="inf-legend" style={{ marginBottom: 12 }}>
+        {FORMATO_ORDER.map((f) => <span key={f}><i style={{ background: FCOL[f] }} />{FMT[f]}</span>)}
+      </div>
+      <div className="inf-stackchart">
         {rows.map((r) => {
-          const cls = ["inf-bl-row", "is-click", sel === r.influencer ? "is-sel" : sel ? "is-dim" : ""].filter(Boolean).join(" ");
+          const cls = ["inf-stackchart-row", sel === r.influencer ? "is-sel" : sel ? "is-dim" : ""].filter(Boolean).join(" ");
           return (
-            <div key={r.influencer} className={cls} onClick={() => go(toggleHref(filters, "influencer", r.influencer))}>
-              <div className="inf-bl-lab">{r.influencer}</div>
-              <div className="inf-stack" style={{ width: `${(r.total / max) * 100}%` }}>
-                {r.byFormato.map((seg) => (
-                  <div
-                    key={seg.formato}
-                    style={{ width: `${(seg.count / r.total) * 100}%`, background: FCOL[seg.formato] ?? "var(--acc)" }}
-                    title={`${FMT[seg.formato] ?? seg.formato}: ${F.int(seg.count)} piezas`}
-                  />
-                ))}
+            <div key={r.influencer} className={cls}>
+              <button type="button" className="inf-stackchart-label" onClick={() => go(toggleHref(filters, "influencer", r.influencer))}>
+                {r.influencer}
+              </button>
+              <div
+                className="inf-stackchart-track"
+                onMouseEnter={() => setHover(r.influencer)}
+                onMouseLeave={() => setHover((h) => (h === r.influencer ? null : h))}
+              >
+                {xt.map((v) => <div key={v} className="inf-stackchart-grid" style={{ left: `${(v / max) * 100}%` }} />)}
+                <div
+                  className="inf-stack"
+                  style={{ width: `${(r.total / max) * 100}%`, cursor: "pointer" }}
+                  onClick={() => go(toggleHref(filters, "influencer", r.influencer))}
+                >
+                  {r.byFormato.map((seg) => (
+                    <div key={seg.formato} style={{ width: `${(seg.count / r.total) * 100}%`, background: FCOL[seg.formato] ?? "var(--acc)" }} />
+                  ))}
+                </div>
+                {hoverRow?.influencer === r.influencer && (
+                  <div className="inf-tooltip" style={{ left: `${(r.total / max) * 100}%` }}>
+                    <b>{r.influencer}</b>
+                    {FORMATO_ORDER.map((f) => (
+                      <div key={f}>
+                        <i style={{ background: FCOL[f] }} />
+                        {FMT[f]}: {r.byFormato.find((s) => s.formato === f)?.count ?? 0}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="inf-bl-val">{F.int(r.total)}</div>
             </div>
           );
         })}
-      </div>
-      <div className="inf-legend">
-        {FORMATO_ORDER.map((f) => <span key={f}><i style={{ background: FCOL[f] }} />{FMT[f]}</span>)}
+        <div className="inf-stackchart-row">
+          <div className="inf-stackchart-label" />
+          <div className="inf-stackchart-axis">
+            {xt.map((v) => <span key={v} style={{ left: `${(v / max) * 100}%` }}>{F.int(v)}</span>)}
+          </div>
+        </div>
       </div>
     </div>
   );
