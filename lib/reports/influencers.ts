@@ -170,6 +170,11 @@ export type InfluencerRow = {
   rank_tasa: number | null;
   rank_costo_mil_vistas: number | null;
   ranking_promedio: number | null;
+  // Dato propio del influencer (no de una pieza puntual) — constante entre
+  // sus piezas, por eso basta con max() para traerlo sin duplicar filas.
+  seguidores_ig: number | null;
+  seguidores_tiktok: number | null;
+  er_ig: number | null;
 };
 
 export async function getInfluencers(client: ClientSlug, f: InfluencerFilters): Promise<InfluencerRow[]> {
@@ -191,7 +196,10 @@ export async function getInfluencers(client: ClientSlug, f: InfluencerFilters): 
         (count(*) filter (where coalesce(visualizaciones,0) > 0))::int con_metricas,
         coalesce(sum(visualizaciones),0)::float8 visualizaciones,
         coalesce(sum(alcance),0)::float8 alcance,
-        coalesce(sum((coalesce(likes,0)+coalesce(comentarios,0)+coalesce(shares,0)+coalesce(guardados,0))),0)::float8 interacciones
+        coalesce(sum((coalesce(likes,0)+coalesce(comentarios,0)+coalesce(shares,0)+coalesce(guardados,0))),0)::float8 interacciones,
+        max(instagram)::float8 seguidores_ig,
+        max(tiktok)::float8 seguidores_tiktok,
+        max(engagement_rate_ig)::float8 er_ig
       from f group by 1
     ), j as (
       select m.*, kk.inversion, kk.contratos,
@@ -210,7 +218,8 @@ export async function getInfluencers(client: ClientSlug, f: InfluencerFilters): 
     select influencer, territorio, campanas, contratos, inversion, piezas, con_metricas,
       visualizaciones, alcance, interacciones, tasa, costo_mil_vistas, costo_por_interaccion,
       r_cpi::int rank_costo_interaccion, r_tasa::int rank_tasa, r_cpm::int rank_costo_mil_vistas,
-      round(((r_cpi+r_tasa+r_cpm)/3.0)::numeric,1)::float8 ranking_promedio
+      round(((r_cpi+r_tasa+r_cpm)/3.0)::numeric,1)::float8 ranking_promedio,
+      seguidores_ig, seguidores_tiktok, er_ig
     from r
     order by inversion desc, influencer`,
     filterParams(f),

@@ -957,6 +957,9 @@ function PageInfluencers({ filters, influencers, go }: { filters: InfluencerFilt
   const infColumns: Column<InfluencerRow>[] = [
     { key: "influencer", label: "Influencer", sortable: true, sortValue: (r) => r.influencer, render: (r) => r.influencer },
     { key: "territorio", label: "Territorio", sec: true, sortable: true, sortValue: (r) => r.territorio, render: (r) => r.territorio ?? "—" },
+    { key: "seguidores_ig", label: "Seguidores IG", num: true, sortable: true, sortValue: (r) => r.seguidores_ig, render: (r) => F.int(r.seguidores_ig) },
+    { key: "seguidores_tiktok", label: "Seguidores TikTok", num: true, sec: true, sortable: true, sortValue: (r) => r.seguidores_tiktok, render: (r) => F.int(r.seguidores_tiktok) },
+    { key: "er_ig", label: "ER IG", num: true, sortable: true, sortValue: (r) => r.er_ig, render: (r) => F.pct(r.er_ig) },
     { key: "campanas", label: "Campañas", sec: true, sortable: true, sortValue: (r) => r.campanas, render: (r) => r.campanas ?? "—" },
     { key: "inversion", label: "Inversión", num: true, sortable: true, sortValue: (r) => r.inversion, render: (r) => (r.inversion === 0 ? "Sin fee" : F.money(r.inversion)) },
     { key: "piezas", label: "Piezas", num: true, sec: true, sortable: true, sortValue: (r) => r.piezas, render: (r) => F.int(r.piezas) },
