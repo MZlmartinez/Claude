@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "sync-gold": "tsx scripts/sync-gold.ts"
+    "sync-gold": "tsx scripts/sync-gold.ts",
+    "onboard-calendar": "tsx scripts/onboard-calendar.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.137.0",

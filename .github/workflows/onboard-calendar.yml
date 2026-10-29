@@ -1,0 +1,51 @@
+name: Onboard calendar (Agenda)
+
+on:
+  # Se dispara a mano desde la pestaña Actions de GitHub cuando se suma un
+  # cliente nuevo a Agenda — ver scripts/onboard-calendar.ts.
+  workflow_dispatch:
+    inputs:
+      client_slug:
+        description: "client_slug del cliente (ver lib/goldTables.ts)"
+        required: true
+        type: choice
+        options:
+          - deca
+          - adecco
+      display_name:
+        description: "Nombre para mostrar (ej. Decathlon Argentina)"
+        required: true
+        type: string
+      team_emails:
+        description: "Emails del equipo con permiso para cargar reuniones, separados por espacio"
+        required: true
+        type: string
+
+jobs:
+  onboard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - run: npm ci
+
+      # Los inputs van por env var (no interpolados directo en el run:)
+      # para que el shell nunca re-interprete el texto que vino del
+      # formulario de Actions como parte del comando.
+      - run: npx tsx scripts/onboard-calendar.ts "$CLIENT_SLUG" "$DISPLAY_NAME" $TEAM_EMAILS
+        env:
+          CLIENT_SLUG: ${{ inputs.client_slug }}
+          DISPLAY_NAME: ${{ inputs.display_name }}
+          TEAM_EMAILS: ${{ inputs.team_emails }}
+          # Mismo Service Account que Drive — necesita el scope de
+          # escritura de Calendar para crear el calendario y compartirlo
+          # (ver scripts/onboard-calendar.ts), a diferencia del scope de
+          # solo lectura que usa la app en vivo (lib/googleCalendar.ts).
+          GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
