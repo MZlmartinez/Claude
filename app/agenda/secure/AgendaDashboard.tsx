@@ -108,7 +108,7 @@ export default function AgendaDashboard({ fontClassName }: Props) {
             </div>
           </div>
 
-          <div className="doc-hero">
+          <div className="doc-hero doc-hero-compact">
             <div className="doc-hero-top">
               <span className="doc-hero-badge" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none">
