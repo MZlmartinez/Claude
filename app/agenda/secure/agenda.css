@@ -210,26 +210,28 @@
 
 .doc-section-title {
   margin: 0;
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--doc-fg2);
+  color: var(--doc-fg);
 }
 
 .doc-agenda-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  background: var(--doc-card2);
+  border: 1px solid var(--doc-line);
+  border-radius: 12px;
+  overflow: hidden;
 }
 .doc-agenda-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: var(--doc-card2);
-  border: 1px solid var(--doc-line);
-  border-radius: 12px;
-  padding: 10px 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--doc-line);
+}
+.doc-agenda-row:last-child {
+  border-bottom: none;
 }
 .doc-agenda-date {
   flex-shrink: 0;
@@ -279,14 +281,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
   color: var(--doc-accent-text);
-  background: rgba(255, 255, 255, 0.05);
-}
-.doc[data-theme="light"] .doc-agenda-icon {
-  background: var(--doc-card2);
 }
 .doc-error {
   color: var(--doc-accent-text);
