@@ -7,7 +7,7 @@
 
 import { queryReport } from "../lib/supabase/pg";
 import { listFilesInFolder, getFileMeta } from "../lib/googleDrive";
-import { getClippingFolderId, listClipsRanked } from "../lib/googleInfluencerMedia";
+import { getClippingRootId, getClipForRank } from "../lib/googleInfluencerMedia";
 
 async function main() {
   const [client, campana, influencer] = process.argv.slice(2);
@@ -29,47 +29,43 @@ async function main() {
   }
   rows.forEach((r, i) => console.log(`   [${i + 1}] ${r.scope_recibido_tipo} ${r.scope_recibido_numero} · vis=${r.visualizaciones} · clipping=${r.clipping}`));
 
-  console.log(`\n2. getClippingFolderId("${client}", "${campana}", "${influencer}"):`);
-  const folderId = await getClippingFolderId(client, campana, influencer);
-  console.log(`   -> ${folderId}`);
-  if (!folderId) {
-    console.log("   No se pudo extraer un folderId del campo clipping (o no hay ninguna fila con clipping no nulo).");
+  console.log(`\n2. getClippingRootId("${client}", "${campana}", "${influencer}"):`);
+  const rootId = await getClippingRootId(client, campana, influencer);
+  console.log(`   -> ${rootId}`);
+  if (!rootId) {
+    console.log("   No se pudo extraer un id del campo clipping (ni /folders/ ni /file/d/) o no hay ninguna fila con clipping no nulo.");
     return;
   }
 
-  console.log(`\n3. Metadata directa del id ${folderId} (confirma que exista de verdad, no solo "0 hijos"):`);
-  const meta = await getFileMeta(folderId);
+  console.log(`\n3. Metadata directa del id ${rootId} (confirma que exista de verdad, no solo "0 hijos"):`);
+  const meta = await getFileMeta(rootId);
   if (!meta) {
     console.log("   El Service Account NO puede leer este id directamente (no existe, nunca se compartió, o está fuera de su alcance).");
-    console.log("   Esto es DISTINTO de \"carpeta vacía\": acá el id en sí no resuelve, listFilesInFolder daría 0 igual sin que signifique que está vacía.");
+    console.log('   Esto es DISTINTO de "vacía": acá el id en sí no resuelve.');
     return;
   }
-  console.log(`   -> nombre="${meta.name}" mimeType=${meta.mimeType} trashed=${meta.trashed}`);
-  if (meta.mimeType !== "application/vnd.google-apps.folder") {
-    console.log("   OJO: esto no es una carpeta — el link de \"clipping\" no apunta a una carpeta de Drive.");
-  }
-  if (meta.trashed) {
-    console.log("   OJO: esta carpeta está en la papelera.");
-  }
+  const esCarpeta = meta.mimeType === "application/vnd.google-apps.folder";
+  console.log(`   -> nombre="${meta.name}" mimeType=${meta.mimeType} trashed=${meta.trashed} (${esCarpeta ? "carpeta" : "archivo puntual"})`);
+  if (meta.trashed) console.log("   OJO: está en la papelera.");
 
-  console.log(`\n4. Contenido crudo de la carpeta ${folderId} (listFilesInFolder):`);
-  try {
-    const all = await listFilesInFolder(folderId);
-    if (all.length === 0) {
-      console.log("   Confirmado vacía de verdad: el id existe, el Service Account lo lee, y no tiene nada adentro.");
+  if (esCarpeta) {
+    console.log(`\n4. Contenido crudo de la carpeta ${rootId} (listFilesInFolder):`);
+    try {
+      const all = await listFilesInFolder(rootId);
+      if (all.length === 0) console.log("   Confirmado vacía de verdad: el id existe, el Service Account lo lee, y no tiene nada adentro.");
+      all.forEach((f) => console.log(`   - ${f.name} (${f.mimeType})`));
+    } catch (e) {
+      console.log(`   ERROR leyendo la carpeta: ${e instanceof Error ? e.message : String(e)}`);
+      return;
     }
-    all.forEach((f) => console.log(`   - ${f.name} (${f.mimeType})`));
-  } catch (e) {
-    console.log(`   ERROR leyendo la carpeta: ${e instanceof Error ? e.message : String(e)}`);
-    return;
+  } else if (!meta.mimeType.startsWith("video/")) {
+    console.log(`\n4. Este archivo no es un video (mimeType=${meta.mimeType}) — no se va a mostrar.`);
   }
 
-  console.log(`\n5. listClipsRanked (solo videos, ordenados por "(N)"):`);
-  const clips = await listClipsRanked(folderId);
-  if (clips.length === 0) {
-    console.log('   Ninguno — la carpeta no tiene archivos con mimeType que empiece con "video/".');
-  } else {
-    clips.forEach((c, i) => console.log(`   clip ${i + 1}: ${c.name} (${c.mimeType})`));
+  console.log(`\n5. getClipForRank (lo que de verdad devuelve la API, probando rank 1 a 3):`);
+  for (let rank = 1; rank <= 3; rank++) {
+    const clip = await getClipForRank(client, campana, influencer, rank);
+    console.log(`   rank ${rank}: ${clip ? `${clip.name} (${clip.mimeType})` : "null"}`);
   }
 }
 

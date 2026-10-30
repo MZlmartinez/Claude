@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getClientSlugForEmail, verifyEmailToken } from "@/lib/assistant/clientAuth";
 import { downloadFile, isWithinRoot } from "@/lib/googleDrive";
-import { getClippingFolderId } from "@/lib/googleInfluencerMedia";
+import { getClippingRootId } from "@/lib/googleInfluencerMedia";
 
 export const dynamic = "force-dynamic";
 
@@ -35,13 +35,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Este usuario no está habilitado." }, { status: 403 });
   }
 
-  const folderId = await getClippingFolderId(clientSlug, campana, influencer);
-  if (!folderId) {
-    return NextResponse.json({ error: "No hay carpeta de material para esta pieza." }, { status: 404 });
+  const rootId = await getClippingRootId(clientSlug, campana, influencer);
+  if (!rootId) {
+    return NextResponse.json({ error: "No hay material configurado para esta pieza." }, { status: 404 });
   }
 
   try {
-    const allowed = await isWithinRoot(fileId, folderId);
+    const allowed = await isWithinRoot(fileId, rootId);
     if (!allowed) {
       return NextResponse.json({ error: "Ese archivo no pertenece a esta campaña." }, { status: 403 });
     }

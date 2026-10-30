@@ -1,12 +1,13 @@
 // Recorre TODAS las combinaciones (campaña, influencer) que tienen un link
-// de "clipping" cargado y dice cuántos archivos de video hay en cada
-// carpeta — para saber de un vistazo dónde ya hay contenido real subido y
-// dónde todavía no, sin tener que probar una por una. Solo lee.
+// de "clipping" cargado y dice cuántos clips reales hay para cada una —
+// para saber de un vistazo dónde ya hay contenido real y dónde no, sin
+// tener que probar una por una. Solo lee. "clipping" puede ser un link a
+// una carpeta o a un archivo puntual (ver lib/googleInfluencerMedia.ts).
 //
 //   npx tsx scripts/audit-influencer-media.ts [clientSlug]   (default: deca)
 
 import { queryReport } from "../lib/supabase/pg";
-import { listClipsRanked, getClippingFolderId } from "../lib/googleInfluencerMedia";
+import { getClippingRootId, getClipForRank } from "../lib/googleInfluencerMedia";
 import { getFileMeta } from "../lib/googleDrive";
 
 async function main() {
@@ -23,29 +24,30 @@ async function main() {
   let rotas = 0;
   let vacias = 0;
   for (const { campana, influencer } of combos) {
-    const folderId = await getClippingFolderId(client, campana, influencer);
-    if (!folderId) {
-      console.log(`- ${campana} / ${influencer}: no se pudo extraer folderId`);
+    const rootId = await getClippingRootId(client, campana, influencer);
+    if (!rootId) {
+      console.log(`- ${campana} / ${influencer}: no se pudo extraer un id (ni /folders/ ni /file/d/)`);
       continue;
     }
-    const meta = await getFileMeta(folderId);
+    const meta = await getFileMeta(rootId);
     if (!meta) {
       console.log(`✗ ${campana} / ${influencer}: el id no existe / no es accesible (link roto)`);
       rotas++;
       continue;
     }
+    const tipo = meta.mimeType === "application/vnd.google-apps.folder" ? "carpeta" : "archivo";
     try {
-      const clips = await listClipsRanked(folderId);
-      const marca = clips.length > 0 ? "★" : " ";
-      console.log(`${marca} ${campana} / ${influencer}: ${clips.length} video(s) — carpeta real "${meta.name}"`);
-      if (clips.length > 0) conContenido++;
+      const clip1 = await getClipForRank(client, campana, influencer, 1);
+      const marca = clip1 ? "★" : " ";
+      console.log(`${marca} ${campana} / ${influencer}: ${tipo} "${meta.name}" — ${clip1 ? `clip 1 = ${clip1.name}` : "sin clip de video usable"}`);
+      if (clip1) conContenido++;
       else vacias++;
     } catch (e) {
-      console.log(`! ${campana} / ${influencer}: ERROR leyendo carpeta — ${e instanceof Error ? e.message : String(e)}`);
+      console.log(`! ${campana} / ${influencer}: ERROR — ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 
-  console.log(`\n${conContenido} con video · ${vacias} vacías (pero reales) · ${rotas} con link roto/inaccesible · ${combos.length} total.`);
+  console.log(`\n${conContenido} con video · ${vacias} sin video (pero reales) · ${rotas} con link roto/inaccesible · ${combos.length} total.`);
 }
 
 main().catch((err) => {
