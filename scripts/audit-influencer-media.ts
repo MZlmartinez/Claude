@@ -7,6 +7,7 @@
 
 import { queryReport } from "../lib/supabase/pg";
 import { listClipsRanked, getClippingFolderId } from "../lib/googleInfluencerMedia";
+import { getFileMeta } from "../lib/googleDrive";
 
 async function main() {
   const [client = "deca"] = process.argv.slice(2);
@@ -19,23 +20,32 @@ async function main() {
   console.log(`${combos.length} combinaciones (campaña, influencer) con clipping cargado:\n`);
 
   let conContenido = 0;
+  let rotas = 0;
+  let vacias = 0;
   for (const { campana, influencer } of combos) {
     const folderId = await getClippingFolderId(client, campana, influencer);
     if (!folderId) {
       console.log(`- ${campana} / ${influencer}: no se pudo extraer folderId`);
       continue;
     }
+    const meta = await getFileMeta(folderId);
+    if (!meta) {
+      console.log(`✗ ${campana} / ${influencer}: el id no existe / no es accesible (link roto)`);
+      rotas++;
+      continue;
+    }
     try {
       const clips = await listClipsRanked(folderId);
       const marca = clips.length > 0 ? "★" : " ";
-      console.log(`${marca} ${campana} / ${influencer}: ${clips.length} video(s)`);
+      console.log(`${marca} ${campana} / ${influencer}: ${clips.length} video(s) — carpeta real "${meta.name}"`);
       if (clips.length > 0) conContenido++;
+      else vacias++;
     } catch (e) {
       console.log(`! ${campana} / ${influencer}: ERROR leyendo carpeta — ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 
-  console.log(`\n${conContenido} de ${combos.length} carpetas tienen al menos un video cargado.`);
+  console.log(`\n${conContenido} con video · ${vacias} vacías (pero reales) · ${rotas} con link roto/inaccesible · ${combos.length} total.`);
 }
 
 main().catch((err) => {
