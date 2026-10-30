@@ -1,0 +1,32 @@
+name: Debug · Influencers · Auditar material
+
+on:
+  # Solo lectura — ver scripts/audit-influencer-media.ts. Recorre todas
+  # las combinaciones (campaña, influencer) con clipping cargado y dice
+  # cuántos videos hay en cada carpeta.
+  workflow_dispatch:
+    inputs:
+      client_slug:
+        description: "deca o adecco"
+        required: true
+        type: string
+        default: deca
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - run: npm ci
+
+      - run: npx tsx scripts/audit-influencer-media.ts "$CLIENT_SLUG"
+        env:
+          CLIENT_SLUG: ${{ inputs.client_slug }}
+          GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
