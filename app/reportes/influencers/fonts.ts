@@ -1,17 +1,23 @@
-import { Anton, Roboto } from "next/font/google";
+import { Anton, Roboto, Roboto_Condensed } from "next/font/google";
 
-// El artifact original de claude.ai usa fuentes custom ('MX Anton'/'MX Roboto')
-// embebidas en base64 (cientos de KB) — acá usamos directamente las públicas
-// de Google Fonts de las que esas son variantes, que son el siguiente fallback
-// en su propia pila de fuentes.
-export const mxDisplay = Anton({
+// Mismas familias que usa el artifact de referencia (Anton + Roboto +
+// Roboto Condensed para los números), vía Google Fonts en vez del
+// <link> que usaba el HTML original — ver app/reportes/influencers/fonts.ts
+// para el precedente de este mismo patrón.
+export const infDisplay = Anton({
   subsets: ["latin"],
   weight: "400",
-  variable: "--font-mx-display",
+  variable: "--font-inf-display",
 });
 
-export const mxBody = Roboto({
+export const infBody = Roboto({
+  subsets: ["latin"],
+  weight: ["400", "500", "700", "900"],
+  variable: "--font-inf-body",
+});
+
+export const infMono = Roboto_Condensed({
   subsets: ["latin"],
   weight: ["400", "500", "700"],
-  variable: "--font-mx-body",
+  variable: "--font-inf-mono",
 });

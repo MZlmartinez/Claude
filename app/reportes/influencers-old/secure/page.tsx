@@ -11,7 +11,7 @@ import {
   type InfluencerFilters,
 } from "@/lib/reports/influencers";
 import InfluencersDashboard from "../InfluencersDashboard";
-import { infDisplay, infBody, infMono } from "../fonts";
+import { mxBody, mxDisplay } from "../fonts";
 import { getClientSlugForEmail, verifyEmailToken } from "@/lib/assistant/clientAuth";
 import type { ClientSlug } from "@/lib/goldTables";
 
@@ -19,10 +19,13 @@ export const dynamic = "force-dynamic";
 
 const ALLOWED_CLIENTS: ClientSlug[] = ["deca", "adecco"];
 
-// v2 de /reportes/influencers/secure — mismo candado de identidad, mismos
-// datos, visor nuevo (ver InfluencersDashboard.tsx). En paralelo, sin
-// reemplazar nada.
-export default async function SecureInfluencersReportPageV2({
+// Versión con candado de identidad de /reportes/influencers, en paralelo
+// sin tocar esa ruta (que Softr sigue embebiendo hoy via el link estático
+// de Airtable). Primer piloto del esquema nuevo: email+token firmado en
+// vez de "quien tenga el link, entra" — mismo mecanismo que ya prueba
+// app/api/asistente/chat/route.ts. Si esto reemplaza al link de Airtable
+// más adelante, recién ahí se puede borrar la ruta vieja.
+export default async function SecureInfluencersReportPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -74,13 +77,14 @@ export default async function SecureInfluencersReportPageV2({
       piezas={piezas}
       contratos={contratos}
       opciones={opciones}
-      fontClassName={`${infDisplay.variable} ${infBody.variable} ${infMono.variable}`}
-      email={email}
-      token={token}
+      fontClassName={`${mxDisplay.variable} ${mxBody.variable}`}
     />
   );
 }
 
+// Fondo y color propios, no heredados: si esto se embebe en un iframe con
+// mx.css de fondo oscuro (como Softr), un texto gris sin fondo propio
+// puede quedar invisible en vez de mostrar el motivo del error.
 function Unauthorized({ reason }: { reason: string }) {
   return (
     <div

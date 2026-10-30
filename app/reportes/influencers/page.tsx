@@ -11,10 +11,12 @@ import {
   type InfluencerFilters,
 } from "@/lib/reports/influencers";
 import InfluencersDashboard from "./InfluencersDashboard";
-import { mxBody, mxDisplay } from "./fonts";
+import { infDisplay, infBody, infMono } from "./fonts";
 
 export const dynamic = "force-dynamic";
 
+// Ruta vieja, sin candado de identidad — se mantiene fija a Decathlon,
+// como siempre fue (ver secure/page.tsx para la versión multi-cliente).
 export default async function InfluencersReportPage({
   searchParams,
 }: {
@@ -30,9 +32,6 @@ export default async function InfluencersReportPage({
     formato: one(params.formato),
   };
 
-  // Ruta vieja, sin candado de identidad — se mantiene fija a Decathlon,
-  // como siempre fue (ver app/reportes/influencers/secure/page.tsx para
-  // la versión nueva, multi-cliente).
   const [kpis, campanas, formatos, influencers, territorios, interacciones, piezas, contratos, opciones] =
     await Promise.all([
       getKpis("deca", filters),
@@ -58,7 +57,7 @@ export default async function InfluencersReportPage({
       piezas={piezas}
       contratos={contratos}
       opciones={opciones}
-      fontClassName={`${mxDisplay.variable} ${mxBody.variable}`}
+      fontClassName={`${infDisplay.variable} ${infBody.variable} ${infMono.variable}`}
     />
   );
 }

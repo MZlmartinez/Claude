@@ -11,13 +11,15 @@ import {
   type InfluencerFilters,
 } from "@/lib/reports/influencers";
 import InfluencersDashboard from "./InfluencersDashboard";
-import { infDisplay, infBody, infMono } from "./fonts";
+import { mxBody, mxDisplay } from "./fonts";
 
 export const dynamic = "force-dynamic";
 
-// v2 en paralelo a /reportes/influencers — ver InfluencersDashboard.tsx.
-// Mismos datos reales, visor nuevo. No reemplaza nada todavía.
-export default async function InfluencersReportPageV2({
+// Respaldo de la versión anterior de /reportes/influencers, reemplazada
+// por el diseño nuevo (ver app/reportes/influencers). Sigue sirviendo en
+// /reportes/influencers-old, pero nada la linkea — queda solo por si hace
+// falta volver atrás.
+export default async function InfluencersReportPageOld({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -32,6 +34,9 @@ export default async function InfluencersReportPageV2({
     formato: one(params.formato),
   };
 
+  // Ruta vieja, sin candado de identidad — se mantiene fija a Decathlon,
+  // como siempre fue (ver app/reportes/influencers/secure/page.tsx para
+  // la versión nueva, multi-cliente).
   const [kpis, campanas, formatos, influencers, territorios, interacciones, piezas, contratos, opciones] =
     await Promise.all([
       getKpis("deca", filters),
@@ -57,7 +62,7 @@ export default async function InfluencersReportPageV2({
       piezas={piezas}
       contratos={contratos}
       opciones={opciones}
-      fontClassName={`${infDisplay.variable} ${infBody.variable} ${infMono.variable}`}
+      fontClassName={`${mxDisplay.variable} ${mxBody.variable}`}
     />
   );
 }
