@@ -120,19 +120,3 @@ Identidad real de Moscu ya aplicada, tomada del brandbook compartido:
 
 Pensado para deployar en [Vercel](https://vercel.com/new), agregando las mismas
 variables de entorno del paso 2 en la configuración del proyecto.
-
-## Morosidad (`/morosidad`) — prototipo
-
-Tablero de deudas por propiedad para inmobiliarias (Rosario): Impuesto Inmobiliario
-(API Santa Fe), TGI, Litoral Gas, ASSA y EPE. **Hoy funciona con datos simulados**
-(`lib/morosidad/adaptadores/simulado.ts`); los adaptadores reales se escriben después
-de validar a mano cada portal (¿pide login?, ¿captcha?, ¿muestra importe?, ¿boleta
-descargable?).
-
-- Modelo: la propiedad se identifica por partida inmobiliaria; cada cuenta de servicio
-  cuelga de ella. Esquema en `supabase/schema_morosidad.sql`.
-- Estados: al día / por vencer / vencida / **sin dato** (consulta fallida — nunca se
-  muestra como "al día").
-- Cada ente implementa `Adaptador` (`lib/morosidad/adaptadores/tipos.ts`); sumar una
-  ciudad = sumar entradas en `lib/morosidad/proveedores.ts` y sus adaptadores.
-- Requiere sesión del portal (no está en `PUBLIC_PATHS`).
