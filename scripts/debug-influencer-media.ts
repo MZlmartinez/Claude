@@ -6,7 +6,7 @@
 //   npx tsx scripts/debug-influencer-media.ts <clientSlug> "<campana>" "<influencer>"
 
 import { queryReport } from "../lib/supabase/pg";
-import { listFilesInFolder } from "../lib/googleDrive";
+import { listFilesInFolder, getFileMeta } from "../lib/googleDrive";
 import { getClippingFolderId, listClipsRanked } from "../lib/googleInfluencerMedia";
 
 async function main() {
@@ -37,20 +37,34 @@ async function main() {
     return;
   }
 
-  console.log(`\n3. Contenido crudo de la carpeta ${folderId} (listFilesInFolder):`);
+  console.log(`\n3. Metadata directa del id ${folderId} (confirma que exista de verdad, no solo "0 hijos"):`);
+  const meta = await getFileMeta(folderId);
+  if (!meta) {
+    console.log("   El Service Account NO puede leer este id directamente (no existe, nunca se compartió, o está fuera de su alcance).");
+    console.log("   Esto es DISTINTO de \"carpeta vacía\": acá el id en sí no resuelve, listFilesInFolder daría 0 igual sin que signifique que está vacía.");
+    return;
+  }
+  console.log(`   -> nombre="${meta.name}" mimeType=${meta.mimeType} trashed=${meta.trashed}`);
+  if (meta.mimeType !== "application/vnd.google-apps.folder") {
+    console.log("   OJO: esto no es una carpeta — el link de \"clipping\" no apunta a una carpeta de Drive.");
+  }
+  if (meta.trashed) {
+    console.log("   OJO: esta carpeta está en la papelera.");
+  }
+
+  console.log(`\n4. Contenido crudo de la carpeta ${folderId} (listFilesInFolder):`);
   try {
     const all = await listFilesInFolder(folderId);
     if (all.length === 0) {
-      console.log("   La carpeta existe y el Service Account puede leerla, pero está vacía (o no ve nada adentro).");
+      console.log("   Confirmado vacía de verdad: el id existe, el Service Account lo lee, y no tiene nada adentro.");
     }
     all.forEach((f) => console.log(`   - ${f.name} (${f.mimeType})`));
   } catch (e) {
     console.log(`   ERROR leyendo la carpeta: ${e instanceof Error ? e.message : String(e)}`);
-    console.log("   Esto suele ser un problema de permisos: el Service Account no puede leer esta carpeta puntual.");
     return;
   }
 
-  console.log(`\n4. listClipsRanked (solo videos, ordenados por "(N)"):`);
+  console.log(`\n5. listClipsRanked (solo videos, ordenados por "(N)"):`);
   const clips = await listClipsRanked(folderId);
   if (clips.length === 0) {
     console.log('   Ninguno — la carpeta no tiene archivos con mimeType que empiece con "video/".');

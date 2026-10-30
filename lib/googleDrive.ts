@@ -17,6 +17,30 @@ function driveClient() {
   return google.drive({ version: "v3", auth });
 }
 
+// Metadata cruda de un id puntual (carpeta o archivo) — a diferencia de
+// listFilesInFolder, esto SÍ confirma que el id exista y sea legible: una
+// carpeta borrada, nunca compartida, o con un id mal copiado da el mismo
+// resultado "0 hijos" en un listado por `parents`, pero acá tira error o
+// trashed:true en vez de mentir "está vacía".
+export async function getFileMeta(fileId: string): Promise<{ id: string; name: string; mimeType: string; trashed: boolean } | null> {
+  const drive = driveClient();
+  try {
+    const res = await drive.files.get({
+      fileId,
+      fields: "id, name, mimeType, trashed",
+      supportsAllDrives: true,
+    });
+    return {
+      id: res.data.id ?? fileId,
+      name: res.data.name ?? "",
+      mimeType: res.data.mimeType ?? "",
+      trashed: res.data.trashed ?? false,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export type DriveFile = {
   id: string;
   name: string;
