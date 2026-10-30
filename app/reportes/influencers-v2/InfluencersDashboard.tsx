@@ -305,6 +305,19 @@ function Lightbox({
 }) {
   if (!lightbox || !email || !token) return null;
   const { piece, clip } = lightbox;
+  const periodo =
+    piece.periodo_desde && piece.periodo_hasta ? `${F.date(piece.periodo_desde)} al ${F.date(piece.periodo_hasta)}` : null;
+  const stats: Array<{ label: string; value: string }> = [
+    { label: "Vistas", value: F.int(piece.visualizaciones) },
+    { label: "Alcance", value: F.int(piece.alcance) },
+    { label: "Interacciones", value: F.int(piece.interacciones) },
+    { label: "Tasa", value: F.pct(piece.tasa) },
+    { label: "Likes", value: F.int(piece.likes) },
+    { label: "Comentarios", value: F.int(piece.comentarios) },
+    { label: "Shares", value: F.int(piece.shares) },
+    { label: "Guardados", value: F.int(piece.guardados) },
+    { label: "Clics a @", value: F.int(piece.clics) },
+  ];
   return (
     <div className="inf-lb" role="presentation" onClick={onClose}>
       <div className="inf-lbp" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
@@ -313,10 +326,19 @@ function Lightbox({
           <div>
             <b>{piece.influencer}</b>
             <div className="inf-sub2">
-              {piece.campana} · {F.compact(piece.visualizaciones)} vistas
+              Campaña {piece.campana} · {(FMT[piece.formato ?? ""] ?? piece.formato) + (piece.numero != null ? ` ${piece.numero}` : "")}
+              {periodo && <> · {periodo}</>}
             </div>
           </div>
           <button className="inf-lbx" type="button" onClick={onClose}>Cerrar</button>
+        </div>
+        <div className="inf-lbs">
+          {stats.map((s) => (
+            <div key={s.label}>
+              <span>{s.label}</span>
+              <b>{s.value}</b>
+            </div>
+          ))}
         </div>
       </div>
     </div>

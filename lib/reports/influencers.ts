@@ -296,6 +296,8 @@ export type PiezaRow = {
   interacciones: number | null;
   tasa: number | null;
   clipping: string | null;
+  periodo_desde: string | null;
+  periodo_hasta: string | null;
 };
 
 export async function getPiezas(client: ClientSlug, f: InfluencerFilters): Promise<PiezaRow[]> {
@@ -314,7 +316,9 @@ export async function getPiezas(client: ClientSlug, f: InfluencerFilters): Promi
       click_a_arroba::float8 clics,
       case when coalesce(visualizaciones,0) > 0 then (coalesce(likes,0)+coalesce(comentarios,0)+coalesce(shares,0)+coalesce(guardados,0))::float8 end interacciones,
       round((100*(coalesce(likes,0)+coalesce(comentarios,0)+coalesce(shares,0)+coalesce(guardados,0))/nullif(visualizaciones,0))::numeric,2)::float8 tasa,
-      clipping
+      clipping,
+      to_char(periodo_desde,'YYYY-MM-DD') periodo_desde,
+      to_char(periodo_hasta,'YYYY-MM-DD') periodo_hasta
     from f
     order by visualizaciones desc nulls last, influencer, formato, numero`,
     filterParams(f),
