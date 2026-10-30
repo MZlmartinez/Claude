@@ -539,8 +539,11 @@ function PieceCard({
   return (
     <div className={`inf-fi${ready ? " is-click" : ""}`} onClick={ready ? () => onOpenMedia(piece, clip) : undefined}>
       <div className={`inf-th${ready ? "" : " inf-th--ph"}`}>
-        {ready ? (
-          <span className="inf-play" aria-hidden="true" />
+        {ready && email && token ? (
+          <>
+            <video src={`${mediaFileUrl(email, token, piece.campana, piece.influencer, clip.id)}#t=0.5`} muted preload="metadata" />
+            <span className="inf-play" aria-hidden="true" />
+          </>
         ) : (
           <span>{clip === undefined ? "Cargando material…" : "Sin material cargado"}</span>
         )}
@@ -1363,7 +1366,19 @@ function useClipForPiece(piece: PiezaRow, allPiezas: PiezaRow[], email?: string 
   return clip;
 }
 
-function MaterialCell({ piece, allPiezas, email, token }: { piece: PiezaRow; allPiezas: PiezaRow[]; email?: string | null; token?: string | null }) {
+function MaterialCell({
+  piece,
+  allPiezas,
+  email,
+  token,
+  onOpenMedia,
+}: {
+  piece: PiezaRow;
+  allPiezas: PiezaRow[];
+  email?: string | null;
+  token?: string | null;
+  onOpenMedia: (piece: PiezaRow, clip: Clip) => void;
+}) {
   const clip = useClipForPiece(piece, allPiezas, email, token);
   if (clip === undefined) {
     return (
@@ -1380,7 +1395,8 @@ function MaterialCell({ piece, allPiezas, email, token }: { piece: PiezaRow; all
     );
   }
   return (
-    <div className="inf-th inf-th--cell">
+    <div className="inf-th inf-th--cell is-click" onClick={() => onOpenMedia(piece, clip)}>
+      {email && token && <video src={`${mediaFileUrl(email, token, piece.campana, piece.influencer, clip.id)}#t=0.5`} muted preload="metadata" />}
       <span className="inf-play" aria-hidden="true" />
     </div>
   );
@@ -1430,7 +1446,7 @@ function PageDetalle({
   const visible = filtered.slice(0, shown);
   const remaining = filtered.length - visible.length;
   const columns: Column<PiezaRow>[] = [
-    { key: "material", label: "Material", render: (r) => <MaterialCell piece={r} allPiezas={piezas} email={email} token={token} /> },
+    { key: "material", label: "Material", render: (r) => <MaterialCell piece={r} allPiezas={piezas} email={email} token={token} onOpenMedia={onOpenMedia} /> },
     {
       key: "influencer",
       label: "Influencer",

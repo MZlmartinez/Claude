@@ -501,11 +501,13 @@
   border: 1px solid var(--line);
   background: var(--card);
 }
-.inf-th img {
+.inf-th img,
+.inf-th video {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  pointer-events: none;
 }
 .inf-th--ph {
   display: grid;
@@ -579,6 +581,12 @@
   overflow: hidden;
   border: 1px solid var(--line);
   background: var(--card2);
+}
+.inf-th--cell.is-click {
+  cursor: pointer;
+}
+.inf-th--cell.is-click:hover {
+  border-color: var(--acc);
 }
 .inf-th--cell.inf-th--ph span {
   font: 400 9px var(--mono);
