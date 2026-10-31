@@ -1,0 +1,21 @@
+name: Admin · Curl a producción
+
+on:
+  # El sandbox de esta sesión no tiene salida de red hacia el dominio de
+  # Vercel — este workflow corre en un runner normal que sí la tiene, para
+  # pegarle a un endpoint puntual y ver la respuesta en los logs.
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "URL completa a pedir (GET)"
+        required: true
+        type: string
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - run: curl -sS "$URL"
+        env:
+          URL: ${{ inputs.url }}
