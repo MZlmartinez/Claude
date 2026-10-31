@@ -992,7 +992,7 @@ const SUBS = [
 type SubId = (typeof SUBS)[number]["id"];
 
 export default function GrowthDashboard({ canalDia, canales, dispositivo, mensual, negocioDia, productoDia, trafico, traficoDia, fontClassName }: Props) {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [page, setPage] = useState<PageId>("pulso");
   const [sub, setSub] = useState<SubId>("trafico");
   const [perfMetric, setPerfMetric] = useState<PerfMetric>("fact_sin_iva");
