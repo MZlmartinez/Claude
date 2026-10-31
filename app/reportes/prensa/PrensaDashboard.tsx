@@ -263,7 +263,7 @@ export default function PrensaDashboard({
             <NacionalInterior data={nacionalInterior} />
             <Provincias data={provincias} />
             <PorIndustria data={porIndustria} />
-            <PorCampana data={porCampana} />
+            <PorCampana data={porCampana} totalNotas={kpis?.notas ?? 0} />
           </div>
         )}
         {page === "gestion" && (
@@ -795,14 +795,16 @@ function PorIndustria({ data }: { data: IndustriaRow[] }) {
   );
 }
 
-function PorCampana({ data }: { data: CampanaRow[] }) {
+function PorCampana({ data, totalNotas }: { data: CampanaRow[]; totalNotas: number }) {
+  const sinCampana = Math.max(0, totalNotas - data.reduce((a, d) => a + d.notas, 0));
   return (
-    <div className="pr-card wide">
+    <div className="pr-card">
       <h2>Repercusiones por campaña</h2>
       <p>Lista completa con desplazamiento.</p>
       <div className="pr-rank scroll">
         <Bars rows={data.map((d) => ({ nombre: d.campana, valor: d.notas, etiqueta: F.int(d.notas) }))} />
       </div>
+      {sinCampana > 0 && <p className="pr-note">Notas sin campaña asociada: {F.int(sinCampana)}.</p>}
     </div>
   );
 }

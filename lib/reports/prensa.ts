@@ -255,7 +255,7 @@ export async function getPorCampana(client: ClientSlug, f: PrensaFilters): Promi
     `with f as (select * from ${table} ${WHERE_ALL})
     select campana, count(*)::int notas, coalesce(sum(reach),0)::float8 reach, coalesce(sum(cpe_vap),0)::float8 vap
     from f
-    where campana is not null
+    where campana is not null and campana <> 'NaN'
     group by 1
     order by reach desc`,
     filterParams(f),
