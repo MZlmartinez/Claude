@@ -1,0 +1,36 @@
+name: Admin · Generar link seguro (u/t) para un email
+
+on:
+  # Solo cómputo (HMAC determinística + 1 SELECT) — ver scripts/mint-identity-link.ts.
+  # El resultado queda en los logs de esta corrida.
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "Email tal cual está en client_users"
+        required: true
+        type: string
+      base_path:
+        description: "Ruta /secure del reporte (ej: /reportes/prensa/secure)"
+        required: true
+        type: string
+        default: /reportes/prensa/secure
+
+jobs:
+  mint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - run: npm ci
+
+      - run: npx tsx scripts/mint-identity-link.ts "$EMAIL" "$BASE_PATH"
+        env:
+          EMAIL: ${{ inputs.email }}
+          BASE_PATH: ${{ inputs.base_path }}
+          ASISTENTE_SIGNING_SECRET: ${{ secrets.ASISTENTE_SIGNING_SECRET }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
