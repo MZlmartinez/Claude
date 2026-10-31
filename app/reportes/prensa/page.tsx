@@ -26,8 +26,9 @@ import { prDisplay, prBody, prMono } from "./fonts";
 
 export const dynamic = "force-dynamic";
 
-// Ruta sin candado de identidad, fija a Decathlon — ver secure/page.tsx
-// para la versión multi-cliente (mismo criterio que influencers/page.tsx).
+// Ruta sin candado de identidad, fija a Adecco (a diferencia de Influencers,
+// que es de Decathlon — este reporte de Prensa es el de Adecco) — ver
+// secure/page.tsx para la versión multi-cliente.
 export default async function PrensaReportPage({
   searchParams,
 }: {
@@ -66,26 +67,26 @@ export default async function PrensaReportPage({
     detalle,
     opciones,
   ] = await Promise.all([
-    getKpis("deca", filters),
-    getEvolucionSemanal("deca", filters),
-    getPorTier("deca", filters),
-    getNotasDestacadas("deca", filters),
-    getPorTipoMedio("deca", filters),
-    getPorFormato("deca", filters),
-    getTopVoceros("deca", filters),
-    getTopMedios("deca", filters),
-    getTopPeriodistas("deca", filters),
-    getActividad("deca", filters),
-    getNacionalInterior("deca", filters),
-    getProvincias("deca", filters),
-    getPorIndustria("deca", filters),
-    getPorCampana("deca", filters),
-    getGestionMencion("deca", filters),
-    getOrganicaPaga("deca", filters),
-    getVapPorTipoMedio("deca", filters),
-    getVapPorTier("deca", filters),
-    getDetalle("deca", filters),
-    getOpciones("deca"),
+    getKpis("adecco", filters),
+    getEvolucionSemanal("adecco", filters),
+    getPorTier("adecco", filters),
+    getNotasDestacadas("adecco", filters),
+    getPorTipoMedio("adecco", filters),
+    getPorFormato("adecco", filters),
+    getTopVoceros("adecco", filters),
+    getTopMedios("adecco", filters),
+    getTopPeriodistas("adecco", filters),
+    getActividad("adecco", filters),
+    getNacionalInterior("adecco", filters),
+    getProvincias("adecco", filters),
+    getPorIndustria("adecco", filters),
+    getPorCampana("adecco", filters),
+    getGestionMencion("adecco", filters),
+    getOrganicaPaga("adecco", filters),
+    getVapPorTipoMedio("adecco", filters),
+    getVapPorTier("adecco", filters),
+    getDetalle("adecco", filters),
+    getOpciones("adecco"),
   ]);
 
   return (
