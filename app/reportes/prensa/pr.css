@@ -341,6 +341,15 @@
   padding: 12px 14px;
   min-width: 0;
 }
+.pr-kpi .lbl {
+  font: 500 11px var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  /* --acc (no --accText): el hero es siempre oscuro sea cual sea el tema
+     del resto de la página, y --accText en claro es un rojo apagado
+     pensado para fondo blanco — acá se vería opaco. */
+  color: var(--acc);
+}
 .pr-kpi .v {
   font-family: "Roboto Condensed", "Roboto", sans-serif;
   font-size: 28px;

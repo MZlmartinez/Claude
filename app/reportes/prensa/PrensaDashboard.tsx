@@ -322,7 +322,7 @@ function Hero({ kpis }: { kpis: Kpis | null }) {
 function Kpi({ n, v, s }: { n: string; v: string; s: string }) {
   return (
     <div className="pr-kpi">
-      <div className="n">{n}</div>
+      <div className="lbl">{n}</div>
       <div className="v">{v}</div>
       <div className="n">{s}</div>
     </div>
