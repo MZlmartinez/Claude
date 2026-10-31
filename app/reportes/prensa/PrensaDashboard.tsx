@@ -345,7 +345,7 @@ function useBoxWidth() {
 }
 
 function EvolucionSemanal({ data }: { data: SemanaRow[] }) {
-  const [metric, setMetric] = useState<"notas" | "reach">("notas");
+  const [metric, setMetric] = useState<"notas" | "reach" | "vap">("notas");
   const [wrapRef, width] = useBoxWidth();
   const [hover, setHover] = useState<number | null>(null);
   const pts = data.filter((d) => isNum(d[metric]));
@@ -360,6 +360,9 @@ function EvolucionSemanal({ data }: { data: SemanaRow[] }) {
           </button>
           <button type="button" aria-pressed={metric === "reach"} onClick={() => setMetric("reach")}>
             Reach
+          </button>
+          <button type="button" aria-pressed={metric === "vap"} onClick={() => setMetric("vap")}>
+            VAP
           </button>
         </div>
       </div>
@@ -382,7 +385,7 @@ function LineChart({
   setHover,
 }: {
   pts: SemanaRow[];
-  metric: "notas" | "reach";
+  metric: "notas" | "reach" | "vap";
   width: number;
   hover: number | null;
   setHover: (i: number | null) => void;
@@ -394,7 +397,7 @@ function LineChart({
   const vals = pts.map((p) => p[metric] as number);
   const maxY = Math.max(1, ...vals) * 1.1;
   const yt = ticks(maxY, 5);
-  const fmtTick = metric === "notas" ? (v: number) => F.int(v) : (v: number) => F.compact(v);
+  const fmtTick = metric === "notas" ? (v: number) => F.int(v) : metric === "vap" ? (v: number) => F.moneyc(v) : (v: number) => F.compact(v);
   const left = Math.max(...yt.map((v) => fmtTick(v).length), 2) * 6.5 + 16;
   const right = 12;
   const n = pts.length;
@@ -453,7 +456,13 @@ function LineChart({
       {hoverPt && (
         <div className="pr-tip" style={{ left: Math.max(0, Math.min(W - 150, xAt(hover as number) + 12)), top: yAt(hoverPt[metric] as number) + 14 }}>
           <div className="pr-tip-h">Semana del {weekLabel(hoverPt.semana)}</div>
-          <div>{metric === "notas" ? F.int(hoverPt.notas) + " notas" : F.compact(hoverPt.reach) + " de reach"}</div>
+          <div>
+            {metric === "notas"
+              ? F.int(hoverPt.notas) + " notas"
+              : metric === "vap"
+                ? F.moneyc(hoverPt.vap) + " de VAP"
+                : F.compact(hoverPt.reach) + " de reach"}
+          </div>
         </div>
       )}
     </>
@@ -464,8 +473,8 @@ function LineChart({
 function Donut({ segments, centerLabel, centerSub }: { segments: { label: string; value: number; color: string }[]; centerLabel: string; centerSub: string }) {
   const total = segments.reduce((a, s) => a + s.value, 0);
   if (!total) return <div className="pr-empty">Sin datos.</div>;
-  const R = 52,
-    STROKE = 22,
+  const R = 84,
+    STROKE = 32,
     C = 2 * Math.PI * R;
   const arcs = segments
     .filter((s) => s.value > 0)
@@ -478,14 +487,16 @@ function Donut({ segments, centerLabel, centerSub }: { segments: { label: string
     }, []);
   return (
     <div className="pr-donut">
-      <svg width={140} height={140} viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)" }}>
+      <svg width={200} height={200} viewBox="0 0 200 200" style={{ transform: "rotate(-90deg)" }}>
         {arcs.map((a) => (
-          <circle key={a.label} cx={70} cy={70} r={R} fill="none" stroke={a.color} strokeWidth={STROKE} strokeDasharray={a.dash} strokeDashoffset={a.offset} />
+          <circle key={a.label} cx={100} cy={100} r={R} fill="none" stroke={a.color} strokeWidth={STROKE} strokeDasharray={a.dash} strokeDashoffset={a.offset} />
         ))}
       </svg>
-      <div style={{ marginTop: -94, marginBottom: 54, textAlign: "center" }}>
-        <div className="pr-donut-center">{centerLabel}</div>
-        <div style={{ fontSize: 11, color: "var(--ink3)" }}>{centerSub}</div>
+      <div style={{ marginTop: -136, marginBottom: 74, textAlign: "center" }}>
+        <div className="pr-donut-center" style={{ fontSize: 20 }}>
+          {centerLabel}
+        </div>
+        <div style={{ fontSize: 13, color: "var(--ink3)" }}>{centerSub}</div>
       </div>
       <div className="pr-dlegend">
         {segments

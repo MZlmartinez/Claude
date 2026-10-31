@@ -76,14 +76,14 @@ export async function getKpis(client: ClientSlug, f: PrensaFilters): Promise<Kpi
   return rows[0] ?? null;
 }
 
-export type SemanaRow = { semana: string; notas: number; reach: number };
+export type SemanaRow = { semana: string; notas: number; reach: number; vap: number };
 
 export async function getEvolucionSemanal(client: ClientSlug, f: PrensaFilters): Promise<SemanaRow[]> {
   const table = tableFor(client);
   return queryReport<SemanaRow>(
     `with f as (select * from ${table} ${WHERE_ALL})
     select to_char(date_trunc('week', fecha),'YYYY-MM-DD') semana,
-      count(*)::int notas, coalesce(sum(reach),0)::float8 reach
+      count(*)::int notas, coalesce(sum(reach),0)::float8 reach, coalesce(sum(cpe_vap),0)::float8 vap
     from f
     group by 1
     order by 1`,
