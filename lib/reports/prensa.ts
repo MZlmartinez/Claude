@@ -48,9 +48,9 @@ export type Kpis = {
   medios: number;
   reach: number;
   vap: number;
+  tier1_notas: number;
+  pct_tier1: number | null;
   pct_gestion: number | null;
-  pct_nacional: number | null;
-  pct_organica: number | null;
   desde: string | null;
   hasta: string | null;
 };
@@ -65,9 +65,9 @@ export async function getKpis(client: ClientSlug, f: PrensaFilters): Promise<Kpi
       count(distinct medio)::int medios,
       coalesce(sum(reach),0)::float8 reach,
       coalesce(sum(cpe_vap),0)::float8 vap,
+      (count(*) filter (where tier = 1))::int tier1_notas,
+      round((100.0*count(*) filter (where tier = 1)/nullif(count(*),0))::numeric,1)::float8 pct_tier1,
       round((100.0*count(*) filter (where mencion_gestion = 'GESTIÓN')/nullif(count(*),0))::numeric,1)::float8 pct_gestion,
-      round((100.0*count(*) filter (where nacional_o_interior = 'NACIONAL')/nullif(count(*),0))::numeric,1)::float8 pct_nacional,
-      round((100.0*count(*) filter (where pago_organico = 'ORGÁNICA')/nullif(count(*),0))::numeric,1)::float8 pct_organica,
       to_char(min(fecha),'YYYY-MM-DD') desde,
       to_char(max(fecha),'YYYY-MM-DD') hasta
     from f`,
@@ -130,7 +130,7 @@ export async function getNotasDestacadas(client: ClientSlug, f: PrensaFilters): 
     from ranked
     where rn = 1
     order by reach desc nulls last
-    limit 8`,
+    limit 4`,
     filterParams(f),
   );
 }
@@ -165,13 +165,13 @@ export async function getPorFormato(client: ClientSlug, f: PrensaFilters): Promi
   );
 }
 
-export type RankedRow = { nombre: string; notas: number; reach: number };
+export type RankedRow = { nombre: string; notas: number; reach: number; vap: number };
 
-async function getTopDimension(client: ClientSlug, f: PrensaFilters, column: string, limit = 10): Promise<RankedRow[]> {
+async function getTopDimension(client: ClientSlug, f: PrensaFilters, column: string, limit: number): Promise<RankedRow[]> {
   const table = tableFor(client);
   return queryReport<RankedRow>(
     `with f as (select * from ${table} ${WHERE_ALL})
-    select ${column} nombre, count(*)::int notas, coalesce(sum(reach),0)::float8 reach
+    select ${column} nombre, count(*)::int notas, coalesce(sum(reach),0)::float8 reach, coalesce(sum(cpe_vap),0)::float8 vap
     from f
     where ${column} is not null
     group by 1
@@ -181,9 +181,11 @@ async function getTopDimension(client: ClientSlug, f: PrensaFilters, column: str
   );
 }
 
-export const getTopVoceros = (client: ClientSlug, f: PrensaFilters) => getTopDimension(client, f, "vocero");
-export const getTopMedios = (client: ClientSlug, f: PrensaFilters) => getTopDimension(client, f, "medio");
-export const getTopPeriodistas = (client: ClientSlug, f: PrensaFilters) => getTopDimension(client, f, "periodista");
+// limit más alto de lo que se ve en "Aporte propio" (8-10): la tabla de
+// ranking de "Gestión de repercusiones" reusa el mismo array completo.
+export const getTopVoceros = (client: ClientSlug, f: PrensaFilters, limit = 20) => getTopDimension(client, f, "vocero", limit);
+export const getTopMedios = (client: ClientSlug, f: PrensaFilters, limit = 20) => getTopDimension(client, f, "medio", limit);
+export const getTopPeriodistas = (client: ClientSlug, f: PrensaFilters, limit = 20) => getTopDimension(client, f, "periodista", limit);
 
 export type HeatCell = { semana: string; dow: number; notas: number };
 
@@ -275,13 +277,13 @@ export async function getGestionMencion(client: ClientSlug, f: PrensaFilters): P
   );
 }
 
-export type OrganicaPagaRow = { tipo: string; notas: number };
+export type OrganicaPagaRow = { tipo: string; notas: number; inversion: number };
 
 export async function getOrganicaPaga(client: ClientSlug, f: PrensaFilters): Promise<OrganicaPagaRow[]> {
   const table = tableFor(client);
   return queryReport<OrganicaPagaRow>(
     `with f as (select * from ${table} ${WHERE_ALL})
-    select pago_organico tipo, count(*)::int notas
+    select pago_organico tipo, count(*)::int notas, coalesce(sum(inversion),0)::float8 inversion
     from f
     where pago_organico is not null and pago_organico <> 'NaN'
     group by 1
@@ -330,21 +332,37 @@ export type DetalleRow = {
   reach: number | null;
   vap: number | null;
   url: string | null;
+  tier: number | null;
+  tipo_de_medio: string | null;
+  formato: string | null;
+  mencion_gestion: string | null;
 };
 
-// El toggle "con/sin enlace" se aplica client-side sobre este mismo
-// resultado (alcanza con mirar si "url" vino null) — no hace falta ir de
-// nuevo al server para eso.
+// El toggle "con/sin enlace" y los facets de Tier/Tipo de medio/Formato/
+// Mención-Gestión se aplican client-side sobre este mismo resultado — no
+// hace falta ir de nuevo al server para eso (ver PrensaDashboard.tsx).
 export async function getDetalle(client: ClientSlug, f: PrensaFilters): Promise<DetalleRow[]> {
   const table = tableFor(client);
   return queryReport<DetalleRow>(
     `with f as (select * from ${table} ${WHERE_ALL})
     select id::text id, to_char(fecha,'YYYY-MM-DD') fecha, tema, medio, periodista, vocero,
-      reach::float8 reach, cpe_vap::float8 vap, hipervinculo url
+      reach::float8 reach, cpe_vap::float8 vap, hipervinculo url,
+      tier::int tier, tipo_de_medio, formato_contenido formato, mencion_gestion
     from f
     order by fecha desc nulls last`,
     filterParams(f),
   );
+}
+
+// Rango de fechas disponible en la tabla ENTERA (sin aplicar filtros) —
+// se usa para precargar Desde/Hasta con el período completo por default,
+// en vez de dejarlos vacíos (así arranca igual que el artifact de referencia).
+export async function getRangoFechas(client: ClientSlug): Promise<{ desde: string | null; hasta: string | null }> {
+  const table = tableFor(client);
+  const rows = await queryReport<{ desde: string | null; hasta: string | null }>(
+    `select to_char(min(fecha),'YYYY-MM-DD') desde, to_char(max(fecha),'YYYY-MM-DD') hasta from ${table}`,
+  );
+  return rows[0] ?? { desde: null, hasta: null };
 }
 
 export type FiltroOpcion = { dimension: "industria" | "campana"; valor: string };

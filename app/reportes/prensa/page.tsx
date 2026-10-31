@@ -14,6 +14,7 @@ import {
   getPorTier,
   getPorTipoMedio,
   getProvincias,
+  getRangoFechas,
   getTopMedios,
   getTopPeriodistas,
   getTopVoceros,
@@ -37,9 +38,15 @@ export default async function PrensaReportPage({
   const params = await searchParams;
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) || null;
 
+  const desdeParam = one(params.desde);
+  const hastaParam = one(params.hasta);
+  // Si no vienen en la URL, arranca con el rango completo de datos (igual
+  // que el artifact de referencia, que no deja Desde/Hasta vacíos).
+  const rango = !desdeParam && !hastaParam ? await getRangoFechas("adecco") : null;
+
   const filters: PrensaFilters = {
-    desde: one(params.desde),
-    hasta: one(params.hasta),
+    desde: desdeParam ?? rango?.desde ?? null,
+    hasta: hastaParam ?? rango?.hasta ?? null,
     industria: one(params.industria),
     campana: one(params.campana),
     tipoMedio: one(params.medio),

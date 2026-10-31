@@ -14,6 +14,7 @@ import {
   getPorTier,
   getPorTipoMedio,
   getProvincias,
+  getRangoFechas,
   getTopMedios,
   getTopPeriodistas,
   getTopVoceros,
@@ -52,9 +53,13 @@ export default async function SecurePrensaReportPage({
   }
   const client = clientSlug as ClientSlug;
 
+  const desdeParam = one(params.desde);
+  const hastaParam = one(params.hasta);
+  const rango = !desdeParam && !hastaParam ? await getRangoFechas(client) : null;
+
   const filters: PrensaFilters = {
-    desde: one(params.desde),
-    hasta: one(params.hasta),
+    desde: desdeParam ?? rango?.desde ?? null,
+    hasta: hastaParam ?? rango?.hasta ?? null,
     industria: one(params.industria),
     campana: one(params.campana),
     tipoMedio: one(params.medio),

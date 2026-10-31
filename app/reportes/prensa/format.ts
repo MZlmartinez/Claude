@@ -19,6 +19,8 @@ export const F = {
   money: (v: Num) => (isNum(v) ? "$" + nf0.format(v) : "—"),
   moneyc: (v: Num) => (isNum(v) ? "$" + compact(v) : "—"),
   pct: (v: Num) => (isNum(v) ? nf1.format(v) + " %" : "—"),
+  // Millones de pesos sin signo $ (el título de la card ya aclara la unidad).
+  mm: (v: Num) => (isNum(v) ? nf1.format(v / 1e6) + "M" : "—"),
   date: (v: string | null | undefined) =>
     typeof v === "string" && v.length >= 10 ? v.slice(8, 10) + "/" + v.slice(5, 7) + "/" + v.slice(0, 4) : "—",
   text: (v: unknown) => (v == null || v === "" ? "—" : String(v)),
