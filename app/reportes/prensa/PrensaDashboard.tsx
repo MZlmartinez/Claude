@@ -713,23 +713,35 @@ function Actividad({ data }: { data: HeatCell[] }) {
       <div className="pr-heat">
         <div className="pr-hrow">
           <div className="pr-hd">
+            <span />
             {DOW_LABELS.map((d) => (
               <span key={d}>{d}</span>
             ))}
           </div>
           <div className="pr-hg">
-            {semanas.map((s) =>
-              [1, 2, 3, 4, 5, 6, 7].map((dow) => {
-                const v = lookup.get(`${s}|${dow}`) ?? 0;
-                const alpha = max > 0 ? 0.08 + 0.72 * (v / max) : 0.08;
-                return <div key={`${s}-${dow}`} className="pr-hc" title={`${weekLabel(s)} · ${DOW_LABELS[dow - 1]}: ${v} notas`} style={v > 0 ? { background: `rgba(255,79,46,${alpha})` } : undefined} />;
-              }),
-            )}
+            {semanas.flatMap((s, wi) => {
+              const mes = wi === 0 || monthLabel(s) !== monthLabel(semanas[wi - 1]) ? monthLabel(s) : "";
+              return [
+                <span key={`${s}-m`} className="pr-hm">
+                  {mes}
+                </span>,
+                ...[1, 2, 3, 4, 5, 6, 7].map((dow) => {
+                  const v = lookup.get(`${s}|${dow}`) ?? 0;
+                  const alpha = max > 0 ? 0.08 + 0.72 * (v / max) : 0.08;
+                  return <div key={`${s}-${dow}`} className="pr-hc" title={`${weekLabel(s)} · ${DOW_LABELS[dow - 1]}: ${v} notas`} style={v > 0 ? { background: `rgba(255,79,46,${alpha})` } : undefined} />;
+                }),
+              ];
+            })}
           </div>
         </div>
       </div>
     </div>
   );
+}
+
+const MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+function monthLabel(iso: string) {
+  return MESES[parseInt(iso.slice(5, 7), 10) - 1] ?? "";
 }
 
 function NacionalInterior({ data }: { data: NacionalInteriorRow[] }) {
