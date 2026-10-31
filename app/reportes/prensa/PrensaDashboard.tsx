@@ -281,10 +281,6 @@ export default function PrensaDashboard({
             <ParticipacionCompetencia />
           </div>
         )}
-
-        <p className="pr-foot">
-          Datos sincronizados diariamente desde Fabric. VAP: valor publicitario equivalente. Reach: alcance estimado de cada nota.
-        </p>
       </div>
     </div>
   );
