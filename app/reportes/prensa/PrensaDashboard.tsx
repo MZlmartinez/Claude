@@ -607,7 +607,7 @@ function ColumnChart({ data, fmt, height = 220 }: { data: { label: string; value
   const yAt = (v: number) => H - bottom - (Math.max(0, v) / maxY) * (H - bottom - top);
 
   return (
-    <div ref={wrapRef} className="pr-box short" style={{ position: "relative" }}>
+    <div ref={wrapRef} className="pr-box grow" style={{ position: "relative" }}>
       <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: "block" }}>
         <g className="pr-axis">
           {yt.map((v) => (

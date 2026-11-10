@@ -410,6 +410,16 @@
 .pr-box.short {
   height: 210px;
 }
+.pr-box.grow {
+  flex: 1;
+  height: auto;
+  min-height: 210px;
+  display: flex;
+  align-items: center;
+}
+.pr-box.grow > svg {
+  width: 100%;
+}
 .pr-empty {
   border: 1px dashed var(--line);
   border-radius: 10px;
