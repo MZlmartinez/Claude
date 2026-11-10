@@ -874,29 +874,30 @@
 .pr-stacked {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 20px;
+  padding: 6px 0;
 }
 .pr-stacked-row {
   display: grid;
-  grid-template-columns: 90px 1fr;
-  gap: 10px;
+  grid-template-columns: 110px 1fr;
+  gap: 14px;
   align-items: center;
 }
 .pr-stacked-row .lbl {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--ink2);
 }
 .pr-stacked-bar {
   display: flex;
-  height: 20px;
-  border-radius: 4px;
+  height: 30px;
+  border-radius: 6px;
   overflow: hidden;
   background: var(--grid);
 }
 .pr-stacked-axis {
   display: grid;
-  grid-template-columns: 90px 1fr;
-  gap: 10px;
+  grid-template-columns: 110px 1fr;
+  gap: 14px;
 }
 .pr-stacked-axis .ticks {
   display: flex;
