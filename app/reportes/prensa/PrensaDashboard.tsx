@@ -841,7 +841,7 @@ function OrganicaPaga({ data }: { data: OrganicaPagaRow[] }) {
       </div>
       {(organica?.inversion ?? 0) + (paga?.inversion ?? 0) === 0 && (
         <div className="pr-empty">
-          La grilla no registra inversión paga en ninguna nota. Cuando se cargue, aparecerá acá y en la tabla de detalle.
+          La base de datos no registra inversión paga en ninguna nota. Cuando se cargue, aparecerá acá y en la tabla de detalle.
         </div>
       )}
     </div>
