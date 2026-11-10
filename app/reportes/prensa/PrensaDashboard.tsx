@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type {
   CampanaRow,
+  CompetenciaRow,
   DetalleRow,
   FiltroOpcion,
   FormatoRow,
@@ -100,6 +101,7 @@ type Props = {
   vapPorTier: VapTierRow[];
   detalle: DetalleRow[];
   opciones: FiltroOpcion[];
+  competencia: CompetenciaRow[];
   fontClassName: string;
   basePath: string;
   email?: string | null;
@@ -128,6 +130,7 @@ export default function PrensaDashboard({
   vapPorTier,
   detalle,
   opciones,
+  competencia,
   fontClassName,
   basePath,
   email,
@@ -278,7 +281,7 @@ export default function PrensaDashboard({
         {page === "detalle" && <Detalle data={detalle} />}
         {page === "competencia" && (
           <div className="pr-grid">
-            <ParticipacionCompetencia />
+            <ParticipacionCompetencia data={competencia} />
           </div>
         )}
       </div>
@@ -1087,19 +1090,76 @@ function Detalle({ data }: { data: DetalleRow[] }) {
   );
 }
 
-function ParticipacionCompetencia() {
+const MARCAS_COMPETENCIA = ["ADECCO", "MANPOWER", "RANDSTAD"] as const;
+const COLOR_MARCA: Record<string, string> = { ADECCO: "var(--s1)", MANPOWER: "var(--s2)", RANDSTAD: "var(--s3)" };
+const FMT_MARCA: Record<string, string> = { ADECCO: "Adecco", MANPOWER: "Manpower", RANDSTAD: "Randstad" };
+const METRICAS_COMPETENCIA = [
+  { key: "notas", label: "Repercusiones" },
+  { key: "reach", label: "Reach" },
+  { key: "vap", label: "VAP" },
+] as const;
+
+function ParticipacionCompetencia({ data }: { data: CompetenciaRow[] }) {
+  if (!data.length) {
+    return (
+      <div className="pr-card wide pr-pending">
+        <span className="tag">Pendiente</span>
+        <h2>Participación frente a Manpower y Randstad</h2>
+        <p>
+          Reparto entre las tres consultoras con las hojas de seguimiento de la competencia. Usa el rango de meses de
+          los filtros de fecha y no los demás filtros.
+        </p>
+        <p className="pr-note">
+          Esta sección necesita la hoja de seguimiento de la competencia (Manpower/Randstad) como fuente — todavía no
+          hay datos cargados para este período.
+        </p>
+      </div>
+    );
+  }
+  const byMarca = new Map(data.map((d) => [d.marca, d]));
   return (
-    <div className="pr-card wide pr-pending">
-      <span className="tag">Pendiente</span>
+    <div className="pr-card wide">
       <h2>Participación frente a Manpower y Randstad</h2>
       <p>
         Reparto entre las tres consultoras con las hojas de seguimiento de la competencia. Usa el rango de meses de
         los filtros de fecha y no los demás filtros.
       </p>
-      <p className="pr-note">
-        Esta sección necesita la hoja de seguimiento de la competencia (Manpower/Randstad) como fuente — todavía no
-        está cargada en Supabase/Fabric, así que queda pendiente hasta tenerla.
-      </p>
+      <div className="pr-dlegend" style={{ justifyContent: "flex-start" }}>
+        {MARCAS_COMPETENCIA.map((m) => (
+          <span key={m}>
+            <i style={{ background: COLOR_MARCA[m] }} />
+            {FMT_MARCA[m]}
+          </span>
+        ))}
+      </div>
+      <div className="pr-stacked">
+        {METRICAS_COMPETENCIA.map((metric) => {
+          const total = MARCAS_COMPETENCIA.reduce((a, m) => a + (byMarca.get(m)?.[metric.key] ?? 0), 0);
+          return (
+            <div key={metric.key} className="pr-stacked-row">
+              <span className="lbl">{metric.label}</span>
+              <div className="pr-stacked-bar">
+                {total > 0 &&
+                  MARCAS_COMPETENCIA.map((m) => {
+                    const v = byMarca.get(m)?.[metric.key] ?? 0;
+                    const pct = (100 * v) / total;
+                    return pct > 0 ? (
+                      <div key={m} style={{ width: `${pct}%`, background: COLOR_MARCA[m] }} title={`${FMT_MARCA[m]}: ${F.pct(pct)}`} />
+                    ) : null;
+                  })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="pr-stacked-axis">
+        <span />
+        <div className="ticks">
+          {["0%", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%"].map((t) => (
+            <span key={t}>{t}</span>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

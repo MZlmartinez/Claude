@@ -365,6 +365,29 @@ export async function getRangoFechas(client: ClientSlug): Promise<{ desde: strin
   return rows[0] ?? { desde: null, hasta: null };
 }
 
+export type CompetenciaRow = { marca: string; notas: number; reach: number; vap: number };
+
+// Tabla aparte (gold_prensa_adecco_competencia), no multi-cliente: solo
+// tiene sentido para Adecco (Manpower/Randstad son sus competidores, no
+// los de Decathlon). Usa SOLO el rango de fechas, no el resto de los
+// filtros (industria/campaña/tipo de medio) — así lo pide el artifact de
+// referencia, porque esos filtros son específicos de la cobertura propia.
+export async function getParticipacionCompetencia(
+  client: ClientSlug,
+  f: Pick<PrensaFilters, "desde" | "hasta">,
+): Promise<CompetenciaRow[]> {
+  if (client !== "adecco") return [];
+  return queryReport<CompetenciaRow>(
+    `select marca, count(*)::int notas, coalesce(sum(reach),0)::float8 reach, coalesce(sum(cpe_vap),0)::float8 vap
+    from gold_prensa_adecco_competencia
+    where (CAST($1 AS DATE) IS NULL OR fecha >= CAST($1 AS DATE))
+      and (CAST($2 AS DATE) IS NULL OR fecha <= CAST($2 AS DATE))
+    group by 1
+    order by 1`,
+    [f.desde, f.hasta],
+  );
+}
+
 export type FiltroOpcion = { dimension: "industria" | "campana"; valor: string };
 
 export async function getOpciones(client: ClientSlug): Promise<FiltroOpcion[]> {
