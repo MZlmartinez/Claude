@@ -41,3 +41,15 @@ export async function getClientSlugForEmail(email: string): Promise<string | nul
   );
   return rows[0]?.client_slug ?? null;
 }
+
+// Qué secciones del portal (Growth, Influencers, Prensa...) tiene
+// contratadas un cliente — una fila por cliente, no por usuario, para que
+// alta/baja de un producto no implique tocar cada usuario en Softr (ver
+// client_products). Usado por /api/portal/products.
+export async function getActiveProducts(clientSlug: string): Promise<Record<string, boolean>> {
+  const rows = await queryReport<{ producto: string; activo: boolean }>(
+    "select producto, activo from public.client_products where client_slug = $1",
+    [clientSlug],
+  );
+  return Object.fromEntries(rows.map((r) => [r.producto, r.activo]));
+}

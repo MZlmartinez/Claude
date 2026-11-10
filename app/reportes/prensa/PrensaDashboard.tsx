@@ -149,7 +149,7 @@ export default function PrensaDashboard({
     if (!el) return;
     const post = () => {
       try {
-        window.parent?.postMessage({ type: "softr-iframe-resize", height: el.scrollHeight }, "*");
+        window.parent?.postMessage({ source: "coolmetrics-report", height: el.scrollHeight }, "*");
       } catch {}
     };
     post();
