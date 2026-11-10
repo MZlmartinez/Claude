@@ -42,14 +42,12 @@ export async function getClientSlugForEmail(email: string): Promise<string | nul
   return rows[0]?.client_slug ?? null;
 }
 
-// Color de marca por cliente, para que el punto "Activo" del menú de Softr
-// combine con la identidad de cada cliente en vez de usar siempre el lima
-// de Decathlon/MOSCU — ver /api/portal/products, que lo expone junto con
-// los productos activos.
-const BRAND_COLOR: Record<string, string> = {
-  deca: "#0082C3",
-  adecco: "#FF4F2E",
-};
+// Color de marca por cliente, para el punto "Activo" del menú de Softr —
+// ver /api/portal/products, que lo expone junto con los productos activos.
+// Por ahora, a pedido, todos usan el lima de MOSCU; queda el mapeo armado
+// para cuando se quiera diferenciar por cliente (deca: azul Decathlon,
+// adecco: naranja, etc.).
+const BRAND_COLOR: Record<string, string> = {};
 const DEFAULT_BRAND_COLOR = "#D8FC4A";
 
 export function getBrandColor(clientSlug: string): string {
