@@ -472,7 +472,7 @@
 .pr-rank .row {
   width: 100%;
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(40px, 1fr) auto;
+  grid-template-columns: minmax(70px, max-content) minmax(60px, 1fr) auto;
   gap: 10px;
   align-items: center;
   font: inherit;
@@ -500,9 +500,9 @@
   white-space: nowrap;
 }
 .pr-rank .bar {
-  height: 7px;
+  height: 11px;
   background: var(--grid);
-  border-radius: 4px;
+  border-radius: 6px;
   overflow: hidden;
 }
 .pr-rank .bar i {
