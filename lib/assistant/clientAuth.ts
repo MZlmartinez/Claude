@@ -42,6 +42,20 @@ export async function getClientSlugForEmail(email: string): Promise<string | nul
   return rows[0]?.client_slug ?? null;
 }
 
+// Color de marca por cliente, para que el punto "Activo" del menú de Softr
+// combine con la identidad de cada cliente en vez de usar siempre el lima
+// de Decathlon/MOSCU — ver /api/portal/products, que lo expone junto con
+// los productos activos.
+const BRAND_COLOR: Record<string, string> = {
+  deca: "#0082C3",
+  adecco: "#FF4F2E",
+};
+const DEFAULT_BRAND_COLOR = "#D8FC4A";
+
+export function getBrandColor(clientSlug: string): string {
+  return BRAND_COLOR[clientSlug] ?? DEFAULT_BRAND_COLOR;
+}
+
 // Qué secciones del portal (Growth, Influencers, Prensa...) tiene
 // contratadas un cliente — una fila por cliente, no por usuario, para que
 // alta/baja de un producto no implique tocar cada usuario en Softr (ver

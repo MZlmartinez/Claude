@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getActiveProducts, getClientSlugForEmail, verifyEmailToken } from "@/lib/assistant/clientAuth";
+import { getActiveProducts, getBrandColor, getClientSlugForEmail, verifyEmailToken } from "@/lib/assistant/clientAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -31,5 +31,6 @@ export async function GET(request: Request) {
   }
 
   const productos = await getActiveProducts(clientSlug);
-  return json({ cliente: clientSlug, productos });
+  const color = getBrandColor(clientSlug);
+  return json({ cliente: clientSlug, productos, color });
 }
