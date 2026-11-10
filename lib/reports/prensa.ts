@@ -372,17 +372,33 @@ export type CompetenciaRow = { marca: string; notas: number; reach: number; vap:
 // los de Decathlon). Usa SOLO el rango de fechas, no el resto de los
 // filtros (industria/campaña/tipo de medio) — así lo pide el artifact de
 // referencia, porque esos filtros son específicos de la cobertura propia.
+// Adecco sale de su tabla de verdad (gold_prensa_adecco, la misma que
+// alimenta el resto del reporte) — gold_prensa_adecco_competencia solo
+// guarda Manpower y Randstad, para no duplicar el dato real de Adecco en
+// dos lugares.
 export async function getParticipacionCompetencia(
   client: ClientSlug,
   f: Pick<PrensaFilters, "desde" | "hasta">,
 ): Promise<CompetenciaRow[]> {
   if (client !== "adecco") return [];
   return queryReport<CompetenciaRow>(
-    `select marca, count(*)::int notas, coalesce(sum(reach),0)::float8 reach, coalesce(sum(cpe_vap),0)::float8 vap
-    from gold_prensa_adecco_competencia
-    where (CAST($1 AS DATE) IS NULL OR fecha >= CAST($1 AS DATE))
-      and (CAST($2 AS DATE) IS NULL OR fecha <= CAST($2 AS DATE))
-    group by 1
+    `with rango as (
+      select CAST($1 AS DATE) desde, CAST($2 AS DATE) hasta
+    ), adecco as (
+      select 'ADECCO' marca, count(*)::int notas, coalesce(sum(reach),0)::float8 reach, coalesce(sum(cpe_vap),0)::float8 vap
+      from gold_prensa_adecco, rango
+      where (rango.desde IS NULL OR fecha >= rango.desde)
+        and (rango.hasta IS NULL OR fecha <= rango.hasta)
+    ), competencia as (
+      select marca, count(*)::int notas, coalesce(sum(reach),0)::float8 reach, coalesce(sum(cpe_vap),0)::float8 vap
+      from gold_prensa_adecco_competencia, rango
+      where (rango.desde IS NULL OR fecha >= rango.desde)
+        and (rango.hasta IS NULL OR fecha <= rango.hasta)
+      group by 1
+    )
+    select * from adecco
+    union all
+    select * from competencia
     order by 1`,
     [f.desde, f.hasta],
   );
