@@ -25,7 +25,7 @@ import {
 } from "@/lib/reports/prensa";
 import PrensaDashboard from "../PrensaDashboard";
 import { prDisplay, prBody, prMono } from "../fonts";
-import { getClientSlugForEmail, verifyEmailToken } from "@/lib/assistant/clientAuth";
+import { getActiveProducts, getClientSlugForEmail, verifyEmailToken } from "@/lib/assistant/clientAuth";
 import type { ClientSlug } from "@/lib/goldTables";
 
 export const dynamic = "force-dynamic";
@@ -53,6 +53,11 @@ export default async function SecurePrensaReportPage({
     return <Unauthorized reason="Este reporte no está disponible para tu cuenta." />;
   }
   const client = clientSlug as ClientSlug;
+
+  const productos = await getActiveProducts(client);
+  if (!productos.prensa) {
+    return <Unauthorized reason="Todavía no activaste esta sección. Hablá con tu administrador para activar el acceso completo a COOLmetrics." />;
+  }
 
   const desdeParam = one(params.desde);
   const hastaParam = one(params.hasta);

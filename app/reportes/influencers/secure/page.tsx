@@ -12,7 +12,7 @@ import {
 } from "@/lib/reports/influencers";
 import InfluencersDashboard from "../InfluencersDashboard";
 import { infDisplay, infBody, infMono } from "../fonts";
-import { getClientSlugForEmail, verifyEmailToken } from "@/lib/assistant/clientAuth";
+import { getActiveProducts, getClientSlugForEmail, verifyEmailToken } from "@/lib/assistant/clientAuth";
 import type { ClientSlug } from "@/lib/goldTables";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +40,11 @@ export default async function SecureInfluencersReportPage({
     return <Unauthorized reason="Este reporte no está disponible para tu cuenta." />;
   }
   const client = clientSlug as ClientSlug;
+
+  const productos = await getActiveProducts(client);
+  if (!productos.influencers) {
+    return <Unauthorized reason="Todavía no activaste esta sección. Hablá con tu administrador para activar el acceso completo a COOLmetrics." />;
+  }
 
   const filters: InfluencerFilters = {
     campana: one(params.campana),

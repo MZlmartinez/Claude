@@ -10,7 +10,7 @@ import {
 } from "@/lib/reports/growth";
 import GrowthDashboard from "../GrowthDashboard";
 import { mxBody, mxDisplay } from "../fonts";
-import { getClientSlugForEmail, verifyEmailToken } from "@/lib/assistant/clientAuth";
+import { getActiveProducts, getClientSlugForEmail, verifyEmailToken } from "@/lib/assistant/clientAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +37,11 @@ export default async function SecureGrowthReportPage({
   const clientSlug = await getClientSlugForEmail(email);
   if (clientSlug !== "deca") {
     return <Unauthorized reason="Este reporte no está disponible para tu cuenta." />;
+  }
+
+  const productos = await getActiveProducts(clientSlug);
+  if (!productos.growth) {
+    return <Unauthorized reason="Todavía no activaste esta sección. Hablá con tu administrador para activar el acceso completo a COOLmetrics." />;
   }
 
   const [canalDia, canales, dispositivo, mensual, negocioDia, productoDia, trafico, traficoDia] = await Promise.all([
