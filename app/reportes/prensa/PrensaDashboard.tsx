@@ -1200,7 +1200,6 @@ function CompetenciaTab({ data, filters }: { data: CompetenciaDetalleRow[]; filt
       <MediosPrincipales C={C} />
       <MediosCompartidos C={C} medShow={medShow} setMedShow={setMedShow} />
       <NotasImpacto C={C} who={who} setWho={setWho} />
-      <ComoLeer C={C} MAXISO={MAXISO} CMAX={CMAX} />
     </div>
   );
 }
@@ -1902,23 +1901,3 @@ function NotasImpacto({
   );
 }
 
-function ComoLeer({ C, MAXISO, CMAX }: { C: MarcaAgg[]; MAXISO: string; CMAX: string }) {
-  const [, mp, rs] = C;
-  const sinLink = (c: MarcaAgg) => c.rows.filter((r) => !r.url).length;
-  const notas = [
-    "Reach y VAP de Manpower y Randstad vienen de la planilla de seguimiento manual que arma la agencia, con el mismo criterio que la grilla de Adecco: cada fila es una repercusión. Una nota replicada en varios medios suma varias repercusiones.",
-    `Adecco tiene la grilla cargada hasta el ${F.date(MAXISO)} y la competencia hasta el ${F.date(CMAX)}. La vista "Período común" compara con la misma ventana de fechas para las tres.`,
-    "Industria, campaña, periodista y vocero no están disponibles para Manpower ni Randstad — por eso Competencia usa únicamente el rango de fechas como filtro, y no el resto de los filtros del reporte.",
-    `${F.int(sinLink(mp))} notas de Manpower y ${F.int(sinLink(rs))} de Randstad no traen enlace. Se cuentan igual en todos los totales.`,
-  ];
-  return (
-    <div className="pr-card wide">
-      <h2>Cómo leer esta comparación</h2>
-      <ul className="pr-notes">
-        {notas.map((t, i) => (
-          <li key={i}>{t}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}

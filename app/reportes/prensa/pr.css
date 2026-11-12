@@ -1037,17 +1037,6 @@
   font-size: 12px;
 }
 
-/* Competencia: notas de cierre */
-.pr-notes {
-  margin: 0;
-  padding-left: 18px;
-  color: var(--ink2);
-  font-size: 13px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
 @media (max-width: 760px) {
   .pr-grid {
     grid-template-columns: minmax(0, 1fr);
