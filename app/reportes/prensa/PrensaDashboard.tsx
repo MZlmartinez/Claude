@@ -1254,7 +1254,7 @@ function CaraACara({
     ["VAP por nota", (x) => x.vn, F.moneyc, false, false],
     ["Notas Tier 1", (x) => x.t1, F.int, false, false],
     ["Notas Tier 2", (x) => x.t2, F.int, false, false],
-    ["Notas Tier 3", (x) => x.t3, F.int, false, true],
+    ["Notas Tier 3", (x) => x.t3, F.int, false, false],
     ["Tier 1 y 2 sobre el total", (x) => x.q, F.pct, false, false],
     ["Medios distintos", (x) => x.medios.size, F.int, false, false],
   ];
