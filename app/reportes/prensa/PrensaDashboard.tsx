@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type {
   CampanaRow,
-  CompetenciaRow,
+  CompetenciaDetalleRow,
   DetalleRow,
   FiltroOpcion,
   FormatoRow,
@@ -101,7 +101,7 @@ type Props = {
   vapPorTier: VapTierRow[];
   detalle: DetalleRow[];
   opciones: FiltroOpcion[];
-  competencia: CompetenciaRow[];
+  competenciaDetalle: CompetenciaDetalleRow[];
   fontClassName: string;
   basePath: string;
   email?: string | null;
@@ -130,7 +130,7 @@ export default function PrensaDashboard({
   vapPorTier,
   detalle,
   opciones,
-  competencia,
+  competenciaDetalle,
   fontClassName,
   basePath,
   email,
@@ -279,11 +279,7 @@ export default function PrensaDashboard({
           </div>
         )}
         {page === "detalle" && <Detalle data={detalle} />}
-        {page === "competencia" && (
-          <div className="pr-grid">
-            <ParticipacionCompetencia data={competencia} />
-          </div>
-        )}
+        {page === "competencia" && <CompetenciaTab data={competenciaDetalle} filters={filters} />}
       </div>
     </div>
   );
@@ -1090,61 +1086,303 @@ function Detalle({ data }: { data: DetalleRow[] }) {
   );
 }
 
+// ---------- Competencia (Adecco vs. Manpower y Randstad) ----------
+// Port del bloque "Competencia v2" del artifact de referencia: a diferencia
+// del resto de Prensa, no hay queries agregadas por tarjeta — se traen las
+// notas una por una (getCompetenciaDetalle) y todo el cálculo (por mes,
+// tier, medio, con dos modos de período) se hace client-side, igual que ya
+// hace Detalle con las propias de Adecco.
 const MARCAS_COMPETENCIA = ["ADECCO", "MANPOWER", "RANDSTAD"] as const;
-const COLOR_MARCA: Record<string, string> = { ADECCO: "var(--s1)", MANPOWER: "var(--s2)", RANDSTAD: "var(--s3)" };
-const FMT_MARCA: Record<string, string> = { ADECCO: "Adecco", MANPOWER: "Manpower", RANDSTAD: "Randstad" };
-const METRICAS_COMPETENCIA = [
-  { key: "notas", label: "Repercusiones" },
-  { key: "reach", label: "Reach" },
-  { key: "vap", label: "VAP" },
-] as const;
+type Marca = (typeof MARCAS_COMPETENCIA)[number];
+const COLOR_MARCA: Record<Marca, string> = { ADECCO: "var(--s1)", MANPOWER: "var(--s2)", RANDSTAD: "var(--s3)" };
+const FMT_MARCA: Record<Marca, string> = { ADECCO: "Adecco", MANPOWER: "Manpower", RANDSTAD: "Randstad" };
+const TIPO_MEDIO_COLORS = ["var(--s4)", "var(--s5)", "var(--s6)", "var(--s7)", "var(--sx)", "var(--ink3)"];
 
-function ParticipacionCompetencia({ data }: { data: CompetenciaRow[] }) {
+function normKey(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+type MedioAgg = { nombre: string; n: number; r: number; v: number; tiers: Record<number, number> };
+type MarcaAgg = {
+  marca: Marca;
+  rows: CompetenciaDetalleRow[];
+  n: number;
+  r: number;
+  v: number;
+  t1: number;
+  t2: number;
+  t3: number;
+  q: number;
+  rn: number;
+  vn: number;
+  medios: Map<string, MedioAgg>;
+};
+
+function topTier(tiers: Record<number, number>): number {
+  const keys = Object.keys(tiers).map(Number);
+  if (!keys.length) return 0;
+  return keys.sort((a, b) => tiers[b] - tiers[a] || a - b)[0];
+}
+
+function buildAgg(data: CompetenciaDetalleRow[], marca: Marca, lo: string, hi: string): MarcaAgg {
+  const rows = data.filter((r) => r.marca === marca && r.fecha >= lo && r.fecha <= hi);
+  const n = rows.length;
+  const r = rows.reduce((a, x) => a + (x.reach ?? 0), 0);
+  const v = rows.reduce((a, x) => a + (x.vap ?? 0), 0);
+  const t1 = rows.filter((x) => x.tier === 1).length;
+  const t2 = rows.filter((x) => x.tier === 2).length;
+  const t3 = rows.filter((x) => x.tier === 3).length;
+  const medios = new Map<string, MedioAgg>();
+  rows.forEach((x) => {
+    const key = normKey(x.medio);
+    const o = medios.get(key) ?? { nombre: x.medio, n: 0, r: 0, v: 0, tiers: {} };
+    o.n++;
+    o.r += x.reach ?? 0;
+    o.v += x.vap ?? 0;
+    if (x.tier) o.tiers[x.tier] = (o.tiers[x.tier] ?? 0) + 1;
+    medios.set(key, o);
+  });
+  return { marca, rows, n, r, v, t1, t2, t3, q: n ? (100 * (t1 + t2)) / n : 0, rn: n ? r / n : 0, vn: n ? v / n : 0, medios };
+}
+
+function CompetenciaTab({ data, filters }: { data: CompetenciaDetalleRow[]; filters: PrensaFilters }) {
+  const [periodo, setPeriodo] = useState<"rng" | "all">("rng");
+  const [metricEvo, setMetricEvo] = useState<"n" | "r" | "v">("n");
+  const [who, setWho] = useState<Exclude<Marca, "ADECCO">>("RANDSTAD");
+  const [medShow, setMedShow] = useState<"share" | "gap" | "own">("share");
+
+  const { MINISO, MAXISO, CMAX } = useMemo(() => {
+    let minIso = "9999-99-99",
+      maxIso = "0000-00-00",
+      cmax = "0000-00-00";
+    for (const r of data) {
+      if (r.fecha < minIso) minIso = r.fecha;
+      if (r.marca === "ADECCO") {
+        if (r.fecha > maxIso) maxIso = r.fecha;
+      } else if (r.fecha > cmax) cmax = r.fecha;
+    }
+    return { MINISO: minIso, MAXISO: maxIso, CMAX: cmax };
+  }, [data]);
+
+  const all = periodo === "all";
+  const from = filters.desde ?? MINISO;
+  const to = filters.hasta ?? MAXISO;
+  const lo = all ? MINISO : from;
+  const hi = all ? (MAXISO > CMAX ? MAXISO : CMAX) : to < CMAX ? to : CMAX;
+
+  const C = useMemo(() => MARCAS_COMPETENCIA.map((m) => buildAgg(data, m, lo, hi)), [data, lo, hi]);
+
   if (!data.length) {
     return (
-      <div className="pr-card wide pr-pending">
-        <span className="tag">Pendiente</span>
-        <h2>Participación frente a Manpower y Randstad</h2>
-        <p>
-          Reparto entre las tres consultoras con las hojas de seguimiento de la competencia. Usa el rango de meses de
-          los filtros de fecha y no los demás filtros.
-        </p>
-        <p className="pr-note">
-          Esta sección necesita la hoja de seguimiento de la competencia (Manpower/Randstad) como fuente — todavía no
-          hay datos cargados para este período.
-        </p>
+      <div className="pr-grid">
+        <div className="pr-card wide pr-pending">
+          <span className="tag">Pendiente</span>
+          <h2>Adecco frente a Manpower y Randstad</h2>
+          <p>Comparación con las hojas de seguimiento de la competencia (Manpower y Randstad).</p>
+          <p className="pr-note">Esta sección necesita esas hojas como fuente — todavía no hay datos cargados.</p>
+        </div>
       </div>
     );
   }
-  const byMarca = new Map(data.map((d) => [d.marca, d]));
+
+  return (
+    <div className="pr-grid">
+      <CaraACara C={C} lo={lo} hi={hi} MAXISO={MAXISO} CMAX={CMAX} periodo={periodo} setPeriodo={setPeriodo} />
+      <Participacion C={C} />
+      <CalidadTier C={C} />
+      <Evolucion C={C} lo={lo} hi={hi} MAXISO={MAXISO} CMAX={CMAX} all={all} metric={metricEvo} setMetric={setMetricEvo} />
+      <Eficiencia C={C} />
+      <TipoMedioCompetencia C={C} />
+      <MediosPrincipales C={C} />
+      <MediosCompartidos C={C} medShow={medShow} setMedShow={setMedShow} />
+      <NotasImpacto C={C} who={who} setWho={setWho} />
+      <ComoLeer C={C} MAXISO={MAXISO} CMAX={CMAX} />
+    </div>
+  );
+}
+
+function Dot({ color }: { color: string }) {
+  return <i style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: color, marginRight: 6 }} />;
+}
+
+function CaraACara({
+  C,
+  lo,
+  hi,
+  MAXISO,
+  CMAX,
+  periodo,
+  setPeriodo,
+}: {
+  C: MarcaAgg[];
+  lo: string;
+  hi: string;
+  MAXISO: string;
+  CMAX: string;
+  periodo: "rng" | "all";
+  setPeriodo: (p: "rng" | "all") => void;
+}) {
+  const all = periodo === "all";
+  const tot = (k: "n" | "r" | "v") => C.reduce((s, x) => s + x[k], 0);
+  const totalNotas = tot("n");
+  const showWarn = all && CMAX !== MAXISO;
+  const warnMsg =
+    MAXISO > CMAX
+      ? `Manpower y Randstad tienen notas cargadas hasta el ${F.date(CMAX)}. En esta vista Adecco suma también los meses posteriores, así que su volumen supera al de la competencia por período cubierto y no por desempeño.`
+      : `Adecco tiene notas cargadas hasta el ${F.date(MAXISO)}. En esta vista Manpower y Randstad suman también los meses posteriores, así que sus totales superan a los de Adecco por período cubierto y no por desempeño.`;
+
+  const lead = (key: "n" | "r" | "q" | "vn") => [...C].sort((a, b) => b[key] - a[key])[0];
+  const oth = (leadX: MarcaAgg, key: "q" | "vn", fmt: (v: number) => string) =>
+    C.filter((x) => x !== leadX)
+      .sort((a, b) => b[key] - a[key])
+      .map((x) => `${FMT_MARCA[x.marca]} ${fmt(x[key])}`)
+      .join(", ");
+  const leadN = lead("n"),
+    leadR = lead("r"),
+    leadQ = lead("q"),
+    leadVn = lead("vn");
+
+  type Def = [string, (x: MarcaAgg) => number, (v: number) => string, boolean, boolean];
+  const defs: Def[] = [
+    ["Repercusiones", (x) => x.n, F.int, true, false],
+    ["Reach total", (x) => x.r, F.compact, true, false],
+    ["VAP total", (x) => x.v, F.moneyc, true, false],
+    ["Reach por nota", (x) => x.rn, F.compact, false, false],
+    ["VAP por nota", (x) => x.vn, F.moneyc, false, false],
+    ["Notas Tier 1", (x) => x.t1, F.int, false, false],
+    ["Notas Tier 2", (x) => x.t2, F.int, false, false],
+    ["Notas Tier 3", (x) => x.t3, F.int, false, true],
+    ["Tier 1 y 2 sobre el total", (x) => x.q, F.pct, false, false],
+    ["Medios distintos", (x) => x.medios.size, F.int, false, false],
+  ];
+
   return (
     <div className="pr-card wide">
-      <h2>Participación frente a Manpower y Randstad</h2>
-      <p>
-        Reparto entre las tres consultoras con las hojas de seguimiento de la competencia. Usa el rango de meses de
-        los filtros de fecha y no los demás filtros.
+      <div className="pr-head">
+        <div>
+          <h2>Adecco frente a Manpower y Randstad</h2>
+          <p>
+            Período: {F.date(lo)} al {F.date(hi)}. Adecco cargado hasta el {F.date(MAXISO)}, Manpower y Randstad hasta el {F.date(CMAX)}.
+          </p>
+        </div>
+        <div className="pr-seg" role="group" aria-label="Período de comparación">
+          <button type="button" aria-pressed={!all} onClick={() => setPeriodo("rng")}>
+            Período común
+          </button>
+          <button type="button" aria-pressed={all} onClick={() => setPeriodo("all")}>
+            Todo lo disponible
+          </button>
+        </div>
+      </div>
+      {showWarn && <div className="pr-warn">{warnMsg}</div>}
+      {totalNotas ? (
+        <div className="pr-rd">
+          <div>
+            <span className="eyebrow">Volumen</span>
+            <p>
+              <b>{FMT_MARCA[leadN.marca]}</b> reúne {F.pct((100 * leadN.n) / totalNotas)} de las repercusiones del trío ({F.int(leadN.n)} de{" "}
+              {F.int(totalNotas)}).{" "}
+              {leadR === leadN ? (
+                "También encabeza el reach"
+              ) : (
+                <>
+                  En reach lidera <b>{FMT_MARCA[leadR.marca]}</b>
+                </>
+              )}{" "}
+              con {F.pct((100 * leadR.r) / tot("r"))} del total.
+            </p>
+          </div>
+          <div>
+            <span className="eyebrow">Calidad</span>
+            <p>
+              <b>{FMT_MARCA[leadQ.marca]}</b> lidera con {F.pct(leadQ.q)} de notas en Tier 1 y 2. Le siguen {oth(leadQ, "q", F.pct)}.
+            </p>
+          </div>
+          <div>
+            <span className="eyebrow">Eficiencia</span>
+            <p>
+              <b>{FMT_MARCA[leadVn.marca]}</b> obtiene el mayor VAP por nota ({F.moneyc(leadVn.vn)}). Le siguen {oth(leadVn, "vn", F.moneyc)}.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="pr-empty">No hay notas en el período elegido.</div>
+      )}
+      <div className="pr-tbl">
+        <table>
+          <thead>
+            <tr>
+              <th>Indicador</th>
+              {C.map((x) => (
+                <th key={x.marca} className="r">
+                  <Dot color={COLOR_MARCA[x.marca]} />
+                  {FMT_MARCA[x.marca]}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {defs.map(([label, get, fmt, showShare, noLead]) => {
+              const vals = C.map(get);
+              const max = Math.max(...vals);
+              const total = vals.reduce((a, b) => a + b, 0);
+              return (
+                <tr key={label}>
+                  <td>{label}</td>
+                  {vals.map((v, i) => (
+                    <td key={C[i].marca} className={`r num${!noLead && v === max && max > 0 ? " lead" : ""}`}>
+                      {fmt(v)}
+                      {showShare && total > 0 && <span className="sh">{Math.round((100 * v) / total)}%</span>}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="pr-note">
+        Los filtros de industria, campaña, búsqueda y enlace aplican a las demás secciones. En Competencia rige únicamente el rango de fechas, porque
+        las hojas de Manpower y Randstad no traen esas columnas.
       </p>
+    </div>
+  );
+}
+
+function Participacion({ C }: { C: MarcaAgg[] }) {
+  const metricas = [
+    { key: "n" as const, label: "Repercusiones" },
+    { key: "r" as const, label: "Reach" },
+    { key: "v" as const, label: "VAP" },
+  ];
+  return (
+    <div className="pr-card">
+      <h2>Participación en el total del trío</h2>
+      <p>Cómo se reparte entre las tres consultoras cada indicador. Cada barra suma 100%.</p>
       <div className="pr-dlegend" style={{ justifyContent: "flex-start" }}>
-        {MARCAS_COMPETENCIA.map((m) => (
-          <span key={m}>
-            <i style={{ background: COLOR_MARCA[m] }} />
-            {FMT_MARCA[m]}
+        {C.map((c) => (
+          <span key={c.marca}>
+            <i style={{ background: COLOR_MARCA[c.marca] }} />
+            {FMT_MARCA[c.marca]}
           </span>
         ))}
       </div>
       <div className="pr-stacked">
-        {METRICAS_COMPETENCIA.map((metric) => {
-          const total = MARCAS_COMPETENCIA.reduce((a, m) => a + (byMarca.get(m)?.[metric.key] ?? 0), 0);
+        {metricas.map((m) => {
+          const total = C.reduce((a, c) => a + c[m.key], 0);
           return (
-            <div key={metric.key} className="pr-stacked-row">
-              <span className="lbl">{metric.label}</span>
+            <div key={m.key} className="pr-stacked-row">
+              <span className="lbl">{m.label}</span>
               <div className="pr-stacked-bar">
                 {total > 0 &&
-                  MARCAS_COMPETENCIA.map((m) => {
-                    const v = byMarca.get(m)?.[metric.key] ?? 0;
-                    const pct = (100 * v) / total;
+                  C.map((c) => {
+                    const pct = (100 * c[m.key]) / total;
                     return pct > 0 ? (
-                      <div key={m} style={{ width: `${pct}%`, background: COLOR_MARCA[m] }} title={`${FMT_MARCA[m]}: ${F.pct(pct)}`} />
+                      <div key={c.marca} style={{ width: `${pct}%`, background: COLOR_MARCA[c.marca] }} title={`${FMT_MARCA[c.marca]}: ${F.pct(pct)}`} />
                     ) : null;
                   })}
               </div>
@@ -1160,6 +1398,527 @@ function ParticipacionCompetencia({ data }: { data: CompetenciaRow[] }) {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+function CalidadTier({ C }: { C: MarcaAgg[] }) {
+  const tiers: { key: "t1" | "t2" | "t3"; label: string; color: string }[] = [
+    { key: "t1", label: "Tier 1", color: TIER_COLORS[0] },
+    { key: "t2", label: "Tier 2", color: TIER_COLORS[1] },
+    { key: "t3", label: "Tier 3", color: TIER_COLORS[2] },
+  ];
+  return (
+    <div className="pr-card">
+      <h2>Calidad de la cobertura por tier</h2>
+      <p>Proporción de notas en medios Tier 1, Tier 2 y Tier 3. A la derecha, el porcentaje de Tier 1 y 2.</p>
+      <div className="pr-dlegend" style={{ justifyContent: "flex-start" }}>
+        {tiers.map((t) => (
+          <span key={t.key}>
+            <i style={{ background: t.color }} />
+            {t.label}
+          </span>
+        ))}
+      </div>
+      <div className="pr-stacked">
+        {C.map((c) => (
+          <div key={c.marca} className="pr-stacked-row">
+            <span className="lbl">{FMT_MARCA[c.marca]}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div className="pr-stacked-bar" style={{ flex: 1 }}>
+                {c.n > 0 &&
+                  tiers.map((t) =>
+                    c[t.key] > 0 ? (
+                      <div key={t.key} style={{ width: `${(100 * c[t.key]) / c.n}%`, background: t.color }} title={`${t.label}: ${F.pct((100 * c[t.key]) / c.n)}`} />
+                    ) : null,
+                  )}
+              </div>
+              <span className="pr-note" style={{ minWidth: 38, textAlign: "right" }}>
+                {Math.round(c.q)}%
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function monthShort(m: number) {
+  return MESES[m - 1] ?? "";
+}
+
+function Evolucion({
+  C,
+  lo,
+  hi,
+  MAXISO,
+  CMAX,
+  all,
+  metric,
+  setMetric,
+}: {
+  C: MarcaAgg[];
+  lo: string;
+  hi: string;
+  MAXISO: string;
+  CMAX: string;
+  all: boolean;
+  metric: "n" | "r" | "v";
+  setMetric: (m: "n" | "r" | "v") => void;
+}) {
+  const [wrapRef, width] = useBoxWidth();
+  const [hover, setHover] = useState<number | null>(null);
+
+  const { months, series } = useMemo(() => {
+    const cov: Record<Marca, string> = { ADECCO: MAXISO, MANPOWER: CMAX, RANDSTAD: CMAX };
+    const m1 = parseInt(lo.slice(5, 7), 10),
+      m2 = parseInt(hi.slice(5, 7), 10);
+    const months: number[] = [];
+    for (let m = m1; m <= m2; m++) months.push(m);
+    const series = C.map((c) => {
+      const covMonth = parseInt(cov[c.marca].slice(5, 7), 10);
+      const data = months.map((m) => {
+        const rowsM = c.rows.filter((r) => parseInt(r.fecha.slice(5, 7), 10) === m);
+        if (!rowsM.length) return m > covMonth ? null : 0;
+        if (metric === "n") return rowsM.length;
+        return rowsM.reduce((a, x) => a + ((metric === "r" ? x.reach : x.vap) ?? 0), 0);
+      });
+      return { marca: c.marca, data };
+    });
+    return { months, series };
+  }, [C, lo, hi, metric, MAXISO, CMAX]);
+
+  const label = metric === "n" ? "Repercusiones" : metric === "r" ? "Reach" : "VAP";
+  const fmt = metric === "n" ? F.int : metric === "r" ? F.compact : F.moneyc;
+  const sub = all
+    ? `${label} por mes. Cada línea termina en el último mes cargado de su consultora.`
+    : `${label} por mes dentro del período elegido.`;
+
+  return (
+    <div className="pr-card wide">
+      <div className="pr-head">
+        <div>
+          <h2>Evolución mensual</h2>
+          <p>{sub}</p>
+        </div>
+        <div className="pr-seg" role="group" aria-label="Indicador">
+          <button type="button" aria-pressed={metric === "n"} onClick={() => setMetric("n")}>
+            Repercusiones
+          </button>
+          <button type="button" aria-pressed={metric === "r"} onClick={() => setMetric("r")}>
+            Reach
+          </button>
+          <button type="button" aria-pressed={metric === "v"} onClick={() => setMetric("v")}>
+            VAP
+          </button>
+        </div>
+      </div>
+      <div className="pr-dlegend" style={{ justifyContent: "flex-start" }}>
+        {C.map((c) => (
+          <span key={c.marca}>
+            <i style={{ background: COLOR_MARCA[c.marca] }} />
+            {FMT_MARCA[c.marca]}
+          </span>
+        ))}
+      </div>
+      <div ref={wrapRef} className="pr-box tall" style={{ position: "relative" }}>
+        <MultiLineChart months={months} series={series} width={width} fmt={fmt} hover={hover} setHover={setHover} />
+      </div>
+    </div>
+  );
+}
+
+function MultiLineChart({
+  months,
+  series,
+  width,
+  fmt,
+  hover,
+  setHover,
+}: {
+  months: number[];
+  series: { marca: Marca; data: (number | null)[] }[];
+  width: number;
+  fmt: (v: number) => string;
+  hover: number | null;
+  setHover: (i: number | null) => void;
+}) {
+  const W = width,
+    H = 320,
+    top = 10,
+    bottom = 26;
+  const vals = series.flatMap((s) => s.data.filter((v): v is number => v != null));
+  const maxY = Math.max(1, ...vals) * 1.1;
+  const yt = ticks(maxY, 5);
+  const left = Math.max(...yt.map((v) => fmt(v).length), 2) * 6.5 + 16;
+  const right = 12;
+  const n = months.length;
+  const xAt = (i: number) => (n > 1 ? left + (i / (n - 1)) * (W - left - right) : (left + W - right) / 2);
+  const yAt = (v: number) => H - bottom - (Math.max(0, v) / maxY) * (H - bottom - top);
+
+  const onMove = (e: React.MouseEvent<SVGRectElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const mxPos = ((e.clientX - rect.left) / rect.width) * W;
+    let best = 0,
+      bestD = Infinity;
+    months.forEach((_, i) => {
+      const d = Math.abs(xAt(i) - mxPos);
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    });
+    setHover(best);
+  };
+
+  if (!n) return <div className="pr-empty">Sin datos para este período.</div>;
+
+  return (
+    <>
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: "block", overflow: "visible" }}>
+        <g className="pr-axis">
+          {yt.map((v) => (
+            <line key={v} x1={left} x2={W - 4} y1={yAt(v)} y2={yAt(v)} />
+          ))}
+          {yt.map((v) => (
+            <text key={v} x={left - 8} y={yAt(v)} dy="0.35em" textAnchor="end">
+              {fmt(v)}
+            </text>
+          ))}
+        </g>
+        {months.map((m, i) => (
+          <text key={m} x={xAt(i)} y={H - 6} textAnchor="middle" className="pr-axis" style={{ fontSize: 11 }}>
+            {monthShort(m)}
+          </text>
+        ))}
+        {series.map((s) => {
+          let path = "",
+            started = false;
+          s.data.forEach((v, i) => {
+            if (v == null) {
+              started = false;
+              return;
+            }
+            path += `${started ? "L" : "M"} ${xAt(i).toFixed(1)} ${yAt(v).toFixed(1)} `;
+            started = true;
+          });
+          return <path key={s.marca} d={path} fill="none" stroke={COLOR_MARCA[s.marca]} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />;
+        })}
+        {hover != null &&
+          series.map((s) => {
+            const v = s.data[hover];
+            return v == null ? null : <circle key={s.marca} cx={xAt(hover)} cy={yAt(v)} r={5} fill={COLOR_MARCA[s.marca]} stroke="var(--card)" strokeWidth={2} />;
+          })}
+        <rect x={left} y={0} width={Math.max(0, W - left)} height={H} fill="transparent" onMouseMove={onMove} onMouseLeave={() => setHover(null)} />
+      </svg>
+      {hover != null && (
+        <div className="pr-tip" style={{ left: Math.max(0, Math.min(W - 170, xAt(hover) + 12)), top: 8 }}>
+          <div className="pr-tip-h">{monthShort(months[hover])}</div>
+          {series.map((s) => {
+            const v = s.data[hover];
+            return (
+              <div key={s.marca}>
+                <Dot color={COLOR_MARCA[s.marca]} />
+                {FMT_MARCA[s.marca]}: {v == null ? "sin datos" : fmt(v)}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
+
+function Eficiencia({ C }: { C: MarcaAgg[] }) {
+  return (
+    <div className="pr-card">
+      <h2>Eficiencia por nota</h2>
+      <p>Reach y VAP promedio de cada nota publicada.</p>
+      <p className="pr-note" style={{ marginBottom: -4 }}>
+        Reach por nota
+      </p>
+      <Bars rows={C.map((c) => ({ nombre: FMT_MARCA[c.marca], valor: c.rn, etiqueta: F.compact(c.rn) }))} />
+      <p className="pr-note" style={{ marginBottom: -4 }}>
+        VAP por nota
+      </p>
+      <Bars rows={C.map((c) => ({ nombre: FMT_MARCA[c.marca], valor: c.vn, etiqueta: F.moneyc(c.vn) }))} />
+    </div>
+  );
+}
+
+function TipoMedioCompetencia({ C }: { C: MarcaAgg[] }) {
+  const tipos = useMemo(() => {
+    const counts = new Map<string, number>();
+    C.forEach((c) => c.rows.forEach((r) => r.tipo_de_medio && counts.set(r.tipo_de_medio, (counts.get(r.tipo_de_medio) ?? 0) + 1)));
+    return [...counts.keys()].sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0));
+  }, [C]);
+  return (
+    <div className="pr-card">
+      <h2>Tipo de medio</h2>
+      <p>Reparto de las notas según el soporte donde salieron.</p>
+      <div className="pr-dlegend" style={{ justifyContent: "flex-start" }}>
+        {tipos.map((t, i) => (
+          <span key={t}>
+            <i style={{ background: TIPO_MEDIO_COLORS[i % TIPO_MEDIO_COLORS.length] }} />
+            {FMT_TIPO_MEDIO[t] ?? t}
+          </span>
+        ))}
+      </div>
+      <div className="pr-stacked">
+        {C.map((c) => (
+          <div key={c.marca} className="pr-stacked-row">
+            <span className="lbl">{FMT_MARCA[c.marca]}</span>
+            <div className="pr-stacked-bar">
+              {c.n > 0 &&
+                tipos.map((t, i) => {
+                  const n = c.rows.filter((r) => r.tipo_de_medio === t).length;
+                  return n > 0 ? (
+                    <div
+                      key={t}
+                      style={{ width: `${(100 * n) / c.n}%`, background: TIPO_MEDIO_COLORS[i % TIPO_MEDIO_COLORS.length] }}
+                      title={`${FMT_TIPO_MEDIO[t] ?? t}: ${F.pct((100 * n) / c.n)}`}
+                    />
+                  ) : null;
+                })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MediosPrincipales({ C }: { C: MarcaAgg[] }) {
+  return (
+    <div className="pr-card wide">
+      <h2>Medios principales de cada consultora</h2>
+      <p>Los ocho medios con más notas en el período. Cada etiqueta indica el tier más frecuente del medio.</p>
+      <div className="pr-cols3">
+        {C.map((c) => {
+          const top = [...c.medios.values()].sort((a, b) => b.n - a.n || b.v - a.v).slice(0, 8);
+          const max = Math.max(1, ...top.map((x) => x.n));
+          return (
+            <div key={c.marca}>
+              <div className="pr-ch">
+                <Dot color={COLOR_MARCA[c.marca]} />
+                <b>{FMT_MARCA[c.marca]}</b>
+                <span className="note">{F.int(c.medios.size)} medios</span>
+              </div>
+              {top.length ? (
+                <ul className="pr-crank">
+                  {top.map((x) => (
+                    <li key={x.nombre} title={x.nombre}>
+                      <span className="nm">
+                        {x.nombre} <em className="tg2">T{topTier(x.tiers)}</em>
+                      </span>
+                      <span className="bar">
+                        <i style={{ width: `${(100 * x.n) / max}%`, background: COLOR_MARCA[c.marca] }} />
+                      </span>
+                      <span className="ct">{F.int(x.n)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="pr-note">Sin notas en el período.</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+type SharedMedio = { nombre: string; cnt: number[]; tot: number; comp: number; tier: number };
+
+function MediosCompartidos({
+  C,
+  medShow,
+  setMedShow,
+}: {
+  C: MarcaAgg[];
+  medShow: "share" | "gap" | "own";
+  setMedShow: (v: "share" | "gap" | "own") => void;
+}) {
+  const sets = useMemo(() => {
+    const keys = new Set<string>();
+    C.forEach((c) => c.medios.forEach((_, k) => keys.add(k)));
+    const U: SharedMedio[] = [...keys].map((k) => {
+      const group = C.map((c) => c.medios.get(k));
+      const nombre = group.find(Boolean)?.nombre ?? k;
+      const cnt = group.map((g) => g?.n ?? 0);
+      const comp = cnt[1] + cnt[2];
+      const tiersCombined: Record<number, number> = {};
+      group.forEach((g) => g && Object.entries(g.tiers).forEach(([t, n]) => (tiersCombined[+t] = (tiersCombined[+t] ?? 0) + n)));
+      return { nombre, cnt, tot: cnt[0] + cnt[1] + cnt[2], comp, tier: topTier(tiersCombined) };
+    });
+    return {
+      share: U.filter((x) => x.cnt[0] > 0 && x.comp > 0).sort((a, b) => b.tot - a.tot),
+      gap: U.filter((x) => x.cnt[0] === 0 && x.comp > 0).sort((a, b) => b.comp - a.comp || a.tier - b.tier),
+      own: U.filter((x) => x.cnt[0] > 0 && x.comp === 0).sort((a, b) => b.cnt[0] - a.cnt[0]),
+    };
+  }, [C]);
+  const rows = sets[medShow];
+  const subs: Record<"share" | "gap" | "own", string> = {
+    share: "Medios donde Adecco y al menos una de las otras dos consultoras publicaron notas.",
+    gap: "Medios donde Manpower o Randstad tienen notas y Adecco no. Los primeros de la lista son los espacios con mayor competencia a conquistar.",
+    own: "Medios donde sólo Adecco tuvo notas en el período.",
+  };
+
+  return (
+    <div className="pr-card wide">
+      <div className="pr-head">
+        <div>
+          <h2>Medios compartidos y oportunidades</h2>
+          <p>
+            {subs[medShow]} Se muestran hasta 60 de {F.int(rows.length)}.
+          </p>
+        </div>
+        <div className="pr-seg" role="group" aria-label="Tipo de cruce">
+          <button type="button" aria-pressed={medShow === "share"} onClick={() => setMedShow("share")}>
+            Compartidos ({sets.share.length})
+          </button>
+          <button type="button" aria-pressed={medShow === "gap"} onClick={() => setMedShow("gap")}>
+            Solo la competencia ({sets.gap.length})
+          </button>
+          <button type="button" aria-pressed={medShow === "own"} onClick={() => setMedShow("own")}>
+            Solo Adecco ({sets.own.length})
+          </button>
+        </div>
+      </div>
+      {!rows.length ? (
+        <div className="pr-empty">No hay medios en esta categoría para el período.</div>
+      ) : (
+        <div className="pr-tbl" style={{ maxHeight: 440 }}>
+          <table>
+            <thead>
+              <tr>
+                <th>Medio</th>
+                <th>Tier</th>
+                {C.map((c) => (
+                  <th key={c.marca} className="r">
+                    <Dot color={COLOR_MARCA[c.marca]} />
+                    {FMT_MARCA[c.marca]}
+                  </th>
+                ))}
+                <th className="r">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.slice(0, 60).map((x) => {
+                const max = Math.max(...x.cnt);
+                return (
+                  <tr key={x.nombre}>
+                    <td>{x.nombre}</td>
+                    <td>
+                      <span className="pr-tier">T{x.tier}</span>
+                    </td>
+                    {x.cnt.map((n, i) => (
+                      <td key={i} className={`r num${n === max && n > 0 ? " lead" : ""}${n ? "" : " zero"}`}>
+                        {n ? F.int(n) : "·"}
+                      </td>
+                    ))}
+                    <td className="r num">{F.int(x.tot)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NotasImpacto({
+  C,
+  who,
+  setWho,
+}: {
+  C: MarcaAgg[];
+  who: Exclude<Marca, "ADECCO">;
+  setWho: (m: Exclude<Marca, "ADECCO">) => void;
+}) {
+  const agg = C.find((c) => c.marca === who)!;
+  const top10 = useMemo(() => [...agg.rows].sort((a, b) => (b.vap ?? 0) - (a.vap ?? 0)).slice(0, 10), [agg]);
+  return (
+    <div className="pr-card wide">
+      <div className="pr-head">
+        <div>
+          <h2>Notas de mayor impacto de la competencia</h2>
+          <p>Las diez notas con más VAP de cada consultora en el período.</p>
+        </div>
+        <div className="pr-seg" role="group" aria-label="Consultora">
+          <button type="button" aria-pressed={who === "RANDSTAD"} onClick={() => setWho("RANDSTAD")}>
+            Randstad
+          </button>
+          <button type="button" aria-pressed={who === "MANPOWER"} onClick={() => setWho("MANPOWER")}>
+            Manpower
+          </button>
+        </div>
+      </div>
+      {!top10.length ? (
+        <div className="pr-empty">No hay notas en el período.</div>
+      ) : (
+        <div className="pr-tbl">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Nota</th>
+                <th>Medio</th>
+                <th className="r">Reach</th>
+                <th className="r">VAP</th>
+              </tr>
+            </thead>
+            <tbody>
+              {top10.map((r, i) => (
+                <tr key={i}>
+                  <td className="num">{F.date(r.fecha)}</td>
+                  <td className="pr-ttl">
+                    {r.url ? (
+                      <a href={r.url} target="_blank" rel="noreferrer">
+                        {F.text(r.tema)}
+                      </a>
+                    ) : (
+                      F.text(r.tema)
+                    )}
+                    <div className="pr-tag">
+                      {r.tier ? `T${r.tier}` : ""} · {FMT_TIPO_MEDIO[r.tipo_de_medio ?? ""] ?? r.tipo_de_medio}
+                      {r.url ? "" : " · sin enlace"}
+                    </div>
+                  </td>
+                  <td>{r.medio}</td>
+                  <td className="r num">{F.compact(r.reach)}</td>
+                  <td className="r num">{F.moneyc(r.vap)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ComoLeer({ C, MAXISO, CMAX }: { C: MarcaAgg[]; MAXISO: string; CMAX: string }) {
+  const [, mp, rs] = C;
+  const sinLink = (c: MarcaAgg) => c.rows.filter((r) => !r.url).length;
+  const notas = [
+    "Reach y VAP de Manpower y Randstad vienen de la planilla de seguimiento manual que arma la agencia, con el mismo criterio que la grilla de Adecco: cada fila es una repercusión. Una nota replicada en varios medios suma varias repercusiones.",
+    `Adecco tiene la grilla cargada hasta el ${F.date(MAXISO)} y la competencia hasta el ${F.date(CMAX)}. La vista "Período común" compara con la misma ventana de fechas para las tres.`,
+    "Industria, campaña, periodista y vocero no están disponibles para Manpower ni Randstad — por eso Competencia usa únicamente el rango de fechas como filtro, y no el resto de los filtros del reporte.",
+    `${F.int(sinLink(mp))} notas de Manpower y ${F.int(sinLink(rs))} de Randstad no traen enlace. Se cuentan igual en todos los totales.`,
+  ];
+  return (
+    <div className="pr-card wide">
+      <h2>Cómo leer esta comparación</h2>
+      <ul className="pr-notes">
+        {notas.map((t, i) => (
+          <li key={i}>{t}</li>
+        ))}
+      </ul>
     </div>
   );
 }

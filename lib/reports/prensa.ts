@@ -365,42 +365,41 @@ export async function getRangoFechas(client: ClientSlug): Promise<{ desde: strin
   return rows[0] ?? { desde: null, hasta: null };
 }
 
-export type CompetenciaRow = { marca: string; notas: number; reach: number; vap: number };
+export type CompetenciaDetalleRow = {
+  marca: "ADECCO" | "MANPOWER" | "RANDSTAD";
+  fecha: string;
+  tier: number | null;
+  medio: string;
+  tipo_de_medio: string | null;
+  tema: string | null;
+  reach: number | null;
+  vap: number | null;
+  url: string | null;
+};
 
 // Tabla aparte (gold_prensa_adecco_competencia), no multi-cliente: solo
 // tiene sentido para Adecco (Manpower/Randstad son sus competidores, no
-// los de Decathlon). Usa SOLO el rango de fechas, no el resto de los
-// filtros (industria/campaña/tipo de medio) — así lo pide el artifact de
-// referencia, porque esos filtros son específicos de la cobertura propia.
-// Adecco sale de su tabla de verdad (gold_prensa_adecco, la misma que
-// alimenta el resto del reporte) — gold_prensa_adecco_competencia solo
-// guarda Manpower y Randstad, para no duplicar el dato real de Adecco en
-// dos lugares.
-export async function getParticipacionCompetencia(
-  client: ClientSlug,
-  f: Pick<PrensaFilters, "desde" | "hasta">,
-): Promise<CompetenciaRow[]> {
+// los de Decathlon). Trae TODO el historial, nota por nota, sin aplicar
+// los filtros de industria/campaña/tipo de medio ni el rango de fechas —
+// la pestaña Competencia (PrensaDashboard.tsx) hace todo el cálculo
+// client-side a partir de estas filas, igual que hace Detalle con las
+// propias de Adecco, porque necesita cruzar por mes/tier/medio con dos
+// modos de período ("común" vs "todo lo disponible") que no son filtros
+// simples de WHERE. Adecco sale de su tabla de verdad (gold_prensa_adecco,
+// la misma que alimenta el resto del reporte) — gold_prensa_adecco_competencia
+// solo guarda Manpower y Randstad, para no duplicar el dato real de Adecco
+// en dos lugares.
+export async function getCompetenciaDetalle(client: ClientSlug): Promise<CompetenciaDetalleRow[]> {
   if (client !== "adecco") return [];
-  return queryReport<CompetenciaRow>(
-    `with rango as (
-      select CAST($1 AS DATE) desde, CAST($2 AS DATE) hasta
-    ), adecco as (
-      select 'ADECCO' marca, count(*)::int notas, coalesce(sum(reach),0)::float8 reach, coalesce(sum(cpe_vap),0)::float8 vap
-      from gold_prensa_adecco, rango
-      where (rango.desde IS NULL OR fecha >= rango.desde)
-        and (rango.hasta IS NULL OR fecha <= rango.hasta)
-    ), competencia as (
-      select marca, count(*)::int notas, coalesce(sum(reach),0)::float8 reach, coalesce(sum(cpe_vap),0)::float8 vap
-      from gold_prensa_adecco_competencia, rango
-      where (rango.desde IS NULL OR fecha >= rango.desde)
-        and (rango.hasta IS NULL OR fecha <= rango.hasta)
-      group by 1
-    )
-    select * from adecco
-    union all
-    select * from competencia
-    order by 1`,
-    [f.desde, f.hasta],
+  return queryReport<CompetenciaDetalleRow>(
+    `select 'ADECCO'::text marca, to_char(fecha,'YYYY-MM-DD') fecha, tier::int tier, medio, tipo_de_medio, tema,
+       reach::float8 reach, cpe_vap::float8 vap, hipervinculo url
+     from gold_prensa_adecco
+     union all
+     select marca, to_char(fecha,'YYYY-MM-DD') fecha, tier::int tier, medio, tipo_de_medio, tema,
+       reach::float8 reach, cpe_vap::float8 vap, hipervinculo url
+     from gold_prensa_adecco_competencia
+     order by fecha`,
   );
 }
 

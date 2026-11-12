@@ -926,6 +926,128 @@
   margin-bottom: 6px;
 }
 
+/* Competencia: lectura rápida y aviso de cobertura dispar */
+.pr-rd {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.pr-rd .eyebrow {
+  display: block;
+  font: 500 11px var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accText);
+  margin-bottom: 4px;
+}
+.pr-rd p {
+  margin: 0;
+  color: var(--ink2);
+  font-size: 13px;
+}
+.pr-warn {
+  border: 1px solid var(--bad);
+  background: var(--card2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  color: var(--ink2);
+}
+
+/* Competencia: tabla cara a cara y medios compartidos */
+.pr-tbl td.lead {
+  color: var(--ink);
+  font-weight: 700;
+}
+.pr-tbl td.zero {
+  color: var(--ink3);
+}
+.pr-tbl .sh {
+  color: var(--ink3);
+  font-size: 11px;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+/* Competencia: medios principales por consultora */
+.pr-cols3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.pr-ch {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+.pr-ch b {
+  font-weight: 700;
+}
+.pr-ch .note {
+  margin-left: auto;
+  color: var(--ink3);
+  font-size: 11.5px;
+}
+.pr-crank {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pr-crank li {
+  display: grid;
+  grid-template-columns: 1fr 40px;
+  gap: 4px 10px;
+  align-items: center;
+}
+.pr-crank .nm {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pr-crank .tg2 {
+  font: 500 10px var(--mono);
+  color: var(--ink3);
+  flex: none;
+}
+.pr-crank .bar {
+  height: 7px;
+  border-radius: 4px;
+  background: var(--grid);
+  overflow: hidden;
+}
+.pr-crank .bar i {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+}
+.pr-crank .ct {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink2);
+  font-size: 12px;
+}
+
+/* Competencia: notas de cierre */
+.pr-notes {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ink2);
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 @media (max-width: 760px) {
   .pr-grid {
     grid-template-columns: minmax(0, 1fr);
@@ -935,6 +1057,10 @@
   }
   .pr-box {
     height: 230px;
+  }
+  .pr-rd,
+  .pr-cols3 {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 @media (prefers-reduced-motion: reduce) {

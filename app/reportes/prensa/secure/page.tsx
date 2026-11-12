@@ -1,5 +1,6 @@
 import {
   getActividad,
+  getCompetenciaDetalle,
   getDetalle,
   getEvolucionSemanal,
   getGestionMencion,
@@ -8,7 +9,6 @@ import {
   getNotasDestacadas,
   getOpciones,
   getOrganicaPaga,
-  getParticipacionCompetencia,
   getPorCampana,
   getPorFormato,
   getPorIndustria,
@@ -92,7 +92,7 @@ export default async function SecurePrensaReportPage({
     vapPorTier,
     detalle,
     opciones,
-    competencia,
+    competenciaDetalle,
   ] = await Promise.all([
     getKpis(client, filters),
     getEvolucionSemanal(client, filters),
@@ -114,7 +114,7 @@ export default async function SecurePrensaReportPage({
     getVapPorTier(client, filters),
     getDetalle(client, filters),
     getOpciones(client),
-    getParticipacionCompetencia(client, filters),
+    getCompetenciaDetalle(client),
   ]);
 
   return (
@@ -140,7 +140,7 @@ export default async function SecurePrensaReportPage({
       vapPorTier={vapPorTier}
       detalle={detalle}
       opciones={opciones}
-      competencia={competencia}
+      competenciaDetalle={competenciaDetalle}
       fontClassName={`${prDisplay.variable} ${prBody.variable} ${prMono.variable}`}
       basePath="/reportes/prensa/secure"
       email={email}
