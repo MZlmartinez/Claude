@@ -1630,18 +1630,105 @@ function MultiLineChart({
 }
 
 function Eficiencia({ C }: { C: MarcaAgg[] }) {
+  const categorias = ["Reach por nota", "VAP por nota"];
+  const series = C.map((c) => ({ marca: c.marca, values: [c.rn / 1e3, c.vn / 1e3] }));
+  const fmtK = (v: number) => F.int(Math.round(v)) + " K";
   return (
     <div className="pr-card">
       <h2>Eficiencia por nota</h2>
-      <p>Reach y VAP promedio de cada nota publicada.</p>
-      <p className="pr-note" style={{ marginBottom: -4 }}>
-        Reach por nota
-      </p>
-      <Bars rows={C.map((c) => ({ nombre: FMT_MARCA[c.marca], valor: c.rn, etiqueta: F.compact(c.rn) }))} />
-      <p className="pr-note" style={{ marginBottom: -4 }}>
-        VAP por nota
-      </p>
-      <Bars rows={C.map((c) => ({ nombre: FMT_MARCA[c.marca], valor: c.vn, etiqueta: F.moneyc(c.vn) }))} />
+      <p>Reach y VAP promedio de cada nota publicada, en miles.</p>
+      <div className="pr-dlegend" style={{ justifyContent: "flex-start" }}>
+        {C.map((c) => (
+          <span key={c.marca}>
+            <i style={{ background: COLOR_MARCA[c.marca] }} />
+            {FMT_MARCA[c.marca]}
+          </span>
+        ))}
+      </div>
+      <GroupedBarChart categories={categorias} series={series} fmt={fmtK} />
+    </div>
+  );
+}
+
+function GroupedBarChart({
+  categories,
+  series,
+  fmt,
+  height = 230,
+}: {
+  categories: string[];
+  series: { marca: Marca; values: number[] }[];
+  fmt: (v: number) => string;
+  height?: number;
+}) {
+  const [wrapRef, width] = useBoxWidth();
+  const [hover, setHover] = useState<{ cat: number; s: number } | null>(null);
+  const W = width,
+    H = height,
+    top = 8,
+    bottom = 24;
+  const maxY = Math.max(1, ...series.flatMap((s) => s.values)) * 1.1;
+  const yt = ticks(maxY, 4);
+  const left = Math.max(...yt.map((v) => fmt(v).length), 2) * 6.5 + 14;
+  const n = categories.length;
+  const groupW = (W - left - 4) / n;
+  const barsW = groupW * 0.72;
+  const gap = 6;
+  const barW = Math.max(8, (barsW - gap * (series.length - 1)) / series.length);
+  const xGroup = (i: number) => left + i * groupW + (groupW - barsW) / 2;
+  const xBar = (gi: number, si: number) => xGroup(gi) + si * (barW + gap);
+  const yAt = (v: number) => H - bottom - (Math.max(0, v) / maxY) * (H - bottom - top);
+
+  return (
+    <div ref={wrapRef} className="pr-box grow" style={{ position: "relative" }}>
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: "block" }}>
+        <g className="pr-axis">
+          {yt.map((v) => (
+            <line key={v} x1={left} x2={W} y1={yAt(v)} y2={yAt(v)} />
+          ))}
+          {yt.map((v) => (
+            <text key={v} x={left - 8} y={yAt(v)} dy="0.35em" textAnchor="end">
+              {fmt(v)}
+            </text>
+          ))}
+        </g>
+        {categories.map((c, i) => (
+          <text key={c} x={xGroup(i) + barsW / 2} y={H - 6} textAnchor="middle" className="pr-axis" style={{ fontSize: 11 }}>
+            {c}
+          </text>
+        ))}
+        {categories.map((_, gi) =>
+          series.map((s, si) => {
+            const v = s.values[gi];
+            return (
+              <rect
+                key={`${s.marca}-${gi}`}
+                x={xBar(gi, si)}
+                width={barW}
+                y={yAt(Math.max(0, v))}
+                height={Math.max(0, yAt(0) - yAt(Math.max(0, v)))}
+                rx={Math.min(5, barW / 2)}
+                fill={COLOR_MARCA[s.marca]}
+                onMouseMove={() => setHover({ cat: gi, s: si })}
+                onMouseLeave={() => setHover(null)}
+              />
+            );
+          }),
+        )}
+      </svg>
+      {hover && (
+        <div
+          className="pr-tip"
+          style={{
+            left: Math.max(0, Math.min(W - 160, xBar(hover.cat, hover.s) + barW / 2 + 12)),
+            top: Math.max(0, yAt(series[hover.s].values[hover.cat]) - 34),
+          }}
+        >
+          <div>
+            {FMT_MARCA[series[hover.s].marca]}: {fmt(series[hover.s].values[hover.cat])}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
