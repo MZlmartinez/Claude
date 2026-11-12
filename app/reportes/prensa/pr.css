@@ -873,7 +873,9 @@
 
 .pr-stacked {
   display: flex;
+  flex: 1;
   flex-direction: column;
+  justify-content: space-evenly;
   gap: 20px;
   padding: 6px 0;
 }
