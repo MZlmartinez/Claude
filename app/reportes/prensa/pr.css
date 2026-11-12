@@ -958,13 +958,14 @@
 .pr-tbl td.lead {
   color: var(--ink);
   font-weight: 700;
+  background: var(--accSoft);
 }
 .pr-tbl td.zero {
   color: var(--ink3);
 }
 .pr-tbl .sh {
   color: var(--ink3);
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 400;
   margin-left: 4px;
 }
