@@ -685,7 +685,12 @@
   background: var(--card2);
 }
 
-/* gráfico de evolución (línea) */
+/* gráfico de evolución (línea) — las etiquetas del eje X se aplican
+   directamente sobre el <text> (no envueltas en el <g class="pr-axis">
+   de las líneas de grilla), así que el selector tiene que matchear las
+   dos formas o esas etiquetas quedan con el fill por default (negro,
+   invisible en tema oscuro). */
+.pr-axis,
 .pr-axis text {
   fill: var(--ink3);
   font-size: 11px;
