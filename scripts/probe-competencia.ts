@@ -1,7 +1,42 @@
-// Script temporal: chequeo final de gold_prensa_competencia (todas las
-// columnas + conteo) para comparar contra lo que ya hay en Supabase.
+// Script temporal: valida columna por columna las dos tablas de Adecco
+// (gold_prensa y gold_prensa_competencia) en busca de NaN/Infinity.
 import { connectFabric } from "../lib/fabric";
 import { ensureFabricCapacityActive, pauseFabricCapacity } from "../lib/fabricCapacity";
+
+const FLOAT_LIKE_COLUMNS = [
+  "tier",
+  "periodista",
+  "vocero",
+  "formato_contenido",
+  "nacional_o_interior",
+  "provincia",
+  "industria",
+  "campaña",
+  "tono",
+  "mención_gestión",
+  "pago_organico",
+  "inversion",
+  "reach",
+  "hipervinculo",
+];
+
+async function checkTable(pool: Awaited<ReturnType<typeof connectFabric>>, table: string) {
+  // Nota: esta conexión es al endpoint SQL (T-SQL), no a Spark — acá NO
+  // existe isnan(), así que el único chequeo posible desde este script es
+  // "la columna se puede leer sin que explote la conversión NaN/Infinity".
+  console.log(`\n=== ${table} ===`);
+  const count = await pool.request().query(`SELECT COUNT(*) AS total FROM prensa.${table}`);
+  console.log("COUNT:", JSON.stringify(count.recordset));
+
+  for (const c of FLOAT_LIKE_COLUMNS) {
+    try {
+      await pool.request().query(`SELECT TOP 5 [${c}] FROM prensa.${table}`);
+      console.log(`LECTURA OK (endpoint SQL): ${c}`);
+    } catch (error) {
+      console.log(`LECTURA FALLA (endpoint SQL): ${c} -> ${String(error).split("\n")[0]}`);
+    }
+  }
+}
 
 async function main() {
   const sqlEndpoint = process.env.FABRIC_SQL_ENDPOINT_ADECCO;
@@ -15,57 +50,8 @@ async function main() {
   await ensureFabricCapacityActive();
   const pool = await connectFabric(sqlEndpoint, database);
   try {
-    const cols = [
-      "cliente",
-      "marca",
-      "fecha",
-      "tier",
-      "medio",
-      "tipo_de_medio",
-      "periodista",
-      "vocero",
-      "formato_contenido",
-      "nacional_o_interior",
-      "provincia",
-      "industria",
-      "campaña",
-      "tema",
-      "tono",
-      "mención_gestión",
-      "pago_organico",
-      "inversion",
-      "reach",
-      "cpe_vap",
-      "link_a_nota",
-      "hipervinculo",
-    ];
-    const safeCols: string[] = [];
-    for (const c of cols) {
-      try {
-        await pool.request().query(`SELECT TOP 5 [${c}] FROM prensa.gold_prensa_competencia`);
-        console.log(`OK: ${c}`);
-        safeCols.push(c);
-      } catch (error) {
-        console.log(`FALLA: ${c} -> ${String(error).split("\n")[0]}`);
-      }
-    }
-
-    const count = await pool.request().query(`SELECT COUNT(*) AS total FROM prensa.gold_prensa_competencia`);
-    console.log("--- COUNT ---");
-    console.log(JSON.stringify(count.recordset, null, 2));
-
-    const marcas = await pool.request().query(
-      `SELECT marca, COUNT(*) AS total FROM prensa.gold_prensa_competencia GROUP BY marca ORDER BY marca`,
-    );
-    console.log("--- MARCAS ---");
-    console.log(JSON.stringify(marcas.recordset, null, 2));
-
-    if (safeCols.length === cols.length) {
-      const select = safeCols.map((c) => `[${c}]`).join(", ");
-      const sample = await pool.request().query(`SELECT TOP 3 ${select} FROM prensa.gold_prensa_competencia`);
-      console.log("--- SAMPLE (todas las columnas) ---");
-      console.log(JSON.stringify(sample.recordset, null, 2));
-    }
+    await checkTable(pool, "gold_prensa");
+    await checkTable(pool, "gold_prensa_competencia");
   } finally {
     await pool.close();
     await pauseFabricCapacity();
