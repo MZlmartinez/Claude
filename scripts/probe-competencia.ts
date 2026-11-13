@@ -17,6 +17,12 @@ async function main() {
   await ensureFabricCapacityActive();
   const pool = await connectFabric(sqlEndpoint, database);
   try {
+    const allTables = await pool.request().query(
+      `SELECT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES ORDER BY TABLE_SCHEMA, TABLE_NAME`,
+    );
+    console.log("--- ALL TABLES IN THIS DATABASE ---");
+    console.log(JSON.stringify(allTables.recordset, null, 2));
+
     const columns = await pool.request().query(
       `SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE, ORDINAL_POSITION
        FROM INFORMATION_SCHEMA.COLUMNS
