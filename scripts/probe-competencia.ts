@@ -31,10 +31,7 @@ async function main() {
       return;
     }
 
-    const cols = columns.recordset
-      .map((c: Record<string, unknown>) => String(c.COLUMN_NAME))
-      .filter((c: string) => c.toLowerCase() !== "id");
-    const select = cols.map((c: string) => `[${c}]`).join(", ");
+    const allCols = columns.recordset.map((c: Record<string, unknown>) => String(c.COLUMN_NAME));
 
     const count = await pool.request().query(`SELECT COUNT(*) AS total FROM prensa.gold_prensa_competencia`);
     console.log("--- COUNT ---");
@@ -46,8 +43,27 @@ async function main() {
     console.log("--- MARCAS ---");
     console.log(JSON.stringify(marcas.recordset, null, 2));
 
+    // Probamos cada columna individualmente para saber cuáles rompen por
+    // NaN/Infinity (como "id" en gold_prensa) sin que una sola rompa el
+    // resto del diagnóstico.
+    console.log("--- POR COLUMNA ---");
+    const safeCols: string[] = [];
+    for (const c of allCols) {
+      try {
+        await pool.request().query(`SELECT TOP 5 [${c}] FROM prensa.gold_prensa_competencia`);
+        console.log(`OK: ${c}`);
+        safeCols.push(c);
+      } catch (error) {
+        console.log(`FALLA: ${c} -> ${String(error).split("\n")[0]}`);
+      }
+    }
+
+    console.log("--- COLUMNAS SEGURAS ---");
+    console.log(JSON.stringify(safeCols));
+
+    const select = safeCols.map((c) => `[${c}]`).join(", ");
     const sample = await pool.request().query(`SELECT TOP 3 ${select} FROM prensa.gold_prensa_competencia`);
-    console.log("--- SAMPLE ---");
+    console.log("--- SAMPLE (solo columnas seguras) ---");
     console.log(JSON.stringify(sample.recordset, null, 2));
   } finally {
     await pool.close();
