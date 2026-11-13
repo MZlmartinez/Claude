@@ -1,5 +1,5 @@
-// Script temporal: confirma que el UPDATE (NaN -> NULL) en Fabric resolvió
-// el problema, ahora que sabemos que el UPDATE afectó 2375 filas de verdad.
+// Script temporal: chequeo final de gold_prensa_competencia (todas las
+// columnas + conteo) para comparar contra lo que ya hay en Supabase.
 import { connectFabric } from "../lib/fabric";
 import { ensureFabricCapacityActive, pauseFabricCapacity } from "../lib/fabricCapacity";
 
@@ -50,15 +50,21 @@ async function main() {
       }
     }
 
+    const count = await pool.request().query(`SELECT COUNT(*) AS total FROM prensa.gold_prensa_competencia`);
+    console.log("--- COUNT ---");
+    console.log(JSON.stringify(count.recordset, null, 2));
+
+    const marcas = await pool.request().query(
+      `SELECT marca, COUNT(*) AS total FROM prensa.gold_prensa_competencia GROUP BY marca ORDER BY marca`,
+    );
+    console.log("--- MARCAS ---");
+    console.log(JSON.stringify(marcas.recordset, null, 2));
+
     if (safeCols.length === cols.length) {
       const select = safeCols.map((c) => `[${c}]`).join(", ");
       const sample = await pool.request().query(`SELECT TOP 3 ${select} FROM prensa.gold_prensa_competencia`);
       console.log("--- SAMPLE (todas las columnas) ---");
       console.log(JSON.stringify(sample.recordset, null, 2));
-
-      const count = await pool.request().query(`SELECT COUNT(*) AS total FROM prensa.gold_prensa_competencia`);
-      console.log("--- COUNT ---");
-      console.log(JSON.stringify(count.recordset, null, 2));
     }
   } finally {
     await pool.close();
