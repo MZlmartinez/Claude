@@ -102,11 +102,6 @@ const GOLD_CONFIG: Record<ClientSlug, ClientGoldConfig> = {
     selectColumnsOverrides: {
       // "id" queda afuera a propósito (no es por NaN, ya corregido en
       // origen — no la necesitamos igual, Postgres genera su propio uuid).
-      // "inversion" vuelve a quedar afuera desde el 2026-11-14: el mismo
-      // problema de NaN/Infinity→FLOAT que tuvo antes (ver runs #14-#17)
-      // reapareció en origen. Sacarla de acá no borra el dato en Fabric,
-      // solo evita que rompa el SELECT * del sync — hay que reincorporarla
-      // en cuanto el dev confirme que está corregida de nuevo.
       gold_prensa_adecco: [
         "cliente",
         "marca",
@@ -125,6 +120,7 @@ const GOLD_CONFIG: Record<ClientSlug, ClientGoldConfig> = {
         "tono",
         "mención_gestión",
         "pago_organico",
+        "inversion",
         "reach",
         "cpe_vap",
         "link_a_nota",
