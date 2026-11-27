@@ -90,16 +90,12 @@ const GOLD_CONFIG: Record<ClientSlug, ClientGoldConfig> = {
     },
   },
   adecco: {
-    // "gold_prensa_adecco" queda afuera de la réplica diaria desde el
-    // 2026-11-16: el sync venía fallando todos los días por NaN/Infinity
-    // en columnas reales del reporte (reach, antes inversion) en origen
-    // (prensa.gold_prensa de Fabric) — ver lib/syncGold.ts y el historial
-    // de runs de sync-gold.yml. Decisión del usuario: no seguir recortando
-    // columnas del reporte en vivo, y dejar de intentarlo a diario hasta
-    // que el dev corrija la capa silver. El resto de la config de abajo
-    // (schema/source/columnas) queda lista para reactivarla con solo
-    // agregar el nombre de nuevo a "tables".
-    tables: ["gold_influencers_adecco"],
+    // "gold_prensa_adecco" vuelve a la réplica diaria el 2026-11-27 a
+    // pedido del usuario, para confirmar si el dev ya corrigió el NaN/
+    // Infinity de prensa.gold_prensa en Fabric (afuera desde el 2026-11-16,
+    // ver el historial de runs de sync-gold.yml). Si vuelve a fallar, sacarla
+    // de nuevo de "tables" hasta que se confirme el fix en origen.
+    tables: ["gold_prensa_adecco", "gold_influencers_adecco"],
     schemaOverrides: {
       gold_prensa_adecco: "prensa",
       gold_influencers_adecco: "influencers",
