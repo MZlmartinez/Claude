@@ -95,15 +95,22 @@ const GOLD_CONFIG: Record<ClientSlug, ClientGoldConfig> = {
     // Infinity de prensa.gold_prensa en Fabric (afuera desde el 2026-11-16,
     // ver el historial de runs de sync-gold.yml). Si vuelve a fallar, sacarla
     // de nuevo de "tables" hasta que se confirme el fix en origen.
-    tables: ["gold_prensa_adecco", "gold_influencers_adecco", "gold_prensa_adecco_competencia_sov"],
+    tables: [
+      "gold_prensa_adecco",
+      "gold_influencers_adecco",
+      "gold_prensa_adecco_competencia",
+      "gold_prensa_adecco_competencia_sov",
+    ],
     schemaOverrides: {
       gold_prensa_adecco: "prensa",
       gold_influencers_adecco: "influencers",
+      gold_prensa_adecco_competencia: "prensa",
       gold_prensa_adecco_competencia_sov: "prensa",
     },
     sourceTableOverrides: {
       gold_prensa_adecco: "gold_prensa",
       gold_influencers_adecco: "gold_influencers",
+      gold_prensa_adecco_competencia: "gold_prensa_competencia",
       gold_prensa_adecco_competencia_sov: "gold_prensa_competencia_sov",
     },
     selectColumnsOverrides: {
@@ -116,6 +123,36 @@ const GOLD_CONFIG: Record<ClientSlug, ClientGoldConfig> = {
       // COLUMN_RENAMES en syncGold.ts queda como no-op para esta tabla (el
       // origen ya viene sin tilde).
       gold_prensa_adecco: [
+        "cliente",
+        "marca",
+        "fecha",
+        "tier",
+        "medio",
+        "tipo_de_medio",
+        "periodista",
+        "vocero",
+        "formato_contenido",
+        "nacional_o_interior",
+        "provincia",
+        "industria",
+        "campana",
+        "tema",
+        "tono",
+        "mencion_gestion",
+        "pago_organico",
+        "inversion",
+        "reach",
+        "cpe_vap",
+        "link_a_nota",
+        "hipervinculo",
+      ],
+      // Tabla de la competencia (Manpower/Randstad), nota por nota. El dev
+      // corrigió "fecha" (venía con texto corrupto tipo
+      // java.util.GregorianCalendar[...], confirmado con un probe el
+      // 2026-11-27 — ahora es DATA_TYPE date real) e inversion/reach/cpe_vap
+      // pasaron a decimal. Mismas 22 columnas que gold_prensa_adecco, mismo
+      // orden; sin tilde, igual que el resto.
+      gold_prensa_adecco_competencia: [
         "cliente",
         "marca",
         "fecha",
