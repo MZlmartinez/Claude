@@ -1,6 +1,7 @@
 import {
   getActividad,
   getCompetenciaDetalle,
+  getCompetenciaSov,
   getDetalle,
   getEvolucionSemanal,
   getGestionMencion,
@@ -75,6 +76,7 @@ export default async function PrensaReportPage({
     detalle,
     opciones,
     competenciaDetalle,
+    competenciaSov,
   ] = await Promise.all([
     getKpis("adecco", filters),
     getEvolucionSemanal("adecco", filters),
@@ -97,6 +99,7 @@ export default async function PrensaReportPage({
     getDetalle("adecco", filters),
     getOpciones("adecco"),
     getCompetenciaDetalle("adecco"),
+    getCompetenciaSov("adecco"),
   ]);
 
   return (
@@ -123,6 +126,7 @@ export default async function PrensaReportPage({
       detalle={detalle}
       opciones={opciones}
       competenciaDetalle={competenciaDetalle}
+      competenciaSov={competenciaSov}
       fontClassName={`${prDisplay.variable} ${prBody.variable} ${prMono.variable}`}
       basePath="/reportes/prensa"
     />

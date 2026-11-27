@@ -403,6 +403,32 @@ export async function getCompetenciaDetalle(client: ClientSlug): Promise<Compete
   );
 }
 
+export type CompetenciaSovRow = {
+  mes: string;
+  adecco_notas: number;
+  manpower_notas: number;
+  randstad_notas: number;
+  total_mercado: number;
+  sov_adecco: number;
+  sov_manpower: number;
+  sov_randstad: number;
+};
+
+// Share of Voice mensual ya calculado en origen (gold_prensa_adecco_competencia_sov),
+// en vez de recalcularlo client-side a partir de gold_prensa_adecco_competencia —
+// mismo criterio de "tabla aparte, no multi-cliente" que getCompetenciaDetalle.
+export async function getCompetenciaSov(client: ClientSlug): Promise<CompetenciaSovRow[]> {
+  if (client !== "adecco") return [];
+  return queryReport<CompetenciaSovRow>(
+    `select to_char(mes,'YYYY-MM-DD') mes, adecco_notas::int adecco_notas, manpower_notas::int manpower_notas,
+       randstad_notas::int randstad_notas, total_mercado::int total_mercado,
+       sov_adecco::float8 sov_adecco, sov_manpower::float8 sov_manpower, sov_randstad::float8 sov_randstad
+     from gold_prensa_adecco_competencia_sov
+     where mes is not null
+     order by mes`,
+  );
+}
+
 export type FiltroOpcion = { dimension: "industria" | "campana"; valor: string };
 
 export async function getOpciones(client: ClientSlug): Promise<FiltroOpcion[]> {

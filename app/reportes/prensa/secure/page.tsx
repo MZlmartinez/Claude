@@ -1,6 +1,7 @@
 import {
   getActividad,
   getCompetenciaDetalle,
+  getCompetenciaSov,
   getDetalle,
   getEvolucionSemanal,
   getGestionMencion,
@@ -93,6 +94,7 @@ export default async function SecurePrensaReportPage({
     detalle,
     opciones,
     competenciaDetalle,
+    competenciaSov,
   ] = await Promise.all([
     getKpis(client, filters),
     getEvolucionSemanal(client, filters),
@@ -115,6 +117,7 @@ export default async function SecurePrensaReportPage({
     getDetalle(client, filters),
     getOpciones(client),
     getCompetenciaDetalle(client),
+    getCompetenciaSov(client),
   ]);
 
   return (
@@ -141,6 +144,7 @@ export default async function SecurePrensaReportPage({
       detalle={detalle}
       opciones={opciones}
       competenciaDetalle={competenciaDetalle}
+      competenciaSov={competenciaSov}
       fontClassName={`${prDisplay.variable} ${prBody.variable} ${prMono.variable}`}
       basePath="/reportes/prensa/secure"
       email={email}
