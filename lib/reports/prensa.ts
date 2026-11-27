@@ -396,7 +396,11 @@ export async function getCompetenciaDetalle(client: ClientSlug): Promise<Compete
        reach::float8 reach, cpe_vap::float8 vap, hipervinculo url
      from gold_prensa_adecco
      union all
-     select marca, to_char(fecha,'YYYY-MM-DD') fecha, tier::int tier, medio, tipo_de_medio, tema,
+     -- Desde octubre 2026 el dato de origen trae "MANPOWER ARGENTINA" /
+     -- "RANDSTAD ARGENTINA" en vez de "MANPOWER"/"RANDSTAD" — split_part
+     -- normaliza a la primera palabra para no perder esas filas en las
+     -- comparaciones exactas de marca (CompetenciaTab en PrensaDashboard.tsx).
+     select split_part(marca, ' ', 1) as marca, to_char(fecha,'YYYY-MM-DD') fecha, tier::int tier, medio, tipo_de_medio, tema,
        reach::float8 reach, cpe_vap::float8 vap, hipervinculo url
      from gold_prensa_adecco_competencia
      order by fecha`,
@@ -427,6 +431,44 @@ export async function getCompetenciaSov(client: ClientSlug): Promise<Competencia
      where mes is not null
      order by mes`,
   );
+}
+
+// "mes" viene NULL desde origen en Fabric (bug del dev, todavía sin
+// corregir) — cada sync diario reinserta las 9 filas de
+// gold_prensa_adecco_competencia_sov con mes en NULL, pisando cualquier
+// backfill manual anterior. Se reconstruye acá, matcheando por la
+// combinación de notas (única por mes) contra el conteo real de
+// gold_prensa_adecco + gold_prensa_adecco_competencia — se llama después
+// de cada sync (ver scripts/sync-gold.ts) para que quede resuelto solo,
+// sin depender de un UPDATE manual que se vuelve a romper.
+export async function backfillCompetenciaSovMes(): Promise<number> {
+  const result = await queryReport<{ updated: number }>(
+    `with u as (
+       select 'ADECCO'::text marca, fecha from gold_prensa_adecco
+       union all
+       select split_part(marca, ' ', 1) as marca, fecha from gold_prensa_adecco_competencia
+     ),
+     m as (
+       select date_trunc('month', fecha)::date as mes,
+         count(*) filter (where marca = 'ADECCO') as adecco_notas,
+         count(*) filter (where marca = 'MANPOWER') as manpower_notas,
+         count(*) filter (where marca = 'RANDSTAD') as randstad_notas
+       from u
+       group by 1
+     ),
+     upd as (
+       update gold_prensa_adecco_competencia_sov s
+       set mes = m.mes
+       from m
+       where s.mes is null
+         and s.adecco_notas = m.adecco_notas
+         and s.manpower_notas = m.manpower_notas
+         and s.randstad_notas = m.randstad_notas
+       returning s.id
+     )
+     select count(*)::int as updated from upd`,
+  );
+  return result[0]?.updated ?? 0;
 }
 
 export type FiltroOpcion = { dimension: "industria" | "campana"; valor: string };

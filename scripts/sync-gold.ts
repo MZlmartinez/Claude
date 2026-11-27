@@ -25,6 +25,7 @@ import { createAdminClient } from "../lib/supabase/admin";
 import { goldTablesFor, type ClientSlug } from "../lib/goldTables";
 import { syncGoldTables, type SyncResult } from "../lib/syncGold";
 import { refreshGrowthRollups } from "../lib/reports/growth";
+import { backfillCompetenciaSovMes } from "../lib/reports/prensa";
 
 // Tablas con columna `day`, que sincronizamos en una ventana de los
 // últimos LOOKBACK_DAYS en vez de la historia completa (suficiente para
@@ -110,6 +111,13 @@ async function main() {
   // Fabric, así que corre después de pausar la capacidad, sin extender el
   // tiempo que queda despierta.
   await refreshGrowthRollups();
+
+  // gold_prensa_adecco_competencia_sov viene con "mes" NULL desde Fabric
+  // (bug sin corregir todavía) — cada sync la reinserta así, pisando el
+  // backfill. Se reconstruye acá mismo para que el gráfico de Share of
+  // Voice de Prensa no quede roto hasta el próximo sync manual.
+  const sovUpdated = await backfillCompetenciaSovMes();
+  if (sovUpdated) console.log(`Backfill de gold_prensa_adecco_competencia_sov.mes: ${sovUpdated} fila(s).`);
 
   console.log(`Rango para las tablas grandes: ${from} a ${to}`);
   console.table(
