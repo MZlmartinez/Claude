@@ -1161,7 +1161,6 @@ function CompetenciaTab({
   sov: CompetenciaSovRow[];
   filters: PrensaFilters;
 }) {
-  const [metricEvo, setMetricEvo] = useState<"n" | "r" | "v">("n");
   const [metricSov, setMetricSov] = useState<"n" | "r" | "v">("n");
   const [who, setWho] = useState<Exclude<Marca, "ADECCO">>("RANDSTAD");
   const [medShow, setMedShow] = useState<"share" | "gap" | "own">("share");
@@ -1208,7 +1207,6 @@ function CompetenciaTab({
       <EvolucionSov C={C} sov={sov} lo={lo} hi={hi} MAXISO={MAXISO} CMAX={CMAX} all={all} metric={metricSov} setMetric={setMetricSov} />
       <Participacion C={C} />
       <CalidadTier C={C} />
-      <Evolucion C={C} lo={lo} hi={hi} MAXISO={MAXISO} CMAX={CMAX} all={all} metric={metricEvo} setMetric={setMetricEvo} />
       <Eficiencia C={C} />
       <TipoMedioCompetencia C={C} />
       <MediosPrincipales C={C} />
@@ -1591,188 +1589,6 @@ function CalidadTier({ C }: { C: MarcaAgg[] }) {
 
 function monthShort(m: number) {
   return MESES[m - 1] ?? "";
-}
-
-function Evolucion({
-  C,
-  lo,
-  hi,
-  MAXISO,
-  CMAX,
-  all,
-  metric,
-  setMetric,
-}: {
-  C: MarcaAgg[];
-  lo: string;
-  hi: string;
-  MAXISO: string;
-  CMAX: string;
-  all: boolean;
-  metric: "n" | "r" | "v";
-  setMetric: (m: "n" | "r" | "v") => void;
-}) {
-  const [wrapRef, width] = useBoxWidth();
-  const [hover, setHover] = useState<number | null>(null);
-
-  const { months, series } = useMemo(() => {
-    const cov: Record<Marca, string> = { ADECCO: MAXISO, MANPOWER: CMAX, RANDSTAD: CMAX };
-    const m1 = parseInt(lo.slice(5, 7), 10),
-      m2 = parseInt(hi.slice(5, 7), 10);
-    const months: number[] = [];
-    for (let m = m1; m <= m2; m++) months.push(m);
-    const series = C.map((c) => {
-      const covMonth = parseInt(cov[c.marca].slice(5, 7), 10);
-      const data = months.map((m) => {
-        const rowsM = c.rows.filter((r) => parseInt(r.fecha.slice(5, 7), 10) === m);
-        if (!rowsM.length) return m > covMonth ? null : 0;
-        if (metric === "n") return rowsM.length;
-        return rowsM.reduce((a, x) => a + ((metric === "r" ? x.reach : x.vap) ?? 0), 0);
-      });
-      return { marca: c.marca, data };
-    });
-    return { months, series };
-  }, [C, lo, hi, metric, MAXISO, CMAX]);
-
-  const label = metric === "n" ? "Repercusiones" : metric === "r" ? "Reach" : "VAP";
-  const fmt = metric === "n" ? F.int : metric === "r" ? F.compact : F.moneyc;
-  const sub = all
-    ? `${label} por mes. Cada línea termina en el último mes cargado de su consultora.`
-    : `${label} por mes dentro del período elegido.`;
-
-  return (
-    <div className="pr-card wide">
-      <div className="pr-head">
-        <div>
-          <h2>Evolución mensual</h2>
-          <p>{sub}</p>
-        </div>
-        <div className="pr-seg" role="group" aria-label="Indicador">
-          <button type="button" aria-pressed={metric === "n"} onClick={() => setMetric("n")}>
-            Repercusiones
-          </button>
-          <button type="button" aria-pressed={metric === "r"} onClick={() => setMetric("r")}>
-            Reach
-          </button>
-          <button type="button" aria-pressed={metric === "v"} onClick={() => setMetric("v")}>
-            VAP
-          </button>
-        </div>
-      </div>
-      <div className="pr-dlegend" style={{ justifyContent: "flex-start" }}>
-        {C.map((c) => (
-          <span key={c.marca}>
-            <i style={{ background: COLOR_MARCA[c.marca] }} />
-            {FMT_MARCA[c.marca]}
-          </span>
-        ))}
-      </div>
-      <div ref={wrapRef} className="pr-box tall" style={{ position: "relative" }}>
-        <MultiLineChart months={months} series={series} width={width} fmt={fmt} hover={hover} setHover={setHover} />
-      </div>
-    </div>
-  );
-}
-
-function MultiLineChart({
-  months,
-  series,
-  width,
-  fmt,
-  hover,
-  setHover,
-}: {
-  months: number[];
-  series: { marca: Marca; data: (number | null)[] }[];
-  width: number;
-  fmt: (v: number) => string;
-  hover: number | null;
-  setHover: (i: number | null) => void;
-}) {
-  const W = width,
-    H = 320,
-    top = 10,
-    bottom = 26;
-  const vals = series.flatMap((s) => s.data.filter((v): v is number => v != null));
-  const maxY = Math.max(1, ...vals) * 1.1;
-  const yt = ticks(maxY, 5);
-  const left = Math.max(...yt.map((v) => fmt(v).length), 2) * 6.5 + 16;
-  const right = 12;
-  const n = months.length;
-  const xAt = (i: number) => (n > 1 ? left + (i / (n - 1)) * (W - left - right) : (left + W - right) / 2);
-  const yAt = (v: number) => H - bottom - (Math.max(0, v) / maxY) * (H - bottom - top);
-
-  const onMove = (e: React.MouseEvent<SVGRectElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const mxPos = ((e.clientX - rect.left) / rect.width) * W;
-    let best = 0,
-      bestD = Infinity;
-    months.forEach((_, i) => {
-      const d = Math.abs(xAt(i) - mxPos);
-      if (d < bestD) {
-        bestD = d;
-        best = i;
-      }
-    });
-    setHover(best);
-  };
-
-  if (!n) return <div className="pr-empty">Sin datos para este período.</div>;
-
-  return (
-    <>
-      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: "block", overflow: "visible" }}>
-        <g className="pr-axis">
-          {yt.map((v) => (
-            <line key={v} x1={left} x2={W - 4} y1={yAt(v)} y2={yAt(v)} />
-          ))}
-          {yt.map((v) => (
-            <text key={v} x={left - 8} y={yAt(v)} dy="0.35em" textAnchor="end">
-              {fmt(v)}
-            </text>
-          ))}
-        </g>
-        {months.map((m, i) => (
-          <text key={m} x={xAt(i)} y={H - 6} textAnchor="middle" className="pr-axis" style={{ fontSize: 11 }}>
-            {monthShort(m)}
-          </text>
-        ))}
-        {series.map((s) => {
-          let path = "",
-            started = false;
-          s.data.forEach((v, i) => {
-            if (v == null) {
-              started = false;
-              return;
-            }
-            path += `${started ? "L" : "M"} ${xAt(i).toFixed(1)} ${yAt(v).toFixed(1)} `;
-            started = true;
-          });
-          return <path key={s.marca} d={path} fill="none" stroke={COLOR_MARCA[s.marca]} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />;
-        })}
-        {hover != null &&
-          series.map((s) => {
-            const v = s.data[hover];
-            return v == null ? null : <circle key={s.marca} cx={xAt(hover)} cy={yAt(v)} r={5} fill={COLOR_MARCA[s.marca]} stroke="var(--card)" strokeWidth={2} />;
-          })}
-        <rect x={left} y={0} width={Math.max(0, W - left)} height={H} fill="transparent" onMouseMove={onMove} onMouseLeave={() => setHover(null)} />
-      </svg>
-      {hover != null && (
-        <div className="pr-tip" style={{ left: Math.max(0, Math.min(W - 170, xAt(hover) + 12)), top: 8 }}>
-          <div className="pr-tip-h">{monthShort(months[hover])}</div>
-          {series.map((s) => {
-            const v = s.data[hover];
-            return (
-              <div key={s.marca}>
-                <Dot color={COLOR_MARCA[s.marca]} />
-                {FMT_MARCA[s.marca]}: {v == null ? "sin datos" : fmt(v)}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </>
-  );
 }
 
 function Eficiencia({ C }: { C: MarcaAgg[] }) {
