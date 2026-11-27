@@ -107,6 +107,12 @@ const GOLD_CONFIG: Record<ClientSlug, ClientGoldConfig> = {
     selectColumnsOverrides: {
       // "id" queda afuera a propósito (no es por NaN, ya corregido en
       // origen — no la necesitamos igual, Postgres genera su propio uuid).
+      // El dev rebuildeó la capa silver el 2026-11-27: columnas sin tilde
+      // ("campana", "mencion_gestion", antes "campaña"/"mención_gestión") y
+      // tipos reales (tier/reach/cpe_vap bigint, inversion decimal — ya no
+      // float-con-NaN), confirmado con INFORMATION_SCHEMA.COLUMNS. Por eso
+      // COLUMN_RENAMES en syncGold.ts queda como no-op para esta tabla (el
+      // origen ya viene sin tilde).
       gold_prensa_adecco: [
         "cliente",
         "marca",
@@ -120,10 +126,10 @@ const GOLD_CONFIG: Record<ClientSlug, ClientGoldConfig> = {
         "nacional_o_interior",
         "provincia",
         "industria",
-        "campaña",
+        "campana",
         "tema",
         "tono",
-        "mención_gestión",
+        "mencion_gestion",
         "pago_organico",
         "inversion",
         "reach",
