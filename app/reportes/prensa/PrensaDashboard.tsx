@@ -1161,6 +1161,7 @@ function CompetenciaTab({
   sov: CompetenciaSovRow[];
   filters: PrensaFilters;
 }) {
+  const [periodo, setPeriodo] = useState<"rng" | "all">("rng");
   const [metricSov, setMetricSov] = useState<"n" | "r" | "v">("n");
   const [who, setWho] = useState<Exclude<Marca, "ADECCO">>("RANDSTAD");
   const [medShow, setMedShow] = useState<"share" | "gap" | "own">("share");
@@ -1178,10 +1179,7 @@ function CompetenciaTab({
     return { MINISO: minIso, MAXISO: maxIso, CMAX: cmax };
   }, [data]);
 
-  // Ya no hay ningún control de UI para "Todo lo disponible" (era el toggle
-  // de la card "Adecco frente a Manpower y Randstad", eliminada) — queda
-  // fijo en período común, que es lo que ya regía por default.
-  const all = false;
+  const all = periodo === "all";
   const from = filters.desde ?? MINISO;
   const to = filters.hasta ?? MAXISO;
   const lo = all ? MINISO : from;
@@ -1207,6 +1205,7 @@ function CompetenciaTab({
       <EvolucionSov C={C} sov={sov} lo={lo} hi={hi} MAXISO={MAXISO} CMAX={CMAX} all={all} metric={metricSov} setMetric={setMetricSov} />
       <Participacion C={C} />
       <CalidadTier C={C} />
+      <CaraACara C={C} lo={lo} hi={hi} MAXISO={MAXISO} CMAX={CMAX} periodo={periodo} setPeriodo={setPeriodo} />
       <Eficiencia C={C} />
       <TipoMedioCompetencia C={C} />
       <MediosPrincipales C={C} />
@@ -1493,6 +1492,150 @@ function EvolucionSovChart({
         </div>
       )}
     </>
+  );
+}
+
+function CaraACara({
+  C,
+  lo,
+  hi,
+  MAXISO,
+  CMAX,
+  periodo,
+  setPeriodo,
+}: {
+  C: MarcaAgg[];
+  lo: string;
+  hi: string;
+  MAXISO: string;
+  CMAX: string;
+  periodo: "rng" | "all";
+  setPeriodo: (p: "rng" | "all") => void;
+}) {
+  const all = periodo === "all";
+  const tot = (k: "n" | "r" | "v") => C.reduce((s, x) => s + x[k], 0);
+  const totalNotas = tot("n");
+  const showWarn = all && CMAX !== MAXISO;
+  const warnMsg =
+    MAXISO > CMAX
+      ? `Manpower y Randstad tienen notas cargadas hasta el ${F.date(CMAX)}. En esta vista Adecco suma también los meses posteriores, así que su volumen supera al de la competencia por período cubierto y no por desempeño.`
+      : `Adecco tiene notas cargadas hasta el ${F.date(MAXISO)}. En esta vista Manpower y Randstad suman también los meses posteriores, así que sus totales superan a los de Adecco por período cubierto y no por desempeño.`;
+
+  const lead = (key: "n" | "r" | "q" | "vn") => [...C].sort((a, b) => b[key] - a[key])[0];
+  const oth = (leadX: MarcaAgg, key: "q" | "vn", fmt: (v: number) => string) =>
+    C.filter((x) => x !== leadX)
+      .sort((a, b) => b[key] - a[key])
+      .map((x) => `${FMT_MARCA[x.marca]} ${fmt(x[key])}`)
+      .join(", ");
+  const leadN = lead("n"),
+    leadR = lead("r"),
+    leadQ = lead("q"),
+    leadVn = lead("vn");
+
+  type Def = [string, (x: MarcaAgg) => number, (v: number) => string, boolean, boolean];
+  const defs: Def[] = [
+    ["Repercusiones", (x) => x.n, F.int, true, false],
+    ["Reach total", (x) => x.r, F.compact, true, false],
+    ["VAP total", (x) => x.v, F.moneyc, true, false],
+    ["Reach por nota", (x) => x.rn, F.compact, false, false],
+    ["VAP por nota", (x) => x.vn, F.moneyc, false, false],
+    ["Notas Tier 1", (x) => x.t1, F.int, false, false],
+    ["Notas Tier 2", (x) => x.t2, F.int, false, false],
+    ["Notas Tier 3", (x) => x.t3, F.int, false, false],
+    ["Tier 1 y 2 sobre el total", (x) => x.q, F.pct, false, false],
+    ["Medios distintos", (x) => x.medios.size, F.int, false, false],
+  ];
+
+  return (
+    <div className="pr-card wide">
+      <div className="pr-head">
+        <div>
+          <h2>Adecco frente a Manpower y Randstad</h2>
+          <p>
+            Período: {F.date(lo)} al {F.date(hi)}. Adecco cargado hasta el {F.date(MAXISO)}, Manpower y Randstad hasta el {F.date(CMAX)}.
+          </p>
+        </div>
+        <div className="pr-seg" role="group" aria-label="Período de comparación">
+          <button type="button" aria-pressed={!all} onClick={() => setPeriodo("rng")}>
+            Período común
+          </button>
+          <button type="button" aria-pressed={all} onClick={() => setPeriodo("all")}>
+            Todo lo disponible
+          </button>
+        </div>
+      </div>
+      {showWarn && <div className="pr-warn">{warnMsg}</div>}
+      {totalNotas ? (
+        <div className="pr-rd">
+          <div>
+            <span className="eyebrow">Volumen</span>
+            <p>
+              <b>{FMT_MARCA[leadN.marca]}</b> reúne {F.pct((100 * leadN.n) / totalNotas)} de las repercusiones del trío ({F.int(leadN.n)} de{" "}
+              {F.int(totalNotas)}).{" "}
+              {leadR === leadN ? (
+                "También encabeza el reach"
+              ) : (
+                <>
+                  En reach lidera <b>{FMT_MARCA[leadR.marca]}</b>
+                </>
+              )}{" "}
+              con {F.pct((100 * leadR.r) / tot("r"))} del total.
+            </p>
+          </div>
+          <div>
+            <span className="eyebrow">Calidad</span>
+            <p>
+              <b>{FMT_MARCA[leadQ.marca]}</b> lidera con {F.pct(leadQ.q)} de notas en Tier 1 y 2. Le siguen {oth(leadQ, "q", F.pct)}.
+            </p>
+          </div>
+          <div>
+            <span className="eyebrow">Eficiencia</span>
+            <p>
+              <b>{FMT_MARCA[leadVn.marca]}</b> obtiene el mayor VAP por nota ({F.moneyc(leadVn.vn)}). Le siguen {oth(leadVn, "vn", F.moneyc)}.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="pr-empty">No hay notas en el período elegido.</div>
+      )}
+      <div className="pr-tbl">
+        <table>
+          <thead>
+            <tr>
+              <th>Indicador</th>
+              {C.map((x) => (
+                <th key={x.marca} className="r">
+                  <Dot color={COLOR_MARCA[x.marca]} />
+                  {FMT_MARCA[x.marca]}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {defs.map(([label, get, fmt, showShare, noLead]) => {
+              const vals = C.map(get);
+              const max = Math.max(...vals);
+              const total = vals.reduce((a, b) => a + b, 0);
+              return (
+                <tr key={label}>
+                  <td>{label}</td>
+                  {vals.map((v, i) => (
+                    <td key={C[i].marca} className={`r num${!noLead && v === max && max > 0 ? " lead" : ""}`}>
+                      {fmt(v)}
+                      {showShare && total > 0 && <span className="sh">{Math.round((100 * v) / total)}%</span>}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="pr-note">
+        Los filtros de industria, campaña, búsqueda y enlace aplican a las demás secciones. En Competencia rige únicamente el rango de fechas, porque
+        las hojas de Manpower y Randstad no traen esas columnas.
+      </p>
+    </div>
   );
 }
 
