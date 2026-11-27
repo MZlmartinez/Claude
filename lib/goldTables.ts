@@ -95,14 +95,16 @@ const GOLD_CONFIG: Record<ClientSlug, ClientGoldConfig> = {
     // Infinity de prensa.gold_prensa en Fabric (afuera desde el 2026-11-16,
     // ver el historial de runs de sync-gold.yml). Si vuelve a fallar, sacarla
     // de nuevo de "tables" hasta que se confirme el fix en origen.
-    tables: ["gold_prensa_adecco", "gold_influencers_adecco"],
+    tables: ["gold_prensa_adecco", "gold_influencers_adecco", "gold_prensa_adecco_competencia_sov"],
     schemaOverrides: {
       gold_prensa_adecco: "prensa",
       gold_influencers_adecco: "influencers",
+      gold_prensa_adecco_competencia_sov: "prensa",
     },
     sourceTableOverrides: {
       gold_prensa_adecco: "gold_prensa",
       gold_influencers_adecco: "gold_influencers",
+      gold_prensa_adecco_competencia_sov: "gold_prensa_competencia_sov",
     },
     selectColumnsOverrides: {
       // "id" queda afuera a propósito (no es por NaN, ya corregido en
@@ -136,6 +138,22 @@ const GOLD_CONFIG: Record<ClientSlug, ClientGoldConfig> = {
         "cpe_vap",
         "link_a_nota",
         "hipervinculo",
+      ],
+      // Tabla mensual de share of voice (Adecco vs. Manpower/Randstad): solo
+      // 9 filas hoy. Sin NaN, pero "mes" viene NULL para todas las filas
+      // desde origen (bug del lado del dev) — se sincroniza igual (no
+      // bloquea el insert) y después se backfillea a mano en Supabase con
+      // el dato real que sí tiene el usuario en una planilla aparte.
+      gold_prensa_adecco_competencia_sov: [
+        "mes",
+        "adecco_notas",
+        "manpower_notas",
+        "randstad_notas",
+        "total_mercado",
+        "sov_adecco",
+        "sov_manpower",
+        "sov_randstad",
+        "actualizado",
       ],
     },
   },
