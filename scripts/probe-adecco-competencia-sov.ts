@@ -4,18 +4,30 @@
 import { connectFabric } from "../lib/fabric";
 import { ensureFabricCapacityActive, pauseFabricCapacity } from "../lib/fabricCapacity";
 
-async function inspect(pool: Awaited<ReturnType<typeof connectFabric>>, table: string) {
-  console.log(`\n=== prensa.${table} ===`);
-  const columns = await pool.request().query(
-    `SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS
-     WHERE TABLE_SCHEMA = 'prensa' AND TABLE_NAME = '${table}'
-     ORDER BY ORDINAL_POSITION`,
-  );
-  console.log("COLUMNS:", JSON.stringify(columns.recordset));
-
-  const count = await pool.request().query(`SELECT COUNT(*) AS total FROM prensa.${table}`);
-  console.log("COUNT:", JSON.stringify(count.recordset));
-}
+const COMPETENCIA_SELECT_COLUMNS = [
+  "cliente",
+  "marca",
+  "fecha",
+  "tier",
+  "medio",
+  "tipo_de_medio",
+  "periodista",
+  "vocero",
+  "formato_contenido",
+  "nacional_o_interior",
+  "provincia",
+  "industria",
+  "campaña",
+  "tema",
+  "tono",
+  "mención_gestión",
+  "pago_organico",
+  "inversion",
+  "reach",
+  "cpe_vap",
+  "link_a_nota",
+  "hipervinculo",
+];
 
 async function main() {
   const sqlEndpoint = process.env.FABRIC_SQL_ENDPOINT_ADECCO;
@@ -29,8 +41,23 @@ async function main() {
   await ensureFabricCapacityActive();
   const pool = await connectFabric(sqlEndpoint, database);
   try {
-    await inspect(pool, "gold_prensa_competencia");
-    await inspect(pool, "gold_prensa_competencia_sov");
+    console.log("\n=== prensa.gold_prensa_competencia: SELECT real (mismas columnas que gold_prensa_adecco) ===");
+    try {
+      const select = COMPETENCIA_SELECT_COLUMNS.map((c) => `[${c}]`).join(", ");
+      const rows = await pool
+        .request()
+        .query(`SELECT TOP 5 ${select} FROM prensa.gold_prensa_competencia`);
+      console.log("SELECT OK, muestra:", JSON.stringify(rows.recordset));
+    } catch (error) {
+      console.log("SELECT FALLA:", String(error).split("\n")[0]);
+    }
+
+    console.log("\n=== Buscando 'sov' en todo el catálogo (cualquier schema) ===");
+    const found = await pool.request().query(
+      `SELECT TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES
+       WHERE TABLE_NAME LIKE '%sov%' OR TABLE_NAME LIKE '%competencia%'`,
+    );
+    console.log("TABLAS/VISTAS:", JSON.stringify(found.recordset));
   } finally {
     await pool.close();
     await pauseFabricCapacity();
