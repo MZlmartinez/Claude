@@ -1475,30 +1475,38 @@ function Evolucion({
       m2 = parseInt(hi.slice(5, 7), 10);
     const months: number[] = [];
     for (let m = m1; m <= m2; m++) months.push(m);
-    const series = C.map((c) => {
+    // Share of Voice siempre se calcula sobre repercusiones (notas), más
+    // allá de qué métrica esté eligiendo el usuario para las columnas —
+    // mismo criterio que el mockup de referencia (ver "Evolución mensual y
+    // Share of Voice").
+    const notesByMarca = C.map((c) => months.map((m) => c.rows.filter((r) => parseInt(r.fecha.slice(5, 7), 10) === m).length));
+    const totalByMonth = months.map((_, mi) => notesByMarca.reduce((s, arr) => s + arr[mi], 0));
+    const series = C.map((c, ci) => {
       const covMonth = parseInt(cov[c.marca].slice(5, 7), 10);
-      const data = months.map((m) => {
+      const bar = months.map((m) => {
         const rowsM = c.rows.filter((r) => parseInt(r.fecha.slice(5, 7), 10) === m);
         if (!rowsM.length) return m > covMonth ? null : 0;
         if (metric === "n") return rowsM.length;
         return rowsM.reduce((a, x) => a + ((metric === "r" ? x.reach : x.vap) ?? 0), 0);
       });
-      return { marca: c.marca, data };
+      const sov = months.map((_, mi) => (totalByMonth[mi] ? (notesByMarca[ci][mi] / totalByMonth[mi]) * 100 : null));
+      return { marca: c.marca, bar, sov };
     });
     return { months, series };
   }, [C, lo, hi, metric, MAXISO, CMAX]);
 
   const label = metric === "n" ? "Repercusiones" : metric === "r" ? "Reach" : "VAP";
   const fmt = metric === "n" ? F.int : metric === "r" ? F.compact : F.moneyc;
-  const sub = all
-    ? `${label} por mes. Cada línea termina en el último mes cargado de su consultora.`
-    : `${label} por mes dentro del período elegido.`;
+  const sub =
+    all && CMAX !== MAXISO
+      ? "Cada serie termina en el último mes cargado de su consultora."
+      : "Mes a mes dentro del período elegido, con el volumen de cada consultora y su peso en el total del trío.";
 
   return (
     <div className="pr-card wide">
       <div className="pr-head">
         <div>
-          <h2>Evolución mensual</h2>
+          <h2>Evolución mensual y Share of Voice</h2>
           <p>{sub}</p>
         </div>
         <div className="pr-seg" role="group" aria-label="Indicador">
@@ -1521,14 +1529,24 @@ function Evolucion({
           </span>
         ))}
       </div>
+      <div className="pr-dlegend" style={{ justifyContent: "flex-start" }}>
+        <span>
+          <i style={{ width: 14, height: 10, borderRadius: 2, background: "var(--ink3)", opacity: 0.4 }} />
+          <strong>Columnas</strong> (eje izquierdo): {label.toLowerCase()} de cada mes
+        </span>
+        <span>
+          <i style={{ width: 18, height: 0, borderRadius: 0, borderTop: "3px solid var(--ink3)" }} />
+          <strong>Líneas</strong> (eje derecho): Share of Voice, el porcentaje de las notas del trío que publicó cada consultora
+        </span>
+      </div>
       <div ref={wrapRef} className="pr-box tall" style={{ position: "relative" }}>
-        <MultiLineChart months={months} series={series} width={width} fmt={fmt} hover={hover} setHover={setHover} />
+        <EvolucionSovChart months={months} series={series} width={width} fmt={fmt} hover={hover} setHover={setHover} />
       </div>
     </div>
   );
 }
 
-function MultiLineChart({
+function EvolucionSovChart({
   months,
   series,
   width,
@@ -1537,7 +1555,7 @@ function MultiLineChart({
   setHover,
 }: {
   months: number[];
-  series: { marca: Marca; data: (number | null)[] }[];
+  series: { marca: Marca; bar: (number | null)[]; sov: (number | null)[] }[];
   width: number;
   fmt: (v: number) => string;
   hover: number | null;
@@ -1546,15 +1564,22 @@ function MultiLineChart({
   const W = width,
     H = 320,
     top = 10,
-    bottom = 26;
-  const vals = series.flatMap((s) => s.data.filter((v): v is number => v != null));
-  const maxY = Math.max(1, ...vals) * 1.1;
+    bottom = 26,
+    right = 40;
+  const barVals = series.flatMap((s) => s.bar.filter((v): v is number => v != null));
+  const maxY = Math.max(1, ...barVals) * 1.1;
   const yt = ticks(maxY, 5);
   const left = Math.max(...yt.map((v) => fmt(v).length), 2) * 6.5 + 16;
-  const right = 12;
   const n = months.length;
-  const xAt = (i: number) => (n > 1 ? left + (i / (n - 1)) * (W - left - right) : (left + W - right) / 2);
+  const groupW = n > 0 ? (W - left - right) / n : 0;
+  const barsW = groupW * 0.62;
+  const gap = 4;
+  const barW = Math.max(6, (barsW - gap * (series.length - 1)) / series.length);
+  const xGroup = (i: number) => left + i * groupW + (groupW - barsW) / 2;
+  const xBar = (gi: number, si: number) => xGroup(gi) + si * (barW + gap);
+  const xCenter = (i: number) => left + (i + 0.5) * groupW;
   const yAt = (v: number) => H - bottom - (Math.max(0, v) / maxY) * (H - bottom - top);
+  const yPctAt = (v: number) => H - bottom - (Math.max(0, Math.min(100, v)) / 100) * (H - bottom - top);
 
   const onMove = (e: React.MouseEvent<SVGRectElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -1562,7 +1587,7 @@ function MultiLineChart({
     let best = 0,
       bestD = Infinity;
     months.forEach((_, i) => {
-      const d = Math.abs(xAt(i) - mxPos);
+      const d = Math.abs(xCenter(i) - mxPos);
       if (d < bestD) {
         bestD = d;
         best = i;
@@ -1578,48 +1603,73 @@ function MultiLineChart({
       <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: "block", overflow: "visible" }}>
         <g className="pr-axis">
           {yt.map((v) => (
-            <line key={v} x1={left} x2={W - 4} y1={yAt(v)} y2={yAt(v)} />
+            <line key={v} x1={left} x2={W - right} y1={yAt(v)} y2={yAt(v)} />
           ))}
           {yt.map((v) => (
             <text key={v} x={left - 8} y={yAt(v)} dy="0.35em" textAnchor="end">
               {fmt(v)}
             </text>
           ))}
+          {[0, 20, 40, 60, 80, 100].map((v) => (
+            <text key={v} x={W - right + 8} y={yPctAt(v)} dy="0.35em" textAnchor="start">
+              {v}%
+            </text>
+          ))}
         </g>
         {months.map((m, i) => (
-          <text key={m} x={xAt(i)} y={H - 6} textAnchor="middle" className="pr-axis" style={{ fontSize: 11 }}>
+          <text key={m} x={xCenter(i)} y={H - 6} textAnchor="middle" className="pr-axis" style={{ fontSize: 11 }}>
             {monthShort(m)}
           </text>
         ))}
+        {months.map((_, gi) =>
+          series.map((s, si) => {
+            const v = s.bar[gi];
+            if (v == null) return null;
+            return (
+              <rect
+                key={`${s.marca}-${gi}`}
+                x={xBar(gi, si)}
+                width={barW}
+                y={yAt(Math.max(0, v))}
+                height={Math.max(0, yAt(0) - yAt(Math.max(0, v)))}
+                rx={Math.min(4, barW / 2)}
+                fill={COLOR_MARCA[s.marca]}
+                fillOpacity={0.35}
+              />
+            );
+          }),
+        )}
         {series.map((s) => {
           let path = "",
             started = false;
-          s.data.forEach((v, i) => {
+          s.sov.forEach((v, i) => {
             if (v == null) {
               started = false;
               return;
             }
-            path += `${started ? "L" : "M"} ${xAt(i).toFixed(1)} ${yAt(v).toFixed(1)} `;
+            path += `${started ? "L" : "M"} ${xCenter(i).toFixed(1)} ${yPctAt(v).toFixed(1)} `;
             started = true;
           });
           return <path key={s.marca} d={path} fill="none" stroke={COLOR_MARCA[s.marca]} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />;
         })}
         {hover != null &&
           series.map((s) => {
-            const v = s.data[hover];
-            return v == null ? null : <circle key={s.marca} cx={xAt(hover)} cy={yAt(v)} r={5} fill={COLOR_MARCA[s.marca]} stroke="var(--card)" strokeWidth={2} />;
+            const v = s.sov[hover];
+            return v == null ? null : <circle key={s.marca} cx={xCenter(hover)} cy={yPctAt(v)} r={5} fill={COLOR_MARCA[s.marca]} stroke="var(--card)" strokeWidth={2} />;
           })}
-        <rect x={left} y={0} width={Math.max(0, W - left)} height={H} fill="transparent" onMouseMove={onMove} onMouseLeave={() => setHover(null)} />
+        <rect x={left} y={0} width={Math.max(0, W - left - right)} height={H} fill="transparent" onMouseMove={onMove} onMouseLeave={() => setHover(null)} />
       </svg>
       {hover != null && (
-        <div className="pr-tip" style={{ left: Math.max(0, Math.min(W - 170, xAt(hover) + 12)), top: 8 }}>
+        <div className="pr-tip" style={{ left: Math.max(0, Math.min(W - 200, xCenter(hover) + 12)), top: 8 }}>
           <div className="pr-tip-h">{monthShort(months[hover])}</div>
           {series.map((s) => {
-            const v = s.data[hover];
+            const bar = s.bar[hover];
+            const sov = s.sov[hover];
             return (
               <div key={s.marca}>
                 <Dot color={COLOR_MARCA[s.marca]} />
-                {FMT_MARCA[s.marca]}: {v == null ? "sin datos" : fmt(v)}
+                {FMT_MARCA[s.marca]}: {bar == null ? "sin datos" : fmt(bar)}
+                {sov != null && <span className="pr-note"> · SoV {F.pct(sov)}</span>}
               </div>
             );
           })}
